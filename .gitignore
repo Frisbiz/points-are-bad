@@ -1,0 +1,6 @@
+node_modules
+.next
+.turbo
+apps/api/data
+*.log
+npm-debug.log*

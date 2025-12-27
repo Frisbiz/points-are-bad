@@ -1,0 +1,17 @@
+{
+  "name": "points-are-bad",
+  "version": "1.0.0",
+  "description": "Monorepo for Points Are Bad app",
+  "private": true,
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "lint": "npm --workspace apps/web run lint",
+    "build": "npm --workspace apps/web run build",
+    "start:api": "npm --workspace apps/api start"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ]
+}
