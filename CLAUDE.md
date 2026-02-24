@@ -15,12 +15,12 @@ There are no tests in this project.
 
 ## Architecture
 
-This is a single-page React app for a Premier League prediction game. The entire application lives in **`src/App.jsx`** (~810 lines) — all components, state, data access, and styling are colocated in this one file.
+This is a single-page React app for a Premier League prediction game. The entire application lives in **`src/App.jsx`** (810 lines) — all components, state, data access, and styling are colocated in this one file.
 
 ### External Services
 
-- **Firebase Firestore** — all persistence. Config is embedded in `App.jsx` as `FIREBASE_CONFIG`.
-- **football-data.org API** — Premier League fixture/result data. The global API key `GLOBAL_API_KEY` and base URL `FD_BASE` are hardcoded in `App.jsx`.
+- **Firebase Firestore** — all persistence. Config is embedded in `App.jsx` as `FIREBASE_CONFIG`. The Firebase SDK is loaded via **dynamic ESM imports from the Google CDN** (`https://www.gstatic.com/firebasejs/11.10.0/`) at runtime — it is not imported from `node_modules/firebase` even though that package is listed in `package.json`.
+- **football-data.org API** — Premier League fixture/result data. The global API key `GLOBAL_API_KEY` and base URL `FD_BASE` are hardcoded in `App.jsx`. `fetchMatchweek(apiKey, matchday, season)` calls the API; `parseMatchesToFixtures` transforms the response.
 
 ### Firestore Data Model
 
@@ -31,11 +31,14 @@ This is a single-page React app for a Premier League prediction game. The entire
 | `groupcode:{code}` | Maps 4-digit invite code → group ID |
 | `data` collection | Generic key-value store |
 
-Reads/writes go through two thin wrappers: `sget(key)` and `sset(key, val)`. LocalStorage is used for session state via `lget()`, `lset()`, `ldel()`.
+All reads/writes go through `sget(key)` and `sset(key, val)`. LocalStorage is used for session state via `lget()`, `lset()`, `ldel()`.
 
-### Scoring
+### Key Functions
 
-Points = sum of |predicted goals − actual goals| per match. Lower is better. Perfect predictions (0 points) are tracked separately.
+- `computeStats(group)` — derives per-member leaderboard data (totals, averages, perfects, per-GW breakdown) from raw Firestore group data; used by `LeagueTab` and `TrendsTab`.
+- `calcPts(pred, result)` — core scoring: sum of absolute goal differences (`|pH-rH| + |pA-rA|`). Lower is better.
+- `makeFixturesFallback(gw)` — generates deterministic placeholder fixtures when the API is unavailable.
+- `updateGroup(fn)` — functional updater pattern passed as a prop into tab components. It reads the latest group from Firestore, applies `fn(currentGroup)`, writes the result back, and refreshes local state.
 
 ### Component Tree (all in App.jsx)
 
@@ -48,12 +51,20 @@ App
     ├── FixturesTab     — enter predictions + results
     ├── TrendsTab       — charts (Recharts): cumulative, distribution, perfects
     ├── MembersTab      — member management, admin controls
-    └── GroupTab        — settings, invite code, API key config
+    └── GroupTab        — settings, invite code, season config
 ```
+
+### Shared UI Primitives (defined in App.jsx, use these instead of raw elements)
+
+- `Btn` — button with variants: `default`, `ghost`, `danger`, `success`, `muted`, `amber`. Accepts `small` and `style` props.
+- `Input` — styled text input; use instead of `<input>`.
+- `Avatar` — initials avatar with deterministic hue from name.
+- `BadgeScore` — coloured score badge (green=0, amber≤2, red>2).
+- `Section` — labelled section wrapper with uppercase title.
 
 ### Styling
 
-All styles are inline React objects. Dark theme: `#080810` background, `#e8e4d9` text. Fonts loaded from Google Fonts: DM Mono (body) and Playfair Display (headings).
+All styles are inline React objects. Dark theme: `#080810` background, `#e8e4d9` text. Fonts loaded from Google Fonts: DM Mono (body) and Playfair Display (headings). Global CSS (scrollbars, animations, tab styles) is injected via a `<style>` tag using the `CSS` string constant.
 
 ### Deployment
 
