@@ -73,7 +73,7 @@ const TEAM_NAME_MAP = {
 
 function normName(n) { return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, "").replace(/ AFC$/, "") || n; }
 
-async function fetchMatchweek(apiKey, matchday, season = 2024) {
+async function fetchMatchweek(apiKey, matchday, season = 2025) {
   const url = `/api/fixtures?matchday=${matchday}&season=${season}`;
   const res = await fetch(url);
   if (!res.ok) {
@@ -278,7 +278,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setCreating(true);
     const id = Date.now().toString();
     const code = genCode();
-    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:[{gw:1,fixtures:makeFixturesFallback(1)}],currentGW:1,apiKey:"",season:2024};
+    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:[{gw:1,fixtures:makeFixturesFallback(1)}],currentGW:1,apiKey:"",season:2025};
     await sset(`group:${id}`,group);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
@@ -492,7 +492,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
     // Global API key always available
     setFetching(true);setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
     try {
-      const matches = await fetchMatchweek(group.apiKey,currentGW,group.season||2024);
+      const matches = await fetchMatchweek(group.apiKey,currentGW,group.season||2025);
       if (!matches.length){setFetchMsg("No matches found for this gameweek.");setFetching(false);return;}
       const newFixtures = parseMatchesToFixtures(matches,currentGW);
       await updateGroup(g=>({...g,gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW?{...gw,fixtures:newFixtures}:gw)}));
@@ -718,12 +718,12 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [nameSaved,setNameSaved]=useState(false);
   const [apiKey,setApiKey]=useState(group.apiKey||"");
   const [apiSaved,setApiSaved]=useState(false);
-  const [season,setSeason]=useState(String(group.season||2024));
+  const [season,setSeason]=useState(String(group.season||2025));
   const [copied,setCopied]=useState(false);
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
-  const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:apiKey.trim(),season:parseInt(season)||2024}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
+  const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:apiKey.trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
   const leaveGroup=async()=>{
     if(isCreator)return;
     const fresh=await sget(`user:${user.username}`);
@@ -760,7 +760,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
             <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid #1a2a1a"}}>
               <div style={{fontSize:10,color:"#444",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <Input value={season} onChange={setSeason} placeholder="2024" style={{width:90}}/>
+                <Input value={season} onChange={setSeason} placeholder="2025" style={{width:90}}/>
                 <Btn onClick={saveApiKey} variant={apiSaved?"success":"default"} small>{apiSaved?"Saved! ✓":"Save"}</Btn>
               </div>
             </div>
@@ -779,7 +779,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
       <Section title="Info">
         <div style={{background:"#0c0c18",border:"1px solid #12121e",borderRadius:10,padding:"16px 20px",fontSize:12,color:"#555",lineHeight:2.2}}>
-          {[["Members",group.members?.length],["Gameweeks",group.gameweeks?.length],["API Status","⚡ Active"],["Season",group.season||2024],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
+          {[["Members",group.members?.length],["Gameweeks",group.gameweeks?.length],["API Status","⚡ Active"],["Season",group.season||2025],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid #0e0e18",paddingBottom:4}}>
               <span style={{color:"#2a2a3a"}}>{l}</span>
               <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"#555"):"inherit"}}>{v}</span>
