@@ -616,6 +616,14 @@ function AllPicksTable({group,gwFixtures}) {
               </tr>
             ))}
           </tbody>
+          {scored.length>0&&<tfoot><tr style={{borderTop:"2px solid #1a1a26"}}>
+            <td style={{padding:"10px 12px",color:"#2a2a3a",letterSpacing:2,fontSize:10}}>TOTAL</td>
+            <td/>
+            {members.map(u=>{
+              const total=scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0);
+              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:"#e8e4d9"}}>{total}</td>;
+            })}
+          </tr></tfoot>}
         </table>
       </div>
     </div>
