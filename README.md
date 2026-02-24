@@ -1,16 +1,69 @@
-# React + Vite
+# Points Are Bad
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Premier League score prediction game to play with friends. Every gameweek, everyone submits their predicted scorelines. The further off you are, the more points you get. Lowest score wins.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## How It Works
 
-## React Compiler
+Before each gameweek kicks off, you predict the exact scoreline for every match. Once results are in, points are calculated like this:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+> Each goal your prediction is off costs you 1 point.
 
-## Expanding the ESLint configuration
+So if you predict 1-1 and the actual result is 2-3, that's 1+2 = **3 points**. Nail the exact score and you get **0 points** and a star to brag about.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+At the end of the season, whoever has the fewest points wins.
+
+---
+
+## Getting Started
+
+1. Create an account (just a username and password, nothing fancy)
+2. Create a group or join one with a 4-digit invite code
+3. Head to the Fixtures tab and start predicting
+
+That's it. Share your group code with friends and you're off.
+
+---
+
+## Features
+
+**Predictions** -- Submit scorelines for each match in a gameweek before they're played.
+
+**Live fixture sync** -- Admins can pull the latest fixtures and results directly from the Premier League with one click.
+
+**Leaderboard** -- A running table sorted by total points, lowest first. Updated as results come in.
+
+**Trends** -- Charts showing how each player's points are tracking over the season: per-gameweek scores, a cumulative race, perfect predictions, and a points distribution breakdown.
+
+**Perfect predictions** -- Getting a scoreline exactly right (0 points) is tracked separately because it deserves recognition.
+
+**Admin controls** -- Group creators can promote admins, kick members, and manage group settings.
+
+---
+
+## Scoring at a Glance
+
+| Prediction | Result | Points |
+|---|---|---|
+| 2-1 | 2-1 | 0 (perfect!) |
+| 1-0 | 2-0 | 1 |
+| 1-1 | 2-3 | 3 |
+| 0-0 | 4-2 | 6 |
+
+Lower is always better.
+
+---
+
+## Running Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) and you're good to go.
+
+---
+
+Built with React, Firebase, and a lot of wishful thinking about scorelines.
