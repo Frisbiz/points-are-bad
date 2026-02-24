@@ -2,17 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 // ─── FIREBASE CONFIG ────────────────────────────────────────────────────────
-// 1. Go to https://console.firebase.google.com
-// 2. Create a project → Add a web app → copy the firebaseConfig object
-// 3. Go to Firestore Database → Create database (start in test mode)
-// 4. Paste your config values below
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDj0g_yz_o5xikBsvkffcwwIpumjGizyVo",
-  authDomain: "pointsarebad-5c22d.firebaseapp.com",
-  projectId: "pointsarebad-5c22d",
-  storageBucket: "pointsarebad-5c22d.firebasestorage.app",
-  messagingSenderId: "858827604785",
-  appId: "1:858827604785:web:4a352c691610d3d02a6610",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // ─── FIRESTORE HELPERS ───────────────────────────────────────────────────────
@@ -62,7 +58,7 @@ function ldel(key) {
 const FD_BASE = "https://api.football-data.org/v4";
 const PL_CODE = "PL";
 // Global API key — works for all groups automatically
-const GLOBAL_API_KEY = "106cd39eceac4542ba56c74a05f11344";
+const GLOBAL_API_KEY = import.meta.env.VITE_FD_API_KEY;
 
 const TEAM_NAME_MAP = {
   "Arsenal FC": "Arsenal", "Aston Villa FC": "Aston Villa", "AFC Bournemouth": "Bournemouth",
