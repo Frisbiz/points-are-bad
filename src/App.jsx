@@ -74,11 +74,8 @@ const TEAM_NAME_MAP = {
 function normName(n) { return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, "").replace(/ AFC$/, "") || n; }
 
 async function fetchMatchweek(apiKey, matchday, season = 2024) {
-  const key = apiKey || GLOBAL_API_KEY;
-  const url = `${FD_BASE}/competitions/${PL_CODE}/matches?matchday=${matchday}&season=${season}`;
-  const res = await fetch(url, {
-    headers: { "X-Auth-Token": key }
-  });
+  const url = `/api/fixtures?matchday=${matchday}&season=${season}`;
+  const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 403) throw new Error("Invalid API key.");
     if (res.status === 429) throw new Error("Rate limited. Wait a minute and try again.");
