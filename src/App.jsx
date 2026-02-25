@@ -452,8 +452,6 @@ export default function App() {
 /* ── GAME SHELL ──────────────────────────────────── */
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,refreshGroup,dark,toggleDark}) {
   useEffect(()=>{refreshGroup();},[tab]);
-  const activeSeason = group.season || 2025;
-  const gwFixtures = group.gameweeks?.find(g=>g.gw===group.currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState({});
   useEffect(()=>{
@@ -499,7 +497,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} gwFixtures={gwFixtures} names={names}/>}
+        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} names={names}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave}/>}
@@ -579,7 +577,7 @@ function NextMatchCountdown({ group }) {
   );
 }
 
-function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
+function FixturesTab({group,user,isAdmin,updateGroup,names}) {
   const mob = useMobile();
   const gwStripRef = useRef(null);
   const [resultDraft,setResultDraft]=useState({});
@@ -593,7 +591,20 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   const [deleteGWStep, setDeleteGWStep] = useState(0);
   const [wizardPred, setWizardPred] = useState("");
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
-  const currentGW = group.currentGW||1;
+  const [viewGW, setViewGW] = useState(()=>{
+    const seas = group.season||2025;
+    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
+    const preds = group.predictions?.[user.username]||{};
+    const now = new Date();
+    const next = seasonGWs.find(gwObj=>gwObj.fixtures.some(f=>{
+      const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=now));
+      return !locked&&!preds[f.id];
+    }));
+    return next ? next.gw : (group.currentGW||1);
+  });
+  const activeSeason = group.season||2025;
+  const currentGW = viewGW;
+  const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
   const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
@@ -680,38 +691,39 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   };
 
   const deleteGW = async () => {
-    const activeSeason = group.season || 2025;
+    const seas0 = group.season || 2025;
     const gwToDelete = currentGW;
+    let capturedNewGW = group.currentGW||1;
     await updateGroup(g=>{
-      const seas = g.season || activeSeason;
-      // Get fixture IDs for the GW being deleted so we can clean up predictions
+      const seas = g.season || seas0;
       const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToDelete&&(gw.season||seas)===seas);
       const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
       const filtered = (g.gameweeks||[]).filter(gw=>!(gw.gw===gwToDelete&&(gw.season||seas)===seas));
       const remainingSeasonGWs = filtered.filter(gw=>(gw.season||seas)===seas);
-      const newCurrentGW = remainingSeasonGWs.length>0 ? Math.max(...remainingSeasonGWs.map(gw=>gw.gw)) : (filtered.length>0 ? filtered[filtered.length-1].gw : 1);
-      // Clean up predictions for deleted fixtures
+      capturedNewGW = remainingSeasonGWs.length>0 ? Math.max(...remainingSeasonGWs.map(gw=>gw.gw)) : (filtered.length>0 ? filtered[filtered.length-1].gw : 1);
       const preds = {...(g.predictions||{})};
       Object.keys(preds).forEach(u=>{
         const up = {...preds[u]};
         fixtureIds.forEach(id=>{delete up[id];});
         preds[u] = up;
       });
-      return {...g, gameweeks:filtered, currentGW:newCurrentGW, predictions:preds};
+      return {...g, gameweeks:filtered, currentGW:capturedNewGW, predictions:preds};
     });
+    setViewGW(capturedNewGW);
     setDeleteGWStep(0);
   };
 
-  const setGW = async (gw) => {setDeleteGWStep(0);setSyncModalOpen(false);await updateGroup(g=>({...g,currentGW:gw}));};
+  const setGW = (gw) => {setDeleteGWStep(0);setSyncModalOpen(false);setViewGW(gw);};
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
-    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw);
-    const idx = seasonGWs.findIndex(g=>g.gw===currentGW);
+    const seas = group.season||2025;
+    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
+    const idx = seasonGWs.findIndex(g=>g.gw===viewGW);
     if (idx<0) return;
     const pos = idx*57 - gwStripRef.current.clientWidth/2 + 27;
     gwStripRef.current.scrollLeft = Math.max(0, pos);
-  },[currentGW]);
+  },[]);
 
   useEffect(()=>{
     if (lget(wizardKey)===currentGW) return;
