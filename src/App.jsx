@@ -678,7 +678,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
       const seas = g.season || seas0;
       const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToClear&&(gw.season||seas)===seas);
       const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
-      const freshFixtures = makeFixturesFallback(gwToClear, seas===2025?undefined:seas);
+      const prefix = seas!==2025?`${seas}-`:"";
+      const freshFixtures = Array.from({length:10},(_,i)=>({id:`${prefix}gw${gwToClear}-f${i}`,home:"TBD",away:"TBD",result:null,status:"SCHEDULED"}));
       const preds = {...(g.predictions||{})};
       Object.keys(preds).forEach(u=>{
         const up = {...preds[u]};
