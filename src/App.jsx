@@ -538,6 +538,20 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
 
   const savePred = async (fixtureId, val) => {
     if (!/^\d+-\d+$/.test(val)) return;
+    if (val === "1-1") {
+      const limit = group.draw11Limit || "unlimited";
+      if (limit !== "unlimited") {
+        const max = limit === "none" ? 0 : parseInt(limit);
+        const used = gwFixtures.filter(f => f.id !== fixtureId && myPreds[f.id] === "1-1").length;
+        if (used >= max) {
+          alert(max === 0
+            ? "1-1 predictions are not allowed in this group."
+            : `You can only make ${max} 1-1 prediction${max > 1 ? "s" : ""} per gameweek. Limit reached.`);
+          setPredDraft(d => ({...d, [fixtureId]: myPreds[fixtureId] || ""}));
+          return;
+        }
+      }
+    }
     setSaving(s=>({...s,[fixtureId]:true}));
     await updateGroup(g=>{const p={...(g.predictions||{})};p[user.username]={...(p[user.username]||{}),[fixtureId]:val};return {...g,predictions:p};});
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
@@ -882,8 +896,10 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [apiSaved,setApiSaved]=useState(false);
   const [season,setSeason]=useState(String(group.season||2025));
   const [copied,setCopied]=useState(false);
+  const [limitSaved,setLimitSaved]=useState(false);
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
+  const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
   const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
   const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:apiKey.trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
   const leaveGroup=async()=>{
@@ -897,6 +913,19 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   return (
     <div style={{maxWidth:520}}>
       <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
+
+      {isAdmin&&(
+        <Section title="Prediction Limits">
+          <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10,letterSpacing:0.3}}>Max 1-1 predictions per gameweek</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[["unlimited","Unlimited"],["2","2 / week"],["1","1 / week"],["none","None"]].map(([val,label])=>{
+              const active=(group.draw11Limit||"unlimited")===val;
+              return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+            })}
+          </div>
+          {limitSaved&&<div style={{fontSize:11,color:"#22c55e",marginTop:8}}>Saved</div>}
+        </Section>
+      )}
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
