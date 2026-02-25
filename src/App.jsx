@@ -119,13 +119,14 @@ const CLUB_COLORS = {
   "Southampton":"#D71920","Spurs":"#132257","West Ham":"#7A263A","Wolves":"#FDB913"
 };
 
-function makeFixturesFallback(gw) {
+function makeFixturesFallback(gw, season) {
   const CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];
   const seed = gw * 9301 + 49297;
   const rng = (n) => { let s = seed+n; s=((s>>16)^s)*0x45d9f3b; s=((s>>16)^s)*0x45d9f3b; return ((s>>16)^s)>>>0; };
   const arr = [...CLUBS];
   for (let i = arr.length-1; i > 0; i--) { const j = rng(i)%(i+1); [arr[i],arr[j]]=[arr[j],arr[i]]; }
-  return Array.from({length:10}, (_,i) => ({ id:`gw${gw}-f${i}`, home:arr[i*2], away:arr[i*2+1], result:null, status:"SCHEDULED" }));
+  const prefix = season && season !== 2025 ? `${season}-` : "";
+  return Array.from({length:10}, (_,i) => ({ id:`${prefix}gw${gw}-f${i}`, home:arr[i*2], away:arr[i*2+1], result:null, status:"SCHEDULED" }));
 }
 
 const Avatar = ({ name, size = 36 }) => {
@@ -192,13 +193,17 @@ const CSS = `
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
   .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:stretch;height:54px;}
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:70px!important;}}
+  .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
 `;
 
 function computeStats(group) {
   const preds = group.predictions||{};
+  const activeSeason = group.season || 2025;
+  const scope = group.scoreScope || "all";
+  const filteredGWs = (group.gameweeks||[]).filter(g => scope === "all" || (g.season || activeSeason) === activeSeason);
   return (group.members||[]).map(username => {
     let total=0, scored=0, perfects=0;
-    const gwTotals = (group.gameweeks||[]).map(g => {
+    const gwTotals = filteredGWs.map(g => {
       let gwPts=0;
       g.fixtures.forEach(f => {
         if (!f.result) return;
@@ -439,7 +444,8 @@ export default function App() {
 /* ── GAME SHELL ──────────────────────────────────── */
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,refreshGroup,dark,toggleDark}) {
   useEffect(()=>{refreshGroup();},[tab]);
-  const gwFixtures = group.gameweeks?.find(g=>g.gw===group.currentGW)?.fixtures||[];
+  const activeSeason = group.season || 2025;
+  const gwFixtures = group.gameweeks?.find(g=>g.gw===group.currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState({});
   useEffect(()=>{
@@ -624,8 +630,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   };
 
   const addGW = async () => {
-    const next = (group.gameweeks?.length||0)+1;
-    await updateGroup(g=>({...g,gameweeks:[...(g.gameweeks||[]),{gw:next,fixtures:makeFixturesFallback(next)}],currentGW:next}));
+    const activeSeason = group.season || 2025;
+    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason);
+    const next = seasonGWs.length>0 ? Math.max(...seasonGWs.map(g=>g.gw))+1 : 1;
+    await updateGroup(g=>({...g,gameweeks:[...(g.gameweeks||[]),{gw:next,season:activeSeason,fixtures:makeFixturesFallback(next,activeSeason)}],currentGW:next}));
   };
 
   const setGW = async (gw) => {await updateGroup(g=>({...g,currentGW:gw}));};
@@ -635,9 +643,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <div style={{display:"flex",gap:3}}>
-            {(group.gameweeks||[]).map(g=>(
-              <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1}}>GW{g.gw}</button>
+          <div className="gw-strip" style={{display:"flex",gap:3,maxWidth:280}}>
+            {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).map(g=>(
+              <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0}}>GW{g.gw}</button>
             ))}
           </div>
           {isAdmin&&<Btn variant="muted" small onClick={addGW}>+ GW</Btn>}
@@ -825,7 +833,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
 function TrendsTab({group,names}) {
   const stats = computeStats(group);
   const members = group.members||[];
-  const gws = group.gameweeks||[];
+  const activeSeason = group.season || 2025;
+  const scope = group.scoreScope || "all";
+  const gws = (group.gameweeks||[]).filter(g => scope === "all" || (g.season||activeSeason) === activeSeason);
   const hasData = stats.some(p=>p.scored>0);
   const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
@@ -954,11 +964,27 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [season,setSeason]=useState(String(group.season||2025));
   const [copied,setCopied]=useState(false);
   const [limitSaved,setLimitSaved]=useState(false);
+  const [newSeasonYear,setNewSeasonYear]=useState("");
+  const [seasonMsg,setSeasonMsg]=useState("");
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
   const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
   const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:apiKey.trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
+  const saveScope=async(val)=>{await updateGroup(g=>({...g,scoreScope:val}));};
+  const startNewSeason=async()=>{
+    const yr=parseInt(newSeasonYear);
+    if(!yr||yr<2020||yr>2060){setSeasonMsg("Enter a valid year.");setTimeout(()=>setSeasonMsg(""),3000);return;}
+    const prevSeason=group.season||2025;
+    await updateGroup(g=>{
+      const backfilled=(g.gameweeks||[]).map(gw=>gw.season?gw:{...gw,season:prevSeason});
+      const newGW={gw:1,season:yr,fixtures:makeFixturesFallback(1,yr)};
+      return {...g,gameweeks:[...backfilled,newGW],season:yr,currentGW:1};
+    });
+    setNewSeasonYear("");
+    setSeasonMsg(`Season ${yr} started!`);
+    setTimeout(()=>setSeasonMsg(""),3000);
+  };
   const leaveGroup=async()=>{
     if(isCreator)return;
     const fresh=await sget(`user:${user.username}`);
@@ -970,6 +996,49 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   return (
     <div style={{maxWidth:520}}>
       <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
+
+      {isAdmin&&(
+        <Section title="Seasons">
+          {(()=>{
+            const activeSeason=group.season||2025;
+            const allSeasons=[...new Set((group.gameweeks||[]).map(g=>g.season||activeSeason))].sort((a,b)=>a-b);
+            return (
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {allSeasons.map(s=>{
+                    const gwCount=(group.gameweeks||[]).filter(g=>(g.season||activeSeason)===s).length;
+                    const isActive=s===activeSeason;
+                    return (
+                      <div key={s} style={{background:isActive?"var(--card-hi)":"var(--card)",border:`1px solid ${isActive?"#3a3a6a":"var(--border)"}`,borderRadius:8,padding:"8px 14px",fontSize:11,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{color:isActive?"var(--text-bright)":"var(--text-mid)",fontWeight:isActive?700:400}}>{s}</span>
+                        <span style={{color:"var(--text-dim)"}}>{gwCount} GW{gwCount!==1?"s":""}</span>
+                        {isActive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:3,padding:"1px 5px"}}>ACTIVE</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Start a new season</div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <Input value={newSeasonYear} onChange={setNewSeasonYear} placeholder="Year e.g. 2026" style={{width:150}} onKeyDown={e=>e.key==="Enter"&&startNewSeason()}/>
+                    <Btn onClick={startNewSeason} disabled={!newSeasonYear.trim()} small>Start →</Btn>
+                  </div>
+                  {seasonMsg&&<div style={{fontSize:11,color:seasonMsg.includes("started")?"#22c55e":"#ef4444",marginTop:8}}>{seasonMsg}</div>}
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Include in scores &amp; trends</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {[["all","All Seasons"],["current","Current Season Only"]].map(([val,label])=>{
+                      const active=(group.scoreScope||"all")===val;
+                      return <button key={val} onClick={()=>saveScope(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </Section>
+      )}
 
       {isAdmin&&(
         <Section title="Prediction Limits">
@@ -1027,7 +1096,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
       <Section title="Info">
         <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
-          {[["Members",group.members?.length],["Gameweeks",group.gameweeks?.length],["API Status","⚡ Active"],["Season",group.season||2025],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
+          {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","⚡ Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
               <span style={{color:"var(--text-dim)"}}>{l}</span>
               <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"#555"):"inherit"}}>{v}</span>
