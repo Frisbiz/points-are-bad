@@ -812,9 +812,28 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
           <div style={{display:"flex",alignItems:"center",gap:3}}>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
             <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:396,overflowX:"auto"}}>
-              {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>(
-                <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 0",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0,minWidth:54,textAlign:"center"}}>GW{g.gw}</button>
-              ))}
+              {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>{
+                const adminHidden = !isAdmin && (group.hiddenGWs||[]).includes(g.gw);
+                return (
+                  <button key={g.gw} onClick={()=>setGW(g.gw)} style={{
+                    background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
+                    color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
+                    border:"1px solid var(--border)",
+                    borderRadius:6,
+                    padding:"5px 0",
+                    fontSize:11,
+                    cursor:"pointer",
+                    fontFamily:"inherit",
+                    letterSpacing:1,
+                    flexShrink:0,
+                    minWidth:54,
+                    textAlign:"center",
+                    opacity:adminHidden?0.4:1,
+                  }}>
+                    {adminHidden?"🔒":""}GW{g.gw}
+                  </button>
+                );
+              })}
             </div>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
