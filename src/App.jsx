@@ -1111,6 +1111,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [limitSaved,setLimitSaved]=useState(false);
   const [newSeasonYear,setNewSeasonYear]=useState("");
   const [seasonMsg,setSeasonMsg]=useState("");
+  const [backfillMsg, setBackfillMsg] = useState("");
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
@@ -1128,6 +1129,18 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     setNewSeasonYear("");
     setSeasonMsg(`Season ${yr} started!`);
     setTimeout(()=>setSeasonMsg(""),3000);
+  };
+  const backfillGWs = async () => {
+    const seas = group.season || 2025;
+    await updateGroup(g => {
+      const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
+      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n));
+      if (!missing.length) return g;
+      const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
+      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs]};
+    });
+    setBackfillMsg("All 38 GWs created.");
+    setTimeout(()=>setBackfillMsg(""),3000);
   };
   const leaveGroup=async()=>{
     if(isCreator)return;
@@ -1161,6 +1174,15 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
                     );
                   })}
                 </div>
+                {isAdmin&&(
+                  <div>
+                    <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Gameweeks</div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <Btn variant="muted" small onClick={backfillGWs}>Create all 38 GWs</Btn>
+                      {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Start a new season</div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
