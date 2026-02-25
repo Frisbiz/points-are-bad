@@ -580,9 +580,18 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   const [saving,setSaving]=useState({});
   const [fetching,setFetching]=useState(false);
   const [fetchMsg,setFetchMsg]=useState("");
+  const [wizardQueue, setWizardQueue] = useState(null);
+  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardPred, setWizardPred] = useState("");
+  const wizardKey = `wizard-seen:${group.id}:${user.username}`;
   const currentGW = group.currentGW||1;
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
+  const unpickedUnlocked = gwFixtures.filter(f=>{
+    const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+    return !locked&&!myPreds[f.id];
+  });
+  const canViewAllPicks = unpickedUnlocked.length===0;
 
   const savePred = async (fixtureId, val) => {
     if (!/^\d+-\d+$/.test(val)) return;
@@ -640,19 +649,77 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
   const setGW = async (gw) => {await updateGroup(g=>({...g,currentGW:gw}));};
 
+  useEffect(()=>{
+    if (lget(wizardKey)===currentGW) return;
+    const unpicked = gwFixtures.filter(f=>{
+      const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+      return !locked&&!myPreds[f.id];
+    });
+    if (unpicked.length>0){setWizardQueue(unpicked);setWizardStep(0);setWizardPred("");}
+    else setWizardQueue(null);
+  },[currentGW,group.id]);
+
+  const showWizard = wizardQueue!==null&&wizardStep<(wizardQueue?.length??0)&&lget(wizardKey)!==currentGW;
+  const wizardFixture = showWizard?wizardQueue[wizardStep]:null;
+  const advanceWizard = ()=>{
+    setWizardPred("");
+    if(!wizardQueue||wizardStep+1>=wizardQueue.length){lset(wizardKey,currentGW);setWizardQueue(null);}
+    else setWizardStep(s=>s+1);
+  };
+  const handleWizardSubmit = async ()=>{
+    if(wizardPred&&/^\d+-\d+$/.test(wizardPred)&&wizardFixture) await savePred(wizardFixture.id,wizardPred);
+    advanceWizard();
+  };
+  const handleWizardSkip = ()=>advanceWizard();
+
   return (
     <div>
+      {showWizard&&wizardFixture&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
+            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>GW{currentGW} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
+            <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
+              <div style={{textAlign:"right",flex:1}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.home]||"#555",display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
+              </div>
+              <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
+              <div style={{textAlign:"left",flex:1}}>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
+                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.away]||"#555",display:"inline-block",marginLeft:6,verticalAlign:"middle"}}/>
+              </div>
+            </div>
+            {wizardFixture.date&&<div style={{fontSize:11,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
+            <Input key={wizardStep} value={wizardPred} onChange={setWizardPred} placeholder="e.g. 2-1" autoFocus
+              onKeyDown={e=>e.key==="Enter"&&wizardPred&&/^\d+-\d+$/.test(wizardPred)&&handleWizardSubmit()}
+              style={{textAlign:"center",fontSize:22,marginBottom:18,letterSpacing:6}}/>
+            <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+              <Btn variant="ghost" small onClick={handleWizardSkip}>Skip</Btn>
+              <Btn onClick={handleWizardSubmit} disabled={!wizardPred||!/^\d+-\d+$/.test(wizardPred)}>
+                {wizardStep+1<wizardQueue.length?"Submit →":"Submit & Done"}
+              </Btn>
+            </div>
+            {wizardQueue.length>1&&(
+              <div style={{display:"flex",gap:6,justifyContent:"center",marginTop:22}}>
+                {wizardQueue.map((_,i)=>(
+                  <div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<wizardStep?"#22c55e":i===wizardStep?"var(--text)":"var(--border)",transition:"background 0.2s"}}/>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"center",gap:3}}>
-            <button onClick={()=>gwStripRef.current&&(gwStripRef.current.scrollLeft-=160)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
-            <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:400,overflowX:"auto"}}>
+            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
+            <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:396,overflowX:"auto"}}>
               {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).map(g=>(
-                <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0}}>GW{g.gw}</button>
+                <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 0",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0,minWidth:54,textAlign:"center"}}>GW{g.gw}</button>
               ))}
             </div>
-            <button onClick={()=>gwStripRef.current&&(gwStripRef.current.scrollLeft+=160)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
+            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
           {isAdmin&&<Btn variant="muted" small onClick={addGW}>+ GW</Btn>}
           {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching}>{fetching?"Fetching...":hasApiKey?"⚡ Sync Fixtures":"⚡ Sync (needs API key)"}</Btn>}
@@ -750,7 +817,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
           </div>
         );
       })}
-      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names}/>}
+      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names}/>}
+      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
+        <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
+          <div style={{fontSize:28,marginBottom:12}}>🔒</div>
+          <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>Submit your picks to unlock all picks</div>
+          <div style={{fontSize:11,color:"var(--text-dim)"}}>{unpickedUnlocked.length} fixture{unpickedUnlocked.length!==1?"s":""} remaining</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -760,6 +834,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
   const members = group.members||[];
   const preds = group.predictions||{};
   const scored = gwFixtures.filter(f=>f.result);
+  const weeklyTotals = members.map(u=>scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0));
+  const sortedUnique = [...new Set(weeklyTotals)].sort((a,b)=>a-b);
+  const weeklyColor = t=>{const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
 
   const editKey = (u,fid) => `${u}:${fid}`;
   const startEdit = (u,fid) => setEditing(e=>({...e,[editKey(u,fid)]:preds[u]?.[fid]||""}));
@@ -824,9 +901,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
           {scored.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--border)"}}>
             <td style={{padding:"10px 12px",color:"var(--text-dim)",letterSpacing:2,fontSize:10}}>TOTAL</td>
             <td/>
-            {members.map(u=>{
-              const total=scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0);
-              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:"var(--text)"}}>{total}</td>;
+            {members.map((u,ui)=>{
+              const total=weeklyTotals[ui];
+              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:weeklyColor(total)}}>{total}</td>;
             })}
           </tr></tfoot>}
         </table>
