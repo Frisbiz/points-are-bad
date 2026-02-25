@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 // ─── FIREBASE CONFIG ────────────────────────────────────────────────────────
@@ -713,8 +714,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
   return (
     <div>
-      {showWizard&&wizardFixture&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      {showWizard&&wizardFixture&&createPortal(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>GW{currentGW} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
@@ -745,8 +746,12 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
                 ))}
               </div>
             )}
+            <div style={{marginTop:18,borderTop:"1px solid var(--border)",paddingTop:14}}>
+              <Btn variant="muted" small onClick={()=>{lset(wizardKey,currentGW);setWizardQueue(null);}}>Skip all</Btn>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
