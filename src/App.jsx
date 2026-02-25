@@ -63,9 +63,10 @@ const GLOBAL_API_KEY = import.meta.env.VITE_FD_API_KEY;
 
 const TEAM_NAME_MAP = {
   "Arsenal FC": "Arsenal", "Aston Villa FC": "Aston Villa", "AFC Bournemouth": "Bournemouth",
-  "Brentford FC": "Brentford", "Brighton & Hove Albion FC": "Brighton", "Chelsea FC": "Chelsea",
-  "Crystal Palace FC": "Crystal Palace", "Everton FC": "Everton", "Fulham FC": "Fulham",
-  "Ipswich Town FC": "Ipswich", "Leicester City FC": "Leicester", "Liverpool FC": "Liverpool",
+  "Brentford FC": "Brentford", "Brighton & Hove Albion FC": "Brighton", "Burnley FC": "Burnley",
+  "Chelsea FC": "Chelsea", "Crystal Palace FC": "Crystal Palace", "Everton FC": "Everton",
+  "Fulham FC": "Fulham", "Ipswich Town FC": "Ipswich", "Leeds United FC": "Leeds",
+  "Leicester City FC": "Leicester", "Liverpool FC": "Liverpool",
   "Manchester City FC": "Man City", "Manchester United FC": "Man Utd", "Newcastle United FC": "Newcastle",
   "Nottingham Forest FC": "Nott'm Forest", "Southampton FC": "Southampton",
   "Tottenham Hotspur FC": "Spurs", "West Ham United FC": "West Ham",
