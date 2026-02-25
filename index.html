@@ -5,9 +5,40 @@
     <link rel="icon" type="image/png" href="/pab.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Points Are Bad</title>
+    <style>
+      body { margin: 0; background: #080810; }
+      #splash {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        gap: 18px;
+      }
+      #splash .ball { font-size: 52px; animation: spin 1.1s linear infinite; }
+      #splash .lbl {
+        color: #e8e4d9;
+        font-family: monospace;
+        font-size: 13px;
+        letter-spacing: .12em;
+        opacity: .45;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <script>
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+      } catch(e) {}
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash">
+        <span class="ball">⚽</span>
+        <span class="lbl">LOADING</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
