@@ -565,6 +565,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
       {gwFixtures.length===0?<div style={{color:"#2a2a3a",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Use '+ GW' or sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
+        const locked = !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         return (
           <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"#0c0c18",borderRadius:8,border:"1px solid #10101e",alignItems:"center",marginBottom:2}}>
@@ -596,12 +597,18 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
               <span style={{fontSize:13,color:"#aaa"}}>{f.away}</span>
             </div>
             <div style={{textAlign:"center"}}>
-              <input value={myPred} placeholder="1-1"
-                onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
-                onBlur={e=>savePred(f.id,e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
-                style={{width:66,background:"#0a0a14",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:12,outline:"none"}}/>
-              {saving[f.id]&&<span style={{fontSize:10,color:"#333",marginLeft:4}}>…</span>}
+              {locked?(
+                <span style={{color:myPreds[f.id]?"#8888cc":"#2a2a3a",fontSize:12,fontFamily:"inherit"}}>{myPreds[f.id]||"–"}</span>
+              ):(
+                <>
+                  <input value={myPred} placeholder="1-1"
+                    onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
+                    onBlur={e=>savePred(f.id,e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
+                    style={{width:66,background:"#0a0a14",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:12,outline:"none"}}/>
+                  {saving[f.id]&&<span style={{fontSize:10,color:"#333",marginLeft:4}}>…</span>}
+                </>
+              )}
             </div>
             <div style={{textAlign:"center"}}><BadgeScore score={pts}/></div>
           </div>
@@ -704,8 +711,9 @@ function TrendsTab({group}) {
   const hasData = stats.some(p=>p.scored>0);
   const tt={background:"#0d0d18",border:"1px solid #2a2a3a",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"#ccc"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
-  const gwLine=gws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw)?.points??0;});return r;});
-  const cumLine=gws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.slice(0,gi+1).reduce((a,e)=>a+e.points,0);});return r;});
+  const completedGws = gws.filter(g=>g.fixtures.length>0&&g.fixtures.every(f=>f.result));
+  const gwLine=completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw)?.points??0;});return r;});
+  const cumLine=completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw)).reduce((a,e)=>a+e.points,0);});return r;});
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result);if(pp===null)return;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
