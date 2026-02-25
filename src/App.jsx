@@ -607,12 +607,12 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
           </div>
         );
       })}
-      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup}/>}
+      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user}/>}
     </div>
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,updateGroup}) {
+function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser}) {
   const [names,setNames]=useState({});
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const members = group.members||[];
@@ -625,7 +625,13 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup}) {
   const savePred = async (u,fid) => {
     const val = editing[editKey(u,fid)];
     if (val && /^\d+-\d+$/.test(val)) {
-      await updateGroup(g=>{const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};return {...g,predictions:p};});
+      const oldVal = preds[u]?.[fid]||null;
+      const fixture = gwFixtures.find(f=>f.id===fid);
+      await updateGroup(g=>{
+        const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};
+        const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:group.currentGW,old:oldVal,new:val};
+        return {...g,predictions:p,adminLog:[...(g.adminLog||[]),entry]};
+      });
     }
     setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
   };
@@ -774,6 +780,32 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup}) {
           );
         })}
       </div>
+      {isAdmin&&(()=>{
+        const log=[...(group.adminLog||[])].reverse().slice(0,50);
+        if(!log.length) return null;
+        return (
+          <div style={{marginTop:40}}>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#fff",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {log.map(e=>(
+                <div key={e.id} style={{background:"#0c0c18",border:"1px solid #10101e",borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{color:"#f59e0b"}}>GW{e.gw}</span>
+                    <span style={{color:"#555"}}>{e.fixture}</span>
+                    <span style={{color:"#2a2a3a"}}>·</span>
+                    <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
+                    <span style={{color:"#333"}}>{e.old||"–"}</span>
+                    <span style={{color:"#2a2a3a"}}>→</span>
+                    <span style={{color:"#4ade80"}}>{e.new}</span>
+                    <span style={{color:"#2a2a3a"}}>by {names[e.by]||e.by}</span>
+                  </div>
+                  <span style={{color:"#252535",fontSize:10}}>{new Date(e.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
