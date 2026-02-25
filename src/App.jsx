@@ -1156,6 +1156,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     if(!yr||yr<2020||yr>2060){setSeasonMsg("Enter a valid year.");setTimeout(()=>setSeasonMsg(""),3000);return;}
     const prevSeason=group.season||2025;
     await updateGroup(g=>{
+      if ((g.gameweeks||[]).some(gw=>(gw.season||g.season||2025)===yr)) return g;
       const backfilled=(g.gameweeks||[]).map(gw=>gw.season?gw:{...gw,season:prevSeason});
       return {...g,gameweeks:[...backfilled,...makeAllGWs(yr)],season:yr,currentGW:1};
     });
@@ -1165,14 +1166,16 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   };
   const backfillGWs = async () => {
     const seas = group.season || 2025;
+    let added = 0;
     await updateGroup(g => {
       const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
       const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n));
-      if (!missing.length) return g;
+      if (!missing.length) { added = 0; return g; }
+      added = missing.length;
       const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
       return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs]};
     });
-    setBackfillMsg("All 38 GWs created.");
+    setBackfillMsg(added > 0 ? `Added ${added} missing GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const leaveGroup=async()=>{
