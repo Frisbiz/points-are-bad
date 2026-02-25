@@ -317,7 +317,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setCreating(true);
     const id = Date.now().toString();
     const code = genCode();
-    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:1,apiKey:"",season:2025};
+    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:1,apiKey:"",season:2025,hiddenGWs:[]};
     await sset(`group:${id}`,group);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
