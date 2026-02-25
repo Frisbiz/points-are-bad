@@ -138,7 +138,7 @@ const Avatar = ({ name, size = 36, color }) => {
 };
 
 const BadgeScore = ({ score }) => {
-  if (score===null||score===undefined) return <span style={{color:"#444",fontSize:13}}>—</span>;
+  if (score===null||score===undefined) return <span style={{color:"var(--text-dim2)",fontSize:13}}>—</span>;
   const c = score===0?"#22c55e":score<=2?"#f59e0b":"#ef4444";
   return <span style={{background:c+"20",color:c,border:`1px solid ${c}40`,borderRadius:6,padding:"2px 9px",fontSize:12,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{score}</span>;
 };
@@ -148,10 +148,10 @@ const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}})
   const V = {
     default:{background:"var(--btn-bg)",color:"var(--btn-text)"},
     ghost:{background:"transparent",border:"1px solid var(--border)",color:"var(--text-mid)"},
-    danger:{background:"#2a0f0f",border:"1px solid #4a1f1f",color:"#ef4444"},
-    success:{background:"#0f2a15",border:"1px solid #1f4a25",color:"#22c55e"},
+    danger:{background:"#ef444418",border:"1px solid #ef444435",color:"#ef4444"},
+    success:{background:"#22c55e18",border:"1px solid #22c55e35",color:"#22c55e"},
     muted:{background:"var(--border)",border:"1px solid var(--border)",color:"var(--text-dim2)"},
-    amber:{background:"#2a1f00",border:"1px solid #4a3800",color:"#f59e0b"},
+    amber:{background:"#f59e0b18",border:"1px solid #f59e0b35",color:"#f59e0b"},
   };
   return <button onClick={disabled?undefined:onClick} style={{...base,...V[variant],...extra}}>{children}</button>;
 };
@@ -353,7 +353,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:36}}>
             {groups.map(g=>(
               <button key={g.id} onClick={()=>onEnterGroup(g)} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:"16px 20px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color 0.2s"}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor="#3a3a5a"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
+                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--text-dim)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
                   <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
                   <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"}</div>
@@ -737,9 +737,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         </div>
       </div>
 
-      {fetchMsg&&<div style={{background:fetchMsg.startsWith("✓")?"#0f2a15":"#2a0f0f",border:`1px solid ${fetchMsg.startsWith("✓")?"#1f4a25":"#4a1f1f"}`,borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
+      {fetchMsg&&<div style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
 
-      {isAdmin&&<div style={{background:"#1a1500",border:"1px solid #3a3000",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1}}>
+      {isAdmin&&<div style={{background:"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1}}>
         ⚡ ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
@@ -770,8 +770,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         ):isAdmin&&!hasApiKey?(
           <div style={{display:"flex",gap:4,justifyContent:"center"}}>
             <input placeholder="0-0" value={resultDraft[f.id]||""} onChange={e=>setResultDraft(d=>({...d,[f.id]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveResult(f.id)}
-              style={{width:56,background:"#0a0a14",border:"1px solid #2a2a3a",borderRadius:6,color:"#f59e0b",padding:"5px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
-            <button onClick={()=>saveResult(f.id)} style={{background:"#1a2a1a",border:"1px solid #2a4a2a",borderRadius:6,color:"#4ade80",cursor:"pointer",padding:"5px 7px",fontSize:11}}>✓</button>
+              style={{width:56,background:"var(--input-bg)",border:"1px solid var(--border2)",borderRadius:6,color:"#f59e0b",padding:"5px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
+            <button onClick={()=>saveResult(f.id)} style={{background:"#22c55e18",border:"1px solid #22c55e35",borderRadius:6,color:"#22c55e",cursor:"pointer",padding:"5px 7px",fontSize:11}}>✓</button>
           </div>
         ):isAdmin&&hasApiKey?(
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
@@ -784,7 +784,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
               onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
               onBlur={e=>savePred(f.id,e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
-              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
+              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
             {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
           </>
         );
@@ -894,7 +894,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
                           onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
                           onBlur={()=>savePred(u,f.id)}
                           onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
-                          style={{width:52,background:"#0a0a14",border:"1px solid #3a3a6a",borderRadius:6,color:"#8888cc",padding:"4px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
+                          style={{width:52,background:"var(--input-bg)",border:"1px solid #8888cc55",borderRadius:6,color:"#8888cc",padding:"4px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
                       ):(
                         <div onClick={()=>isAdmin&&startEdit(u,f.id)}
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
@@ -1160,18 +1160,18 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       </Section>
 
       <Section title="⚡ Live Data: football-data.org">
-        <div style={{background:"#0a120a",border:"1px solid #1a2a1a",borderRadius:10,padding:"18px 20px"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"18px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
-            <span style={{color:"#4ade80",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
+            <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
           </div>
-          <div style={{fontSize:12,color:"#4a7a4a",lineHeight:1.9}}>
+          <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
             Live Premier League data is active for all groups automatically.<br/>
-            {isAdmin&&<><br/><span style={{color:"#888"}}>As an admin, go to </span><strong style={{color:"#f59e0b"}}>Fixtures → ⚡ Sync Fixtures</strong><span style={{color:"#888"}}> to pull the latest matches and results at any time.</span></>}
+            {isAdmin&&<><br/><span style={{color:"var(--text-dim)"}}>As an admin, go to </span><strong style={{color:"#f59e0b"}}>Fixtures → ⚡ Sync Fixtures</strong><span style={{color:"var(--text-dim)"}}> to pull the latest matches and results at any time.</span></>}
           </div>
           {isAdmin&&(
-            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid #1a2a1a"}}>
-              <div style={{fontSize:10,color:"#444",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
+            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <Input value={season} onChange={setSeason} placeholder="2025" style={{width:90}}/>
                 <Btn onClick={saveApiKey} variant={apiSaved?"success":"default"} small>{apiSaved?"Saved! ✓":"Save"}</Btn>
