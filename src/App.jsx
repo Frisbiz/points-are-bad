@@ -129,10 +129,12 @@ function makeFixturesFallback(gw, season) {
   return Array.from({length:10}, (_,i) => ({ id:`${prefix}gw${gw}-f${i}`, home:arr[i*2], away:arr[i*2+1], result:null, status:"SCHEDULED" }));
 }
 
-const Avatar = ({ name, size = 36 }) => {
+const Avatar = ({ name, size = 36, color }) => {
   const ini = (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   const hue = [...(name||"")].reduce((a,c)=>a+c.charCodeAt(0),0)%360;
-  return <div style={{width:size,height:size,borderRadius:"50%",background:`hsl(${hue},55%,32%)`,color:`hsl(${hue},75%,80%)`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:size*0.38,flexShrink:0,fontFamily:"'DM Mono',monospace",letterSpacing:-1,userSelect:"none"}}>{ini}</div>;
+  const bg = color ? `${color}28` : `hsl(${hue},55%,32%)`;
+  const fg = color ? color : `hsl(${hue},75%,80%)`;
+  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,color:fg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:size*0.38,flexShrink:0,fontFamily:"'DM Mono',monospace",letterSpacing:-1,userSelect:"none"}}>{ini}</div>;
 };
 
 const BadgeScore = ({ score }) => {
@@ -524,7 +526,7 @@ function LeagueTab({group,user,names}) {
                 </span>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
-                <Avatar name={names[p.username]||p.username} size={mob?28:34}/>
+                <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
                 <div style={{fontSize:mob?12:14,color:p.username===user.username?"#9090e0":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
@@ -916,6 +918,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
 function TrendsTab({group,names}) {
   const stats = computeStats(group);
   const members = group.members||[];
+  const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
   const activeSeason = group.season || 2025;
   const scope = group.scoreScope || "all";
   const gws = (group.gameweeks||[]).filter(g => scope === "all" || (g.season||activeSeason) === activeSeason);
@@ -934,22 +937,22 @@ function TrendsTab({group,names}) {
     <div>
       <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:28}}>Trends</h1>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:20}}>
-        {ds.map((p,i)=>(
+        {ds.map((p)=>(
           <div key={p.username} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 18px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Avatar name={p.dn} size={26}/><span style={{fontSize:12,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dn}</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Avatar name={p.dn} size={26} color={memberColor(p.username)}/><span style={{fontSize:12,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dn}</span></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[["TOTAL",p.total,PALETTE[i%PALETTE.length]],["AVG",p.avg,"var(--text-mid)"],["PERFECT",p.perfects,"#22c55e"],["PLAYED",p.scored,"var(--text-dim3)"]].map(([l,v,c])=>(
+              {[["TOTAL",p.total,memberColor(p.username)],["AVG",p.avg,"var(--text-mid)"],["PERFECT",p.perfects,"#22c55e"],["PLAYED",p.scored,"var(--text-dim3)"]].map(([l,v,c])=>(
                 <div key={l}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:2}}>{l}</div><div style={{fontSize:l==="TOTAL"?20:16,fontWeight:700,color:c,fontFamily:l==="TOTAL"?"'Playfair Display',serif":"inherit"}}>{v}</div></div>
               ))}
             </div>
           </div>
         ))}
       </div>
-      <CC title="Points Per Gameweek"><ResponsiveContainer width="100%" height={200}><LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}</LineChart></ResponsiveContainer></CC>
-      <CC title="Cumulative Points Race (lower = winning)"><ResponsiveContainer width="100%" height={200}><LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2.5} dot={false}/>)}</LineChart></ResponsiveContainer></CC>
+      <CC title="Points Per Gameweek"><ResponsiveContainer width="100%" height={200}><LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>{ds.map((p)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}</LineChart></ResponsiveContainer></CC>
+      <CC title="Cumulative Points Race (lower = winning)"><ResponsiveContainer width="100%" height={200}><LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}</LineChart></ResponsiveContainer></CC>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
         <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
-        <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Bar key={p.username} dataKey={p.dn} fill={PALETTE[i%PALETTE.length]} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+        <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p)=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
     </div>
   );
@@ -979,7 +982,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names}) {
           return (
             <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"#2a2a4a":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <Avatar name={names[username]||username}/>
+                <Avatar name={names[username]||username} color={PALETTE[members.indexOf(username)%PALETTE.length]}/>
                 <div>
                   <div style={{fontSize:14,color:isMe?"#9090d0":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</div>
                   <div style={{display:"flex",gap:6,marginTop:4}}>
