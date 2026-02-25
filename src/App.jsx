@@ -221,7 +221,7 @@ function computeStats(group) {
         const pts = calcPts(preds[username]?.[f.id], f.result);
         if (pts!==null){total+=pts;scored++;gwPts+=pts;if(pts===0)perfects++;}
       });
-      return {gw:g.gw, points:gwPts};
+      return {gw:g.gw, season:g.season||activeSeason, points:gwPts};
     });
     return {username, total, scored, perfects, avg:scored>0?(total/scored).toFixed(2):"–", gwTotals};
   }).sort((a,b)=>a.total-b.total);
@@ -479,6 +479,27 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   };
   const stats = computeStats(group);
   const myRank = stats.findIndex(s => s.username === user.username) + 1;
+  const activeSeason = group.season || 2025;
+  const completedGWs = (group.gameweeks || [])
+    .filter(g => (g.season || activeSeason) === activeSeason && g.fixtures.length > 0 && g.fixtures.every(f => f.result));
+  const recapGW = completedGWs.length > 0 ? completedGWs.reduce((a, b) => a.gw > b.gw ? a : b) : null;
+  const recapKey = recapGW ? `recap:${group.id}:${user.username}:gw${recapGW.gw}` : null;
+  const [recapDismissed, setRecapDismissed] = useState(() => recapKey ? !!lget(recapKey) : true);
+  useEffect(() => { setRecapDismissed(recapKey ? !!lget(recapKey) : true); }, [recapKey]);
+  let recapContent = null;
+  if (recapGW && !recapDismissed) {
+    const gwNum = recapGW.gw;
+    const recapSeason = recapGW.season || activeSeason;
+    const weeklyTotals = stats.map(s => {
+      const entry = s.gwTotals.find(g => g.gw === gwNum && (g.season || activeSeason) === recapSeason);
+      return { username: s.username, pts: entry ? entry.points : null };
+    }).filter(s => s.pts !== null);
+    const winner = weeklyTotals.length > 0 ? weeklyTotals.reduce((a, b) => a.pts <= b.pts ? a : b) : null;
+    const perfectCount = recapGW.fixtures.reduce((acc, f) => {
+      return acc + (group.members || []).filter(u => calcPts((group.predictions || {})[u]?.[f.id], f.result) === 0).length;
+    }, 0);
+    recapContent = { gwNum, winner, perfectCount };
+  }
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
@@ -521,6 +542,17 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         ))}
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
+        {recapContent && (
+          <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+            <div style={{fontSize:11,color:"#8888cc",letterSpacing:1}}>
+              <span style={{opacity:0.6,marginRight:10}}>GW{recapContent.gwNum} RECAP</span>
+              {recapContent.winner && <span style={{marginRight:8}}>{names[recapContent.winner.username] || recapContent.winner.username} won the week <span style={{opacity:0.7}}>({recapContent.winner.pts} pts)</span></span>}
+              {recapContent.perfectCount > 0 && <span style={{opacity:0.7}}>· {recapContent.perfectCount} perfect{recapContent.perfectCount !== 1 ? "s" : ""}</span>}
+            </div>
+            <button onClick={() => { lset(recapKey, true); setRecapDismissed(true); }}
+              style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
+          </div>
+        )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} names={names}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
