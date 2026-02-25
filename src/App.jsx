@@ -176,6 +176,8 @@ const CSS = `
   .nb:hover{color:#ccc!important;}
   .nb.active{color:#fff!important;border-bottom-color:#e8e4d9!important;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
+  .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
 `;
 
 function computeStats(group) {
@@ -203,6 +205,15 @@ function AuthScreen({ onLogin }) {
   const [password,setPassword]=useState("");
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [thumbs,setThumbs]=useState([]);
+  const spawnThumb = (e) => {
+    const id = Date.now() + Math.random();
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = r.left + r.width/2 + (Math.random()-0.5)*20;
+    const y = r.top;
+    setThumbs(t=>[...t,{id,x,y}]);
+    setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+  };
 
   const handle = async () => {
     if (!username.trim()||!password.trim()){setError("Fill in all fields.");return;}
@@ -228,7 +239,8 @@ function AuthScreen({ onLogin }) {
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:48}}>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"#fff",letterSpacing:-3,lineHeight:1}}>POINTS</div>
-          <div style={{fontSize:10,color:"#2a2a3a",letterSpacing:7,marginTop:10}}>ARE BAD</div>
+          <div style={{fontSize:10,color:"#2a2a3a",letterSpacing:7,marginTop:10}}>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></div>
+          {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
         <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:14,padding:32}}>
           <div style={{display:"flex",background:"#080810",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
