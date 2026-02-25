@@ -102,6 +102,9 @@ function parseMatchesToFixtures(matches, matchday) {
   });
 }
 
+// Scores are stored home-away internally but displayed away-home (away is on left)
+const flipScore = s => s && s.includes("-") ? s.split("-").reverse().join("-") : s;
+
 function calcPts(pred, result) {
   if (!pred || !result) return null;
   const [ph, pa] = pred.split("-").map(Number);
@@ -806,7 +809,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const resultBlock = f.result?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{flipScore(f.result)}</span>
             {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
             {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
             {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
@@ -821,7 +824,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const pickBlock = locked?(
-          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
+          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{flipScore(myPreds[f.id])||"–"}</span>
         ):(
           <>
             <input value={myPred} placeholder="1-1"
@@ -925,7 +928,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
             {scored.map(f=>(
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)"}}>
                 <td style={{padding:"10px 12px",color:"var(--text-mid)"}}>{f.home} vs {f.away}</td>
-                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result}</td>
+                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{flipScore(f.result)}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
@@ -944,7 +947,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
+                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{flipScore(pred)||"–"}</span>
                           <BadgeScore score={pts}/>
                         </div>
                       )}
