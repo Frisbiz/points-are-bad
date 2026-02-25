@@ -841,6 +841,12 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
       <NextMatchCountdown group={group} />
 
+      {gwAdminLocked && (
+        <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1}}>
+          🔒 THIS GAMEWEEK IS LOCKED BY YOUR ADMIN
+        </div>
+      )}
+
       {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
         <div style={{textAlign:"right"}}>Home</div>
@@ -853,7 +859,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
-        const locked = !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+        const locked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const resultBlock = f.result?(
