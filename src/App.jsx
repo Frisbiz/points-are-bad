@@ -165,6 +165,16 @@ const Section = ({title,children}) => (
   </div>
 );
 
+function useMobile() {
+  const [m, setM] = useState(() => window.innerWidth < 640);
+  useEffect(() => {
+    const fn = () => setM(window.innerWidth < 640);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return m;
+}
+
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');
   :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#555566;--text-dim2:#666;--text-dim3:#555;--text-mid:#999;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;}
@@ -180,6 +190,8 @@ const CSS = `
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
+  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:stretch;height:54px;}
+  @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:70px!important;}}
 `;
 
 function computeStats(group) {
@@ -346,7 +358,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
             ))}
           </div>
         ):<div style={{color:"var(--text-dim)",fontSize:13,padding:"20px 0 36px"}}>No groups yet.</div>}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16}}>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CREATE GROUP</div>
             <Input value={createName} onChange={setCreateName} placeholder="Group name..." onKeyDown={e=>e.key==="Enter"&&createGroup()} />
@@ -452,10 +464,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
             <span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          {true&&<div style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>}
+          <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
+          {true&&<div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>}
           <button onClick={toggleDark} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"3px 8px",fontFamily:"inherit",marginRight:10,flexShrink:0,lineHeight:1}}>{dark?"☀":"☾"}</button>
-          <nav style={{display:"flex",gap:0,flexShrink:0}}>
+          <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
               <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
@@ -466,7 +478,12 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </div>
         </div>
       </header>
-      <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade" key={tab}>
+      <nav className="bot-nav">
+        {NAV.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"0 6px",textTransform:"uppercase",flex:1}}>{t}</button>
+        ))}
+      </nav>
+      <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} gwFixtures={gwFixtures} names={names}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
@@ -479,32 +496,33 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
 
 /* ── LEAGUE ──────────────────────────────────────── */
 function LeagueTab({group,user,names}) {
+  const mob = useMobile();
   const stats = computeStats(group);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
       <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32}}>
         <div>
-          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:mob?28:38,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
           <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
         </div>
       </div>
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>(
-            <div key={p.username} style={{display:"grid",gridTemplateColumns:"52px 1fr 80px 80px 90px",alignItems:"center",gap:12,padding:"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"#2a2a4a":"var(--border3)"}`}}>
+            <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"#2a2a4a":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
-                <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?22:16,fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
                   {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
                 </span>
               </div>
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
-                <Avatar name={names[p.username]||p.username} size={34}/>
-                <div style={{fontSize:14,color:p.username===user.username?"#9090e0":"var(--text-mid)"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</div>
+              <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
+                <Avatar name={names[p.username]||p.username} size={mob?28:34}/>
+                <div style={{fontSize:mob?12:14,color:p.username===user.username?"#9090e0":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
               </div>
-              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>
-              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>
-              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>TOTAL PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:900,color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
+              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
+              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
+              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
             </div>
           ))}
         </div>
@@ -548,6 +566,7 @@ function NextMatchCountdown({ group }) {
 }
 
 function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
+  const mob = useMobile();
   const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
   const [saving,setSaving]=useState({});
@@ -634,63 +653,85 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
       <NextMatchCountdown group={group} />
 
-      <div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
+      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
         <div>Away</div>
         <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
-      </div>
+      </div>}
 
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Use '+ GW' or sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
         const locked = !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
+        const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
+        const resultBlock = f.result?(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
+            {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
+            {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
+            {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
+          </div>
+        ):isAdmin&&!hasApiKey?(
+          <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+            <input placeholder="0-0" value={resultDraft[f.id]||""} onChange={e=>setResultDraft(d=>({...d,[f.id]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveResult(f.id)}
+              style={{width:56,background:"#0a0a14",border:"1px solid #2a2a3a",borderRadius:6,color:"#f59e0b",padding:"5px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
+            <button onClick={()=>saveResult(f.id)} style={{background:"#1a2a1a",border:"1px solid #2a4a2a",borderRadius:6,color:"#4ade80",cursor:"pointer",padding:"5px 7px",fontSize:11}}>✓</button>
+          </div>
+        ):isAdmin&&hasApiKey?(
+          <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
+        ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
+        const pickBlock = locked?(
+          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
+        ):(
+          <>
+            <input value={myPred} placeholder="1-1"
+              onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
+              onBlur={e=>savePred(f.id,e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
+              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
+            {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
+          </>
+        );
+        if (mob) return (
+          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2}}>
+            {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
+              </div>
+              <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
+              </div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>PICK</span>
+                {pickBlock}
+              </div>
+              <BadgeScore score={pts}/>
+            </div>
+          </div>
+        );
         return (
           <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-              <a href={`https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
             </div>
-            <div style={{textAlign:"center"}}>
-              {f.result?(
-                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
-                  {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
-                  {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
-                  {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
-                </div>
-              ):isAdmin&&!hasApiKey?(
-                <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-                  <input placeholder="0-0" value={resultDraft[f.id]||""} onChange={e=>setResultDraft(d=>({...d,[f.id]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveResult(f.id)}
-                    style={{width:56,background:"#0a0a14",border:"1px solid #2a2a3a",borderRadius:6,color:"#f59e0b",padding:"5px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
-                  <button onClick={()=>saveResult(f.id)} style={{background:"#1a2a1a",border:"1px solid #2a4a2a",borderRadius:6,color:"#4ade80",cursor:"pointer",padding:"5px 7px",fontSize:11}}>✓</button>
-                </div>
-              ):isAdmin&&hasApiKey?(
-                <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
-              ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>}
-            </div>
+            <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
-              <a href={`https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
-            <div style={{textAlign:"center"}}>
-              {locked?(
-                <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12,fontFamily:"inherit"}}>{myPreds[f.id]||"–"}</span>
-              ):(
-                <>
-                  <input value={myPred} placeholder="1-1"
-                    onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
-                    onBlur={e=>savePred(f.id,e.target.value)}
-                    onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
-                    style={{width:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:12,outline:"none"}}/>
-                  {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
-                </>
-              )}
-            </div>
+            <div style={{textAlign:"center"}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={pts}/></div>
           </div>
         );
@@ -813,7 +854,7 @@ function TrendsTab({group,names}) {
       </div>
       <CC title="Points Per Gameweek"><ResponsiveContainer width="100%" height={200}><LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}</LineChart></ResponsiveContainer></CC>
       <CC title="Cumulative Points Race (lower = winning)"><ResponsiveContainer width="100%" height={200}><LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2.5} dot={false}/>)}</LineChart></ResponsiveContainer></CC>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
         <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
         <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Bar key={p.username} dataKey={p.dn} fill={PALETTE[i%PALETTE.length]} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
