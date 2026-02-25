@@ -596,6 +596,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   const currentGW = group.currentGW||1;
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
+  const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
   const unpickedUnlocked = gwFixtures.filter(f=>{
     const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
     return !locked&&!myPreds[f.id];
