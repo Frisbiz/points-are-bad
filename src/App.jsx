@@ -714,8 +714,21 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
   useEffect(()=>{
     if (lget(wizardKey)===currentGW) return;
+    const activeSeason = group.season||2025;
+    const now = new Date();
+    let nearestUpcomingGW = null;
+    let nearestDate = null;
+    for (const gwObj of (group.gameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason)) {
+      for (const f of (gwObj.fixtures||[])) {
+        if (f.date&&!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||new Date(f.date)<=now)) {
+          const d=new Date(f.date);
+          if (!nearestDate||d<nearestDate){nearestDate=d;nearestUpcomingGW=gwObj.gw;}
+        }
+      }
+    }
+    if (nearestUpcomingGW!==null&&currentGW!==nearestUpcomingGW){setWizardQueue(null);return;}
     const unpicked = gwFixtures.filter(f=>{
-      const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+      const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=now));
       return !locked&&!myPreds[f.id];
     });
     if (unpicked.length>0){setWizardQueue(unpicked);setWizardStep(0);setWizardPred("");}
