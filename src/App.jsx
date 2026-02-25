@@ -680,7 +680,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
         });
         const preds = g.predictions||{};
         const hasPick = id => Object.values(preds).some(up=>up[id]!==undefined);
-        const finalFixtures = [...working.filter(f=>matchedIds.has(f.id)||hasPick(f.id)), ...toAdd];
+        const gwHasPicks = oldFixtures.some(f=>hasPick(f.id));
+        const finalFixtures = [...working.filter(f=>matchedIds.has(f.id)||hasPick(f.id)), ...(gwHasPicks?[]:toAdd)];
         return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||seas)===seas?{...gw,fixtures:finalFixtures}:gw)};
       });
       const finished = apiFixtures.filter(f=>f.result).length;
