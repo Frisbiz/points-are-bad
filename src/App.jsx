@@ -651,18 +651,22 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
       const matches = await fetchMatchweek(group.apiKey, currentGW, group.season||2025);
       if (!matches.length) { setFetchMsg("No matches found for this gameweek."); setFetching(false); return; }
       const apiFixtures = parseMatchesToFixtures(matches, currentGW);
-      const apiByTeams = {};
-      apiFixtures.forEach(f => { apiByTeams[`${f.home}|${f.away}`] = f; });
       await updateGroup(g => {
         const seas = g.season || 2025;
-        return {...g, gameweeks: g.gameweeks.map(gw => {
-          if (!(gw.gw===currentGW&&(gw.season||seas)===seas)) return gw;
-          return {...gw, fixtures: gw.fixtures.map(f => {
-            const apiF = apiByTeams[`${f.home}|${f.away}`];
-            if (!apiF) return f;
-            return {...f, result:apiF.result, status:apiF.status, date:apiF.date};
-          })};
-        })};
+        const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||seas)===seas);
+        const oldFixtures = gwObj?.fixtures||[];
+        const oldIdByTeams = {};
+        oldFixtures.forEach(f=>{ oldIdByTeams[`${f.home}|${f.away}`]=f.id; });
+        const newPreds = {...(g.predictions||{})};
+        Object.keys(newPreds).forEach(u=>{
+          const up={...newPreds[u]};
+          apiFixtures.forEach(f=>{
+            const oldId=oldIdByTeams[`${f.home}|${f.away}`];
+            if(oldId&&oldId!==f.id&&up[oldId]!==undefined){up[f.id]=up[oldId];delete up[oldId];}
+          });
+          newPreds[u]=up;
+        });
+        return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||seas)===seas?{...gw,fixtures:apiFixtures}:gw), predictions:newPreds};
       });
       const finished = apiFixtures.filter(f=>f.result).length;
       setFetchMsg(`✓ Updated ${apiFixtures.length} fixtures${finished>0?`, ${finished} with results`:""}.`);
