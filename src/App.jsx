@@ -701,7 +701,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
     setDeleteGWStep(0);
   };
 
-  const setGW = async (gw) => {setDeleteGWStep(0);await updateGroup(g=>({...g,currentGW:gw}));};
+  const setGW = async (gw) => {setDeleteGWStep(0);setSyncModalOpen(false);await updateGroup(g=>({...g,currentGW:gw}));};
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
@@ -835,7 +835,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
 
-      {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Use '+ GW' or sync from API."}</div>:gwFixtures.map(f=>{
+      {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
         const locked = !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
