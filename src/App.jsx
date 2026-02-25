@@ -477,6 +477,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
   };
+  const stats = computeStats(group);
+  const myRank = stats.findIndex(s => s.username === user.username) + 1;
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
@@ -496,8 +498,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
             ))}
           </nav>
           <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:20,borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
-            <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",borderRadius:"50%"}}>
+            <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
               <Avatar name={user.displayName} size={26}/>
+              {myRank > 0 && (
+                <span style={{fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:0.5,lineHeight:1}}>
+                  {myRank===1?"🥇":myRank===2?"🥈":myRank===3?"🥉":`#${myRank}`}
+                </span>
+              )}
             </button>
             {profileOpen&&(
               <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:100,boxShadow:"0 4px 16px #00000030"}}>
