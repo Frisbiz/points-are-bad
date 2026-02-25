@@ -143,11 +143,11 @@ const BadgeScore = ({ score }) => {
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
   const base = {fontFamily:"'DM Mono',monospace",cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:8,fontWeight:500,letterSpacing:0.5,transition:"all 0.15s",opacity:disabled?0.4:1,padding:small?"6px 14px":"10px 22px",fontSize:small?12:13};
   const V = {
-    default:{background:"#fff",color:"#000"},
-    ghost:{background:"transparent",border:"1px solid #2a2a3a",color:"#888"},
+    default:{background:"var(--btn-bg)",color:"var(--btn-text)"},
+    ghost:{background:"transparent",border:"1px solid var(--border)",color:"var(--text-mid)"},
     danger:{background:"#2a0f0f",border:"1px solid #4a1f1f",color:"#ef4444"},
     success:{background:"#0f2a15",border:"1px solid #1f4a25",color:"#22c55e"},
-    muted:{background:"#1a1a26",border:"1px solid #2a2a3a",color:"#666"},
+    muted:{background:"var(--border)",border:"1px solid var(--border)",color:"var(--text-dim2)"},
     amber:{background:"#2a1f00",border:"1px solid #4a3800",color:"#f59e0b"},
   };
   return <button onClick={disabled?undefined:onClick} style={{...base,...V[variant],...extra}}>{children}</button>;
@@ -155,26 +155,28 @@ const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}})
 
 const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus}) => (
   <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus}
-    style={{background:"#0d0d18",border:"1px solid #2a2a3a",borderRadius:8,color:"#e8e4d9",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
+    style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
 );
 
 const Section = ({title,children}) => (
   <div style={{marginBottom:32}}>
-    <div style={{fontSize:10,color:"#444",letterSpacing:3,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid #1a1a26",paddingBottom:8}}>{title}</div>
+    <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
     {children}
   </div>
 );
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');
+  :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#2a2a3a;--text-dim2:#444;--text-dim3:#333;--text-mid:#888;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;}
+  [data-theme="light"]{--bg:#f4f1e8;--surface:#fff;--card:#eeeae0;--card-hi:#e8e5db;--card-hover:#e5e2d8;--input-bg:#fff;--border:#dddad0;--border2:#e0ddd4;--border3:#e4e1d8;--text:#1a1814;--text-dim:#bbb;--text-dim2:#999;--text-dim3:#aaa;--text-mid:#666;--text-bright:#0f0d0a;--text-inv:#f4f1e8;--scrollbar:#ccc;--btn-bg:#111;--btn-text:#f4f1e8;}
   *{box-sizing:border-box;margin:0;padding:0;}
-  ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:#222;border-radius:2px;}
+  ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
   .fade{animation:fadein 0.25s ease forwards;}
-  .frow:hover{background:#10101c!important;}
+  .frow:hover{background:var(--card-hover)!important;}
   .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all 0.18s;}
-  .nb:hover{color:#ccc!important;}
-  .nb.active{color:#fff!important;border-bottom-color:#e8e4d9!important;}
+  .nb:hover{color:var(--text-mid)!important;}
+  .nb.active{color:var(--text-bright)!important;border-bottom-color:var(--text)!important;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
@@ -234,18 +236,18 @@ function AuthScreen({ onLogin }) {
   };
 
   return (
-    <div style={{minHeight:"100vh",background:"#080810",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
+    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
       <style>{CSS}</style>
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:48}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"#fff",letterSpacing:-3,lineHeight:1}}>POINTS</div>
-          <div style={{fontSize:10,color:"#2a2a3a",letterSpacing:7,marginTop:10}}>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"var(--text-bright)",letterSpacing:-3,lineHeight:1}}>POINTS</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:7,marginTop:10}}>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
-        <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:14,padding:32}}>
-          <div style={{display:"flex",background:"#080810",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
+        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
+          <div style={{display:"flex",background:"var(--bg)",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
             {["login","register"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,background:mode===m?"#fff":"transparent",color:mode===m?"#000":"#444",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+              <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
                 {m==="login"?"Sign In":"Register"}
               </button>
             ))}
@@ -260,7 +262,7 @@ function AuthScreen({ onLogin }) {
             {loading?"...":mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
           </Btn>
         </div>
-        <div style={{textAlign:"center",marginTop:20,color:"#1e1e2e",fontSize:11,letterSpacing:1}}>Premier League Prediction Game</div>
+        <div style={{textAlign:"center",marginTop:20,color:"var(--border2)",fontSize:11,letterSpacing:1}}>Premier League Prediction Game</div>
       </div>
     </div>
   );
@@ -318,40 +320,40 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
   };
 
   return (
-    <div style={{minHeight:"100vh",background:"#080810",fontFamily:"'DM Mono',monospace",color:"#e8e4d9"}}>
+    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'DM Mono',monospace",color:"var(--text)"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:"1px solid #1a1a26",padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:20,color:"#fff"}}>POINTS <span style={{color:"#2a2a3a",fontSize:10,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400}}>are bad</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:12,color:"#444"}}>{user.displayName}</span></div>
+      <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:20,color:"var(--text-bright)"}}>POINTS <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400}}>are bad</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span></div>
       </header>
       <div style={{maxWidth:640,margin:"0 auto",padding:"40px 24px"}}>
-        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:900,color:"#fff",letterSpacing:-1,marginBottom:8}}>Your Groups</h1>
-        <p style={{color:"#2a2a3a",fontSize:11,letterSpacing:1,marginBottom:36}}>JOIN OR CREATE A GROUP TO START PREDICTING</p>
-        {loading?<div style={{color:"#2a2a3a",padding:"40px 0",textAlign:"center"}}>Loading...</div>:groups.length>0?(
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Your Groups</h1>
+        <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1,marginBottom:36}}>JOIN OR CREATE A GROUP TO START PREDICTING</p>
+        {loading?<div style={{color:"var(--text-dim)",padding:"40px 0",textAlign:"center"}}>Loading...</div>:groups.length>0?(
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:36}}>
             {groups.map(g=>(
-              <button key={g.id} onClick={()=>onEnterGroup(g)} style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:10,padding:"16px 20px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color 0.2s"}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor="#3a3a5a"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1e1e2e"}>
+              <button key={g.id} onClick={()=>onEnterGroup(g)} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:"16px 20px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color 0.2s"}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="#3a3a5a"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
-                  <div style={{fontSize:16,color:"#fff",marginBottom:4}}>{g.name}</div>
-                  <div style={{fontSize:11,color:"#2a2a3a",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"}</div>
+                  <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {g.creatorUsername===user.username&&<span style={{fontSize:10,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"2px 8px"}}>CREATOR</span>}
-                  <span style={{color:"#2a2a3a",fontSize:18}}>›</span>
+                  <span style={{color:"var(--text-dim)",fontSize:18}}>›</span>
                 </div>
               </button>
             ))}
           </div>
-        ):<div style={{color:"#2a2a3a",fontSize:13,padding:"20px 0 36px"}}>No groups yet.</div>}
+        ):<div style={{color:"var(--text-dim)",fontSize:13,padding:"20px 0 36px"}}>No groups yet.</div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:12,padding:20}}>
-            <div style={{fontSize:10,color:"#444",letterSpacing:3,marginBottom:14}}>CREATE GROUP</div>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CREATE GROUP</div>
             <Input value={createName} onChange={setCreateName} placeholder="Group name..." onKeyDown={e=>e.key==="Enter"&&createGroup()} />
             <Btn onClick={createGroup} disabled={creating||!createName.trim()} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>{creating?"...":"Create →"}</Btn>
           </div>
-          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:12,padding:20}}>
-            <div style={{fontSize:10,color:"#444",letterSpacing:3,marginBottom:14}}>JOIN WITH CODE</div>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>JOIN WITH CODE</div>
             <Input value={joinCode} onChange={v=>{setJoinCode(v.replace(/\D/g,"").slice(0,4));setError("");}} placeholder="4-digit code" onKeyDown={e=>e.key==="Enter"&&joinGroup()} />
             <Btn onClick={joinGroup} disabled={joinCode.length!==4} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>Join →</Btn>
           </div>
@@ -370,6 +372,12 @@ export default function App() {
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
+  const [dark,setDark]=useState(()=>localStorage.getItem("theme")!=="light");
+
+  useEffect(()=>{
+    document.documentElement.setAttribute("data-theme",dark?"dark":"light");
+    localStorage.setItem("theme",dark?"dark":"light");
+  },[dark]);
 
   useEffect(()=>{
     (async()=>{
@@ -386,17 +394,17 @@ export default function App() {
   const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh)setGroup(fresh);},[group?.id]);
   const updateGroup = useCallback(async(updater)=>{if(!group)return;const fresh=await sget(`group:${group.id}`);const next=typeof updater==="function"?updater(fresh):updater;await sset(`group:${group.id}`,next);setGroup(next);},[group?.id]);
 
-  if (!boot) return <div style={{minHeight:"100vh",background:"#080810",display:"flex",alignItems:"center",justifyContent:"center",color:"#1a1a26",fontFamily:"monospace",fontSize:12}}>loading...</div>;
+  if (!boot) return <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>loading...</div>;
   if (!user) return <AuthScreen onLogin={handleLogin} />;
   if (!group) return <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} />;
 
   const isAdmin = group.admins?.includes(user.username);
   const isCreator = group.creatorUsername===user.username;
-  return <GameUI user={user} group={group} tab={tab} setTab={setTab} isAdmin={isAdmin} isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} updateGroup={updateGroup} refreshGroup={refreshGroup} />;
+  return <GameUI user={user} group={group} tab={tab} setTab={setTab} isAdmin={isAdmin} isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} updateGroup={updateGroup} refreshGroup={refreshGroup} dark={dark} toggleDark={()=>setDark(d=>!d)} />;
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,refreshGroup}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,refreshGroup,dark,toggleDark}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const gwFixtures = group.gameweeks?.find(g=>g.gw===group.currentGW)?.fixtures||[];
   const [thumbs,setThumbs]=useState([]);
@@ -410,24 +418,26 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
   };
   return (
-    <div style={{minHeight:"100vh",background:"#080810",color:"#e8e4d9",fontFamily:"'DM Mono',monospace"}}>
+    <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:"1px solid #1a1a26",padding:"0 20px",position:"sticky",top:0,background:"#080810",zIndex:50}}>
+      <header style={{borderBottom:"1px solid var(--border)",padding:"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",height:60,gap:0}}>
-          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:"1px solid #1a1a26",marginRight:20,padding:"0 16px 0 0",height:"100%"}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"#fff"}}>POINTS</span>
-            <span onClick={spawnThumb} style={{fontSize:9,color:"#2a2a3a",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
+          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:"1px solid var(--border)",marginRight:20,padding:"0 16px 0 0",height:"100%"}}>
+            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span>
+            <span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div style={{flex:1,fontSize:12,color:"#333",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          {true&&<div style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>}          <nav style={{display:"flex",gap:0,flexShrink:0}}>
+          <div style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
+          {true&&<div style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>}
+          <button onClick={toggleDark} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"3px 8px",fontFamily:"inherit",marginRight:10,flexShrink:0,lineHeight:1}}>{dark?"☀":"☾"}</button>
+          <nav style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
-              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"#fff":"#2a2a3a",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
+              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
           </nav>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:20,borderLeft:"1px solid #1a1a26",paddingLeft:20,height:"100%"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:20,borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
             <Avatar name={user.displayName} size={26}/>
-            <button onClick={onLogout} style={{background:"none",border:"none",color:"#2a2a3a",cursor:"pointer",fontSize:10,letterSpacing:1,fontFamily:"inherit"}}>OUT</button>
+            <button onClick={onLogout} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,letterSpacing:1,fontFamily:"inherit"}}>OUT</button>
           </div>
         </div>
       </header>
@@ -454,26 +464,26 @@ function LeagueTab({group,user}) {
     <div>
       <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32}}>
         <div>
-          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:900,color:"#fff",letterSpacing:-1}}>Standings</h1>
-          <p style={{color:"#2a2a3a",fontSize:11,letterSpacing:2,marginTop:4}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
+          <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
         </div>
       </div>
-      {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"#2a2a3a"}}>No members yet.</div>:(
+      {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>(
-            <div key={p.username} style={{display:"grid",gridTemplateColumns:"52px 1fr 80px 80px 90px",alignItems:"center",gap:12,padding:"16px 20px",background:p.username===user.username?"#0f0f1d":"#0c0c18",borderRadius:10,border:`1px solid ${p.username===user.username?"#2a2a4a":"#12121e"}`}}>
+            <div key={p.username} style={{display:"grid",gridTemplateColumns:"52px 1fr 80px 80px 90px",alignItems:"center",gap:12,padding:"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"#2a2a4a":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
-                <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?22:16,fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"#2a2a3a"}}>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?22:16,fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
                   {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
                 </span>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <Avatar name={names[p.username]||p.username} size={34}/>
-                <div style={{fontSize:14,color:p.username===user.username?"#9090e0":"#aaa"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"#2a2a3a",marginLeft:8}}>you</span>}</div>
+                <div style={{fontSize:14,color:p.username===user.username?"#9090e0":"var(--text-mid)"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</div>
               </div>
-              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#2a2a3a",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>
-              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#2a2a3a",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"#555"}}>{p.avg}</div></div>
-              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#2a2a3a",letterSpacing:2,marginBottom:3}}>TOTAL PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:900,color:i===0?"#fbbf24":"#fff",lineHeight:1}}>{p.total}</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>
+              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>TOTAL PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:900,color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
             </div>
           ))}
         </div>
@@ -483,6 +493,39 @@ function LeagueTab({group,user}) {
 }
 
 /* ── FIXTURES ────────────────────────────────────── */
+function NextMatchCountdown({ group }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const next = (group.gameweeks || [])
+    .flatMap(gw => gw.fixtures || [])
+    .filter(f => f.date && !f.result && f.status !== "FINISHED" && f.status !== "IN_PLAY" && f.status !== "PAUSED" && new Date(f.date) > now)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+
+  if (!next) return null;
+
+  const diff = new Date(next.date) - now;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  const pad = n => String(n).padStart(2, "0");
+
+  return (
+    <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"12px 18px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+      <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase"}}>Next match</div>
+      <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.home} <span style={{color:"var(--text-dim)"}}>vs</span> {next.away}</div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:"var(--text-bright)",letterSpacing:3}}>
+        {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
+        {pad(hours)}:{pad(mins)}:{pad(secs)}
+      </div>
+    </div>
+  );
+}
+
 function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
   const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
@@ -536,11 +579,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
   return (
     <div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
-        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"#fff",letterSpacing:-1}}>Gameweek {currentGW}</h1>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div style={{display:"flex",gap:3}}>
             {(group.gameweeks||[]).map(g=>(
-              <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"#fff":"#111",color:currentGW===g.gw?"#000":"#444",border:"1px solid #2a2a3a",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1}}>GW{g.gw}</button>
+              <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1}}>GW{g.gw}</button>
             ))}
           </div>
           {isAdmin&&<Btn variant="muted" small onClick={addGW}>+ GW</Btn>}
@@ -554,7 +597,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
         ⚡ ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"#2a2a3a",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
+      <NextMatchCountdown group={group} />
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
         <div>Away</div>
@@ -562,25 +607,25 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
         <div style={{textAlign:"center"}}>Pts</div>
       </div>
 
-      {gwFixtures.length===0?<div style={{color:"#2a2a3a",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Use '+ GW' or sync from API."}</div>:gwFixtures.map(f=>{
+      {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Use '+ GW' or sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
         const locked = !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         return (
-          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"#0c0c18",borderRadius:8,border:"1px solid #10101e",alignItems:"center",marginBottom:2}}>
+          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-              {dateStr&&<span style={{fontSize:10,color:"#252535",letterSpacing:0.3}}>{dateStr}</span>}
-              <span style={{fontSize:13,color:"#aaa"}}>{f.home}</span>
+              {dateStr&&<span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3}}>{dateStr}</span>}
+              <span style={{fontSize:13,color:"var(--text-mid)"}}>{f.home}</span>
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
             </div>
             <div style={{textAlign:"center"}}>
               {f.result?(
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"#fff",letterSpacing:3}}>{f.result}</span>
+                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
                   {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
                   {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
-                  {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"#2a2a3a",cursor:"pointer",fontSize:10}}>✕</button>}
+                  {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
                 </div>
               ):isAdmin&&!hasApiKey?(
                 <div style={{display:"flex",gap:4,justifyContent:"center"}}>
@@ -589,24 +634,24 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
                   <button onClick={()=>saveResult(f.id)} style={{background:"#1a2a1a",border:"1px solid #2a4a2a",borderRadius:6,color:"#4ade80",cursor:"pointer",padding:"5px 7px",fontSize:11}}>✓</button>
                 </div>
               ):isAdmin&&hasApiKey?(
-                <span style={{color:"#2a2a3a",fontSize:11}}>sync ↑</span>
-              ):<span style={{color:"#2a2a3a",fontSize:11}}>TBD</span>}
+                <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
+              ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
-              <span style={{fontSize:13,color:"#aaa"}}>{f.away}</span>
+              <span style={{fontSize:13,color:"var(--text-mid)"}}>{f.away}</span>
             </div>
             <div style={{textAlign:"center"}}>
               {locked?(
-                <span style={{color:myPreds[f.id]?"#8888cc":"#2a2a3a",fontSize:12,fontFamily:"inherit"}}>{myPreds[f.id]||"–"}</span>
+                <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12,fontFamily:"inherit"}}>{myPreds[f.id]||"–"}</span>
               ):(
                 <>
                   <input value={myPred} placeholder="1-1"
                     onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
                     onBlur={e=>savePred(f.id,e.target.value)}
                     onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
-                    style={{width:66,background:"#0a0a14",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:12,outline:"none"}}/>
-                  {saving[f.id]&&<span style={{fontSize:10,color:"#333",marginLeft:4}}>…</span>}
+                    style={{width:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#3a3a6a":"#1a1a2a"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:12,outline:"none"}}/>
+                  {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
                 </>
               )}
             </div>
@@ -645,20 +690,20 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser}) {
 
   return (
     <div style={{marginTop:40}}>
-      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#fff",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
-      {isAdmin&&<div style={{fontSize:10,color:"#2a2a3a",letterSpacing:1,marginBottom:14}}>ADMIN — click any pick to edit</div>}
+      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
+      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN — click any pick to edit</div>}
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <thead><tr style={{borderBottom:"1px solid #1a1a26"}}>
-            <th style={{padding:"8px 12px",textAlign:"left",color:"#2a2a3a",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
-            <th style={{padding:"8px 12px",textAlign:"center",color:"#2a2a3a",letterSpacing:2,fontWeight:400}}>RESULT</th>
-            {members.map(u=><th key={u} style={{padding:"8px 12px",textAlign:"center",color:"#555",fontWeight:400}}>{names[u]||u}</th>)}
+          <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
+            <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
+            <th style={{padding:"8px 12px",textAlign:"center",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
+            {members.map(u=><th key={u} style={{padding:"8px 12px",textAlign:"center",color:"var(--text-mid)",fontWeight:400}}>{names[u]||u}</th>)}
           </tr></thead>
           <tbody>
             {scored.map(f=>(
-              <tr key={f.id} style={{borderBottom:"1px solid #0e0e18"}}>
-                <td style={{padding:"10px 12px",color:"#555"}}>{f.home} vs {f.away}</td>
-                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"#fff",letterSpacing:2}}>{f.result}</td>
+              <tr key={f.id} style={{borderBottom:"1px solid var(--border3)"}}>
+                <td style={{padding:"10px 12px",color:"var(--text-mid)"}}>{f.home} vs {f.away}</td>
+                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
@@ -675,9 +720,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser}) {
                       ):(
                         <div onClick={()=>isAdmin&&startEdit(u,f.id)}
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
-                          onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="#1a1a2a";}}
+                          onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          <span style={{color:"#333",fontSize:11}}>{pred||"–"}</span>
+                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
                           <BadgeScore score={pts}/>
                         </div>
                       )}
@@ -687,12 +732,12 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser}) {
               </tr>
             ))}
           </tbody>
-          {scored.length>0&&<tfoot><tr style={{borderTop:"2px solid #1a1a26"}}>
-            <td style={{padding:"10px 12px",color:"#2a2a3a",letterSpacing:2,fontSize:10}}>TOTAL</td>
+          {scored.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--border)"}}>
+            <td style={{padding:"10px 12px",color:"var(--text-dim)",letterSpacing:2,fontSize:10}}>TOTAL</td>
             <td/>
             {members.map(u=>{
               const total=scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0);
-              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:"#e8e4d9"}}>{total}</td>;
+              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:"var(--text)"}}>{total}</td>;
             })}
           </tr></tfoot>}
         </table>
@@ -709,7 +754,7 @@ function TrendsTab({group}) {
   const gws = group.gameweeks||[];
   useEffect(()=>{(async()=>{const e=await Promise.all(members.map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();},[members.join(",")]);
   const hasData = stats.some(p=>p.scored>0);
-  const tt={background:"#0d0d18",border:"1px solid #2a2a3a",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"#ccc"};
+  const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
   const completedGws = gws.filter(g=>g.fixtures.length>0&&g.fixtures.every(f=>f.result));
   const gwLine=completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw)?.points??0;});return r;});
@@ -717,28 +762,28 @@ function TrendsTab({group}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result);if(pp===null)return;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,children})=><div style={{background:"#0e0e1a",border:"1px solid #1a1a26",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#888",marginBottom:18}}>{title}</h3>{children}</div>;
-  if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"#2a2a3a"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
+  const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
+  if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <div>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"#fff",letterSpacing:-1,marginBottom:28}}>Trends</h1>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:28}}>Trends</h1>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:20}}>
         {ds.map((p,i)=>(
-          <div key={p.username} style={{background:"#0e0e1a",border:"1px solid #1a1a26",borderRadius:10,padding:"16px 18px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Avatar name={p.dn} size={26}/><span style={{fontSize:12,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dn}</span></div>
+          <div key={p.username} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 18px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Avatar name={p.dn} size={26}/><span style={{fontSize:12,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dn}</span></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[["TOTAL",p.total,PALETTE[i%PALETTE.length]],["AVG",p.avg,"#666"],["PERFECT",p.perfects,"#22c55e"],["PLAYED",p.scored,"#333"]].map(([l,v,c])=>(
-                <div key={l}><div style={{fontSize:9,color:"#2a2a3a",letterSpacing:2,marginBottom:2}}>{l}</div><div style={{fontSize:l==="TOTAL"?20:16,fontWeight:700,color:c,fontFamily:l==="TOTAL"?"'Playfair Display',serif":"inherit"}}>{v}</div></div>
+              {[["TOTAL",p.total,PALETTE[i%PALETTE.length]],["AVG",p.avg,"var(--text-mid)"],["PERFECT",p.perfects,"#22c55e"],["PLAYED",p.scored,"var(--text-dim3)"]].map(([l,v,c])=>(
+                <div key={l}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:2}}>{l}</div><div style={{fontSize:l==="TOTAL"?20:16,fontWeight:700,color:c,fontFamily:l==="TOTAL"?"'Playfair Display',serif":"inherit"}}>{v}</div></div>
               ))}
             </div>
           </div>
         ))}
       </div>
-      <CC title="Points Per Gameweek"><ResponsiveContainer width="100%" height={200}><LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"#555"}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}</LineChart></ResponsiveContainer></CC>
-      <CC title="Cumulative Points Race (lower = winning)"><ResponsiveContainer width="100%" height={200}><LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2.5} dot={false}/>)}</LineChart></ResponsiveContainer></CC>
+      <CC title="Points Per Gameweek"><ResponsiveContainer width="100%" height={200}><LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}</LineChart></ResponsiveContainer></CC>
+      <CC title="Cumulative Points Race (lower = winning)"><ResponsiveContainer width="100%" height={200}><LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={PALETTE[i%PALETTE.length]} strokeWidth={2.5} dot={false}/>)}</LineChart></ResponsiveContainer></CC>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18}}>
-        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
-        <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"#333",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Bar key={p.username} dataKey={p.dn} fill={PALETTE[i%PALETTE.length]} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p,i)=><Bar key={p.username} dataKey={p.dn} fill={PALETTE[i%PALETTE.length]} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
     </div>
   );
@@ -760,19 +805,19 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup}) {
   };
   return (
     <div style={{maxWidth:560}}>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"#fff",letterSpacing:-1,marginBottom:8}}>Members</h1>
-      <p style={{color:"#2a2a3a",fontSize:11,letterSpacing:2,marginBottom:32}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Members</h1>
+      <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginBottom:32}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {members.map(username=>{
           const mIsAdmin=admins.includes(username);
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
           return (
-            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#0c0c18",border:`1px solid ${isMe?"#2a2a4a":"#10101e"}`,borderRadius:10,padding:"14px 18px"}}>
+            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"#2a2a4a":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
                 <Avatar name={names[username]||username}/>
                 <div>
-                  <div style={{fontSize:14,color:isMe?"#9090d0":"#aaa"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"#2a2a3a",marginLeft:8}}>you</span>}</div>
+                  <div style={{fontSize:14,color:isMe?"#9090d0":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</div>
                   <div style={{display:"flex",gap:6,marginTop:4}}>
                     {mIsCreator&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"1px 6px"}}>CREATOR</span>}
                     {isAdmin&&mIsAdmin&&!mIsCreator&&<span style={{fontSize:9,color:"#60a5fa",letterSpacing:2,background:"#60a5fa15",border:"1px solid #60a5fa30",borderRadius:4,padding:"1px 6px"}}>ADMIN</span>}
@@ -794,31 +839,31 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup}) {
         if(!log.length) return null;
         return (
           <div style={{marginTop:40}}>
-            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#fff",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
               {log.map(e=>(
-                <div key={e.id} style={{background:"#0c0c18",border:`1px solid ${e.action==="kick"?"#2a1010":"#10101e"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div key={e.id} style={{background:"var(--card)",border:`1px solid ${e.action==="kick"?"#2a1010":"var(--border3)"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                     {e.action==="kick"?(
                       <>
                         <span style={{color:"#ef4444"}}>KICK</span>
                         <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
-                        <span style={{color:"#2a2a3a"}}>removed by {names[e.by]||e.by}</span>
+                        <span style={{color:"var(--text-dim)"}}>removed by {names[e.by]||e.by}</span>
                       </>
                     ):(
                       <>
                         <span style={{color:"#f59e0b"}}>GW{e.gw}</span>
-                        <span style={{color:"#555"}}>{e.fixture}</span>
-                        <span style={{color:"#2a2a3a"}}>·</span>
+                        <span style={{color:"var(--text-mid)"}}>{e.fixture}</span>
+                        <span style={{color:"var(--text-dim)"}}>·</span>
                         <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
-                        <span style={{color:"#333"}}>{e.old||"–"}</span>
-                        <span style={{color:"#2a2a3a"}}>→</span>
+                        <span style={{color:"var(--text-dim3)"}}>{e.old||"–"}</span>
+                        <span style={{color:"var(--text-dim)"}}>→</span>
                         <span style={{color:"#4ade80"}}>{e.new}</span>
-                        <span style={{color:"#2a2a3a"}}>by {names[e.by]||e.by}</span>
+                        <span style={{color:"var(--text-dim)"}}>by {names[e.by]||e.by}</span>
                       </>
                     )}
                   </div>
-                  <span style={{color:"#252535",fontSize:10}}>{new Date(e.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
+                  <span style={{color:"var(--text-dim)",fontSize:10}}>{new Date(e.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
                 </div>
               ))}
             </div>
@@ -851,14 +896,14 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
   return (
     <div style={{maxWidth:520}}>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"#fff",letterSpacing:-1,marginBottom:32}}>Group</h1>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={{background:"#0a0a14",border:"1px solid #2a2a3a",borderRadius:12,padding:"14px 24px",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,color:"#fff",letterSpacing:10}}>{group.code}</div>
+          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 24px",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,color:"var(--text-bright)",letterSpacing:10}}>{group.code}</div>
           <div>
             <Btn onClick={copyCode} variant={copied?"success":"ghost"}>{copied?"Copied!":"Copy Code"}</Btn>
-            <div style={{fontSize:11,color:"#2a2a3a",marginTop:8,letterSpacing:0.3}}>Share with friends to join.</div>
+            <div style={{fontSize:11,color:"var(--text-dim)",marginTop:8,letterSpacing:0.3}}>Share with friends to join.</div>
           </div>
         </div>
       </Section>
@@ -895,10 +940,10 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       )}
 
       <Section title="Info">
-        <div style={{background:"#0c0c18",border:"1px solid #12121e",borderRadius:10,padding:"16px 20px",fontSize:12,color:"#555",lineHeight:2.2}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
           {[["Members",group.members?.length],["Gameweeks",group.gameweeks?.length],["API Status","⚡ Active"],["Season",group.season||2025],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
-            <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid #0e0e18",paddingBottom:4}}>
-              <span style={{color:"#2a2a3a"}}>{l}</span>
+            <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
+              <span style={{color:"var(--text-dim)"}}>{l}</span>
               <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"#555"):"inherit"}}>{v}</span>
             </div>
           ))}
@@ -906,11 +951,11 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       </Section>
 
       <Section title="Scoring Rules">
-        <div style={{background:"#0c0c18",border:"1px solid #12121e",borderRadius:10,padding:"16px 20px",fontSize:12,color:"#555",lineHeight:1.9}}>
-          <div style={{color:"#888",marginBottom:8,fontFamily:"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
+        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+          <div style={{color:"var(--text-mid)",marginBottom:8,fontFamily:"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
           <div>Each goal your prediction is off = 1 point.</div>
-          <div style={{marginTop:6}}><span style={{color:"#2a2a3a"}}>Predict 1-1, actual 2-3 → 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts ❌</strong></div>
-          <div><span style={{color:"#2a2a3a"}}>Predict 2-1, actual 2-1 → 0+0 = </span><strong style={{color:"#22c55e"}}>0 pts ⭐</strong></div>
+          <div style={{marginTop:6}}><span style={{color:"var(--text-dim)"}}>Predict 1-1, actual 2-3 → 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts ❌</strong></div>
+          <div><span style={{color:"var(--text-dim)"}}>Predict 2-1, actual 2-1 → 0+0 = </span><strong style={{color:"#22c55e"}}>0 pts ⭐</strong></div>
         </div>
       </Section>
 
