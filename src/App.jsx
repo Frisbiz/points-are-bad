@@ -745,7 +745,8 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup}) {
   const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];return {...g,admins:a.includes(username)?a.filter(x=>x!==username):[...a,username]};});};
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
-    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==username),admins:(g.admins||[]).filter(a=>a!==username)}));
+    const entry={id:Date.now(),at:Date.now(),by:user.username,action:"kick",for:username};
+    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==username),admins:(g.admins||[]).filter(a=>a!==username),adminLog:[...(g.adminLog||[]),entry]}));
     const fresh=await sget(`user:${username}`);
     if(fresh)await sset(`user:${username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
   };
@@ -788,16 +789,26 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup}) {
             <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#fff",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
               {log.map(e=>(
-                <div key={e.id} style={{background:"#0c0c18",border:"1px solid #10101e",borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div key={e.id} style={{background:"#0c0c18",border:`1px solid ${e.action==="kick"?"#2a1010":"#10101e"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                    <span style={{color:"#f59e0b"}}>GW{e.gw}</span>
-                    <span style={{color:"#555"}}>{e.fixture}</span>
-                    <span style={{color:"#2a2a3a"}}>·</span>
-                    <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
-                    <span style={{color:"#333"}}>{e.old||"–"}</span>
-                    <span style={{color:"#2a2a3a"}}>→</span>
-                    <span style={{color:"#4ade80"}}>{e.new}</span>
-                    <span style={{color:"#2a2a3a"}}>by {names[e.by]||e.by}</span>
+                    {e.action==="kick"?(
+                      <>
+                        <span style={{color:"#ef4444"}}>KICK</span>
+                        <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
+                        <span style={{color:"#2a2a3a"}}>removed by {names[e.by]||e.by}</span>
+                      </>
+                    ):(
+                      <>
+                        <span style={{color:"#f59e0b"}}>GW{e.gw}</span>
+                        <span style={{color:"#555"}}>{e.fixture}</span>
+                        <span style={{color:"#2a2a3a"}}>·</span>
+                        <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
+                        <span style={{color:"#333"}}>{e.old||"–"}</span>
+                        <span style={{color:"#2a2a3a"}}>→</span>
+                        <span style={{color:"#4ade80"}}>{e.new}</span>
+                        <span style={{color:"#2a2a3a"}}>by {names[e.by]||e.by}</span>
+                      </>
+                    )}
                   </div>
                   <span style={{color:"#252535",fontSize:10}}>{new Date(e.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
                 </div>
