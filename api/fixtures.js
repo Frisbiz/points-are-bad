@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   const { matchday, season } = req.query;
-  const url = `https://api.football-data.org/v4/competitions/PL/matches?matchday=${matchday}&season=${season}`;
+  let url = `https://api.football-data.org/v4/competitions/PL/matches?season=${season}`;
+  if (matchday) url += `&matchday=${matchday}`;
 
   const response = await fetch(url, {
     headers: { "X-Auth-Token": process.env.VITE_FD_API_KEY }

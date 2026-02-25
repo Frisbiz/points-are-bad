@@ -76,7 +76,9 @@ const TEAM_NAME_MAP = {
 function normName(n) { return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, "").replace(/ AFC$/, "") || n; }
 
 async function fetchMatchweek(apiKey, matchday, season = 2025) {
-  const url = `/api/fixtures?matchday=${matchday}&season=${season}`;
+  const url = matchday != null
+    ? `/api/fixtures?matchday=${matchday}&season=${season}`
+    : `/api/fixtures?season=${season}`;
   const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 403) throw new Error("Invalid API key.");
@@ -1181,6 +1183,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [newSeasonYear,setNewSeasonYear]=useState("");
   const [seasonMsg,setSeasonMsg]=useState("");
   const [backfillMsg, setBackfillMsg] = useState("");
+  const [syncDatesMsg, setSyncDatesMsg] = useState("");
+  const [syncingDates, setSyncingDates] = useState(false);
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
@@ -1229,6 +1233,37 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
     setTimeout(()=>setBackfillMsg(""),3000);
   };
+  const syncAllDates = async () => {
+    setSyncingDates(true);
+    setSyncDatesMsg("Fetching full season fixtures...");
+    try {
+      const matches = await fetchMatchweek(group.apiKey, null, group.season||2025);
+      if (!matches.length) { setSyncDatesMsg("No matches returned."); setSyncingDates(false); return; }
+      const dateByTeams = {};
+      matches.forEach(m => {
+        const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
+        const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
+        if (m.utcDate) dateByTeams[`${home}|${away}`] = new Date(m.utcDate).toISOString();
+      });
+      let updated = 0;
+      await updateGroup(g => {
+        updated = 0;
+        const gws = (g.gameweeks||[]).map(gw => ({
+          ...gw,
+          fixtures: gw.fixtures.map(f => {
+            if (f.date) return f;
+            const d = dateByTeams[`${f.home}|${f.away}`];
+            if (d) { updated++; return {...f, date: d}; }
+            return f;
+          })
+        }));
+        return {...g, gameweeks: gws};
+      });
+      setSyncDatesMsg(updated > 0 ? `✓ Filled in ${updated} missing date${updated!==1?"s":""}.` : "All dates already present.");
+    } catch(e) { setSyncDatesMsg(`Error: ${e.message}`); }
+    setSyncingDates(false);
+    setTimeout(()=>setSyncDatesMsg(""),5000);
+  };
   const leaveGroup=async()=>{
     if(isCreator)return;
     const fresh=await sget(`user:${user.username}`);
@@ -1268,6 +1303,10 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
                       <Btn variant="muted" small onClick={backfillGWs}>Create future GWs</Btn>
                       <Btn variant="muted" small onClick={backfillAllGWs}>Create all GWs</Btn>
                       {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
+                      <Btn variant="amber" small onClick={syncAllDates} disabled={syncingDates}>{syncingDates?"Syncing...":"Sync all dates"}</Btn>
+                      {syncDatesMsg&&<span style={{fontSize:11,color:syncDatesMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{syncDatesMsg}</span>}
                     </div>
                   </div>
                 )}
