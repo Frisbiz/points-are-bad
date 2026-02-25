@@ -1123,8 +1123,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     const prevSeason=group.season||2025;
     await updateGroup(g=>{
       const backfilled=(g.gameweeks||[]).map(gw=>gw.season?gw:{...gw,season:prevSeason});
-      const newGW={gw:1,season:yr,fixtures:makeFixturesFallback(1,yr)};
-      return {...g,gameweeks:[...backfilled,newGW],season:yr,currentGW:1};
+      return {...g,gameweeks:[...backfilled,...makeAllGWs(yr)],season:yr,currentGW:1};
     });
     setNewSeasonYear("");
     setSeasonMsg(`Season ${yr} started!`);
