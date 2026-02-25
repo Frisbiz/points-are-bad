@@ -382,15 +382,36 @@ export default function App() {
   useEffect(()=>{
     (async()=>{
       const saved = lget("session");
-      if (saved?.username){const u=await sget(`user:${saved.username}`);if(u)setUser(u);}
+      if (saved?.username) {
+        const u = await sget(`user:${saved.username}`);
+        if (u) {
+          setUser(u);
+          if (saved.groupId) {
+            const g = await sget(`group:${saved.groupId}`);
+            if (g && g.members?.includes(u.username)) {
+              setGroup(g);
+              if (saved.tab) setTab(saved.tab);
+            }
+          }
+        }
+      }
       setBoot(true);
     })();
   },[]);
 
   const handleLogin = async (u) => {lset("session",{username:u.username});setUser(u);};
   const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);};
-  const handleEnterGroup = async (g) => {const fresh=await sget(`group:${g.id}`);setGroup(fresh||g);setTab("League");};
-  const handleLeaveGroup = () => setGroup(null);
+  const handleEnterGroup = async (g) => {
+    const fresh = await sget(`group:${g.id}`);
+    setGroup(fresh||g);
+    setTab("League");
+    lset("session",{...lget("session"),groupId:g.id,tab:"League"});
+  };
+  const handleLeaveGroup = () => {
+    setGroup(null);
+    lset("session",{username:lget("session")?.username});
+  };
+  const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
   const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh)setGroup(fresh);},[group?.id]);
   const updateGroup = useCallback(async(updater)=>{if(!group)return;const fresh=await sget(`group:${group.id}`);const next=typeof updater==="function"?updater(fresh):updater;await sset(`group:${group.id}`,next);setGroup(next);},[group?.id]);
 
@@ -400,7 +421,7 @@ export default function App() {
 
   const isAdmin = group.admins?.includes(user.username);
   const isCreator = group.creatorUsername===user.username;
-  return <GameUI user={user} group={group} tab={tab} setTab={setTab} isAdmin={isAdmin} isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} updateGroup={updateGroup} refreshGroup={refreshGroup} dark={dark} toggleDark={()=>setDark(d=>!d)} />;
+  return <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin} isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} updateGroup={updateGroup} refreshGroup={refreshGroup} dark={dark} toggleDark={()=>setDark(d=>!d)} />;
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
