@@ -810,7 +810,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
           <div style={{display:"flex",alignItems:"center",gap:3}}>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
             <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:396,overflowX:"auto"}}>
-              {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).map(g=>(
+              {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>(
                 <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 0",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0,minWidth:54,textAlign:"center"}}>GW{g.gw}</button>
               ))}
             </div>
@@ -1182,11 +1182,12 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     let added = 0;
     await updateGroup(g => {
       const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
-      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n));
+      const minExisting = existing.size > 0 ? Math.min(...existing) : 1;
+      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n)&&n>=minExisting);
       if (!missing.length) { added = 0; return g; }
       added = missing.length;
       const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
-      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs]};
+      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
     });
     setBackfillMsg(added > 0 ? `Added ${added} missing GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
     setTimeout(()=>setBackfillMsg(""),3000);
