@@ -738,9 +738,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
       {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
-        <div>Home</div>
-        <div style={{textAlign:"center"}}>Result</div>
         <div style={{textAlign:"right"}}>Away</div>
+        <div style={{textAlign:"center"}}>Result</div>
+        <div>Home</div>
         <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
@@ -784,13 +784,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -805,14 +805,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         return (
           <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
-            </div>
-            <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
+            </div>
+            <div style={{textAlign:"center"}}>{resultBlock}</div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
             </div>
             <div style={{textAlign:"center"}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={pts}/></div>
