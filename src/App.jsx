@@ -1284,6 +1284,42 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       )}
 
       {isAdmin&&(
+        <Section title="Gameweek Visibility">
+          <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10,letterSpacing:0.3}}>Toggle which gameweeks players can submit picks for</div>
+          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+            {(group.gameweeks||[])
+              .filter(g=>(g.season||group.season||2025)===(group.season||2025))
+              .sort((a,b)=>a.gw-b.gw)
+              .map(g=>{
+                const hidden=(group.hiddenGWs||[]).includes(g.gw);
+                return (
+                  <button key={g.gw} onClick={()=>updateGroup(grp=>{
+                    const h=grp.hiddenGWs||[];
+                    const isHid=h.includes(g.gw);
+                    return {...grp,hiddenGWs:isHid?h.filter(n=>n!==g.gw):[...h,g.gw]};
+                  })} style={{
+                    background:hidden?"var(--card)":"var(--btn-bg)",
+                    color:hidden?"var(--text-dim2)":"var(--btn-text)",
+                    border:"1px solid var(--border)",
+                    borderRadius:6,
+                    padding:"5px 0",
+                    fontSize:11,
+                    cursor:"pointer",
+                    fontFamily:"inherit",
+                    letterSpacing:1,
+                    flexShrink:0,
+                    minWidth:54,
+                    textAlign:"center",
+                    opacity:hidden?0.45:1,
+                    transition:"all 0.15s",
+                  }}>GW{g.gw}</button>
+                );
+              })}
+          </div>
+        </Section>
+      )}
+
+      {isAdmin&&(
         <Section title="Prediction Limits">
           <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10,letterSpacing:0.3}}>Max 1-1 predictions per gameweek</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
