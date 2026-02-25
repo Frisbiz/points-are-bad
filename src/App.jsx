@@ -715,6 +715,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
   useEffect(()=>{
     if (lget(wizardKey)===currentGW) return;
+    if (!isAdmin && (group.hiddenGWs||[]).includes(currentGW)) { setWizardQueue(null); return; }
     const activeSeason = group.season||2025;
     const now = new Date();
     let nearestUpcomingGW = null;
