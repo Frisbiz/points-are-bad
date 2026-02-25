@@ -656,12 +656,17 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
         const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||seas)===seas);
         const oldFixtures = gwObj?.fixtures||[];
         const oldIdByTeams = {};
-        oldFixtures.forEach(f=>{ oldIdByTeams[`${f.home}|${f.away}`]=f.id; });
+        const oldIdByApiId = {};
+        oldFixtures.forEach(f=>{
+          oldIdByTeams[`${f.home}|${f.away}`]=f.id;
+          if(f.apiId) oldIdByApiId[String(f.apiId)]=f.id;
+        });
         const newPreds = {...(g.predictions||{})};
         Object.keys(newPreds).forEach(u=>{
           const up={...newPreds[u]};
           apiFixtures.forEach(f=>{
-            const oldId=oldIdByTeams[`${f.home}|${f.away}`];
+            const byApiId = f.apiId ? oldIdByApiId[String(f.apiId)] : null;
+            const oldId = byApiId || oldIdByTeams[`${f.home}|${f.away}`];
             if(oldId&&oldId!==f.id&&up[oldId]!==undefined){up[f.id]=up[oldId];delete up[oldId];}
           });
           newPreds[u]=up;
