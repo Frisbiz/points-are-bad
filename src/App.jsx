@@ -457,6 +457,14 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState({});
+  const [profileOpen,setProfileOpen]=useState(false);
+  const profileRef=useRef(null);
+  useEffect(()=>{
+    if(!profileOpen)return;
+    const handler=(e)=>{if(profileRef.current&&!profileRef.current.contains(e.target))setProfileOpen(false);};
+    document.addEventListener("mousedown",handler);
+    return()=>document.removeEventListener("mousedown",handler);
+  },[profileOpen]);
   useEffect(()=>{
     (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();
   },[group.members?.join(",")]);
@@ -487,9 +495,16 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
           </nav>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:20,borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
-            <Avatar name={user.displayName} size={26}/>
-            <button onClick={onLogout} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,letterSpacing:1,fontFamily:"inherit"}}>OUT</button>
+          <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:20,borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
+            <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",borderRadius:"50%"}}>
+              <Avatar name={user.displayName} size={26}/>
+            </button>
+            {profileOpen&&(
+              <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:100,boxShadow:"0 4px 16px #00000030"}}>
+                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>{user.displayName}</div>
+                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"block"}}>LOG OUT</button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -547,7 +562,7 @@ function LeagueTab({group,user,names}) {
 }
 
 /* ── FIXTURES ────────────────────────────────────── */
-function NextMatchCountdown({ group }) {
+function NextMatchCountdown({ group, unpickedCount = 0 }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -562,6 +577,13 @@ function NextMatchCountdown({ group }) {
   if (!next) return null;
 
   const diff = new Date(next.date) - now;
+  const urgent = unpickedCount > 0 && diff < 3 * 3600000;
+  const warning = unpickedCount > 0 && diff < 24 * 3600000;
+  const label = warning ? "Picks due" : "Next kick-off";
+  const borderColor = urgent ? "#ef444435" : warning ? "#f59e0b35" : "var(--border3)";
+  const bgColor = urgent ? "#ef444408" : warning ? "#f59e0b08" : "var(--card)";
+  const textColor = urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-dim)";
+  const timerColor = urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-bright)";
   const days = Math.floor(diff / 86400000);
   const hours = Math.floor((diff % 86400000) / 3600000);
   const mins = Math.floor((diff % 3600000) / 60000);
@@ -569,10 +591,10 @@ function NextMatchCountdown({ group }) {
   const pad = n => String(n).padStart(2, "0");
 
   return (
-    <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"12px 18px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
-      <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase"}}>Next match</div>
+    <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 18px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
+      <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase"}}>{label}</div>
       <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.home} <span style={{color:"var(--text-dim)"}}>vs</span> {next.away}</div>
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:"var(--text-bright)",letterSpacing:3}}>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:timerColor,letterSpacing:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined}}>
         {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
         {pad(hours)}:{pad(mins)}:{pad(secs)}
       </div>
@@ -856,7 +878,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
         ⚡ ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
-      <NextMatchCountdown group={group} />
+      <NextMatchCountdown group={group} unpickedCount={unpickedUnlocked.length} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1}}>
