@@ -399,6 +399,16 @@ export default function App() {
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,refreshGroup}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const gwFixtures = group.gameweeks?.find(g=>g.gw===group.currentGW)?.fixtures||[];
+  const [thumbs,setThumbs]=useState([]);
+  const spawnThumb = (e) => {
+    e.stopPropagation();
+    const id = Date.now() + Math.random();
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = r.left + r.width/2 + (Math.random()-0.5)*20;
+    const y = r.top;
+    setThumbs(t=>[...t,{id,x,y}]);
+    setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+  };
   return (
     <div style={{minHeight:"100vh",background:"#080810",color:"#e8e4d9",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
@@ -406,8 +416,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",height:60,gap:0}}>
           <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:"1px solid #1a1a26",marginRight:20,padding:"0 16px 0 0",height:"100%"}}>
             <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"#fff"}}>POINTS</span>
-            <span style={{fontSize:9,color:"#2a2a3a",letterSpacing:3}}>are bad</span>
+            <span onClick={spawnThumb} style={{fontSize:9,color:"#2a2a3a",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
           </button>
+          {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div style={{flex:1,fontSize:12,color:"#333",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
           {true&&<div style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>}          <nav style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
