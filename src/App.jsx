@@ -130,6 +130,9 @@ function makeFixturesFallback(gw, season) {
   const prefix = season && season !== 2025 ? `${season}-` : "";
   return Array.from({length:10}, (_,i) => ({ id:`${prefix}gw${gw}-f${i}`, home:arr[i*2], away:arr[i*2+1], result:null, status:"SCHEDULED" }));
 }
+function makeAllGWs(season) {
+  return Array.from({length:38}, (_,i) => ({gw:i+1, season, fixtures:makeFixturesFallback(i+1, season)}));
+}
 
 const Avatar = ({ name, size = 36, color }) => {
   const ini = (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -314,7 +317,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setCreating(true);
     const id = Date.now().toString();
     const code = genCode();
-    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:[{gw:1,fixtures:makeFixturesFallback(1)}],currentGW:1,apiKey:"",season:2025};
+    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:1,apiKey:"",season:2025};
     await sset(`group:${id}`,group);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
