@@ -866,7 +866,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
           <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
             <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
             <th style={{padding:"8px 12px",textAlign:"center",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
-            {members.map(u=><th key={u} style={{padding:"8px 12px",textAlign:"center",color:"var(--text-mid)",fontWeight:400}}>{names[u]||u}</th>)}
+            {members.map((u,ui)=>{const isWinner=scored.length>0&&weeklyTotals[ui]===sortedUnique[0];return <th key={u} style={{padding:"8px 12px",textAlign:"center",color:isWinner?"#fbbf24":"var(--text-mid)",fontWeight:isWinner?600:400,textShadow:isWinner?"0 0 8px #fbbf2466":"none"}}>{isWinner&&<span style={{marginRight:4}}>★</span>}{names[u]||u}</th>;})}
           </tr></thead>
           <tbody>
             {scored.map(f=>(
