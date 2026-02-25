@@ -706,7 +706,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
-    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025));
+    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw);
     const idx = seasonGWs.findIndex(g=>g.gw===currentGW);
     if (idx<0) return;
     const pos = idx*57 - gwStripRef.current.clientWidth/2 + 27;
