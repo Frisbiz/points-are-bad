@@ -891,9 +891,10 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
   const preds = group.predictions||{};
   const scored = gwFixtures.filter(f=>f.result);
   const weeklyTotals = members.map(u=>scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0));
+  const hasAnyPicks = scored.some(f=>members.some(u=>preds[u]?.[f.id]));
   const sortedUnique = [...new Set(weeklyTotals)].sort((a,b)=>a-b);
-  const weeklyColor = t=>{const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
-  const weeklyGlow = t=>{const r=sortedUnique.indexOf(t);return r===0?"0 0 10px #fbbf2499,0 0 22px #fbbf2455":r===1?"0 0 7px #9ca3af66,0 0 14px #9ca3af33":r===2?"0 0 5px #cd7f3255,0 0 10px #cd7f3222":"none";};
+  const weeklyColor = t=>{if(!hasAnyPicks)return "var(--text)";const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
+  const weeklyGlow = t=>{if(!hasAnyPicks)return "none";const r=sortedUnique.indexOf(t);return r===0?"0 0 10px #fbbf2499,0 0 22px #fbbf2455":r===1?"0 0 7px #9ca3af66,0 0 14px #9ca3af33":r===2?"0 0 5px #cd7f3255,0 0 10px #cd7f3222":"none";};
 
   const editKey = (u,fid) => `${u}:${fid}`;
   const startEdit = (u,fid) => setEditing(e=>({...e,[editKey(u,fid)]:preds[u]?.[fid]||""}));
@@ -920,7 +921,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
           <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
             <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
             <th style={{padding:"8px 12px",textAlign:"center",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
-            {members.map((u,ui)=>{const isWinner=scored.length>0&&weeklyTotals[ui]===sortedUnique[0];return <th key={u} style={{padding:"8px 12px",textAlign:"center",color:isWinner?"#fbbf24":"var(--text-mid)",fontWeight:isWinner?700:400,textShadow:isWinner?"0 0 10px #fbbf2488":"none"}}>{isWinner&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;})}
+            {members.map((u,ui)=>{const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];return <th key={u} style={{padding:"8px 12px",textAlign:"center",color:isWinner?"#fbbf24":"var(--text-mid)",fontWeight:isWinner?700:400,textShadow:isWinner?"0 0 10px #fbbf2488":"none"}}>{isWinner&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;})}
           </tr></thead>
           <tbody>
             {scored.map(f=>(
