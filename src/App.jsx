@@ -408,6 +408,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   useEffect(()=>{refreshGroup();},[tab]);
   const gwFixtures = group.gameweeks?.find(g=>g.gw===group.currentGW)?.fixtures||[];
   const [thumbs,setThumbs]=useState([]);
+  const [names,setNames]=useState({});
+  useEffect(()=>{
+    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();
+  },[group.members?.join(",")]);
   const spawnThumb = (e) => {
     e.stopPropagation();
     const id = Date.now() + Math.random();
@@ -442,10 +446,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         </div>
       </header>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade" key={tab}>
-        {tab==="League"&&<LeagueTab group={group} user={user}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} gwFixtures={gwFixtures}/>}
-        {tab==="Trends"&&<TrendsTab group={group}/>}
-        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup}/>}
+        {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
+        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} gwFixtures={gwFixtures} names={names}/>}
+        {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
+        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave}/>}
       </main>
     </div>
@@ -453,12 +457,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
 }
 
 /* ── LEAGUE ──────────────────────────────────────── */
-function LeagueTab({group,user}) {
+function LeagueTab({group,user,names}) {
   const stats = computeStats(group);
-  const [names,setNames]=useState({});
-  useEffect(()=>{
-    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();
-  },[group.members?.join(",")]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
@@ -526,7 +526,7 @@ function NextMatchCountdown({ group }) {
   );
 }
 
-function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
+function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
   const [saving,setSaving]=useState({});
@@ -673,17 +673,15 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
           </div>
         );
       })}
-      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user}/>}
+      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names}/>}
     </div>
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser}) {
-  const [names,setNames]=useState({});
+function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const members = group.members||[];
   const preds = group.predictions||{};
-  useEffect(()=>{(async()=>{const e=await Promise.all(members.map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();},[members.join(",")]);
   const scored = gwFixtures.filter(f=>f.result);
 
   const editKey = (u,fid) => `${u}:${fid}`;
@@ -761,12 +759,10 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser}) {
 }
 
 /* ── TRENDS ──────────────────────────────────────── */
-function TrendsTab({group}) {
-  const [names,setNames]=useState({});
+function TrendsTab({group,names}) {
   const stats = computeStats(group);
   const members = group.members||[];
   const gws = group.gameweeks||[];
-  useEffect(()=>{(async()=>{const e=await Promise.all(members.map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();},[members.join(",")]);
   const hasData = stats.some(p=>p.scored>0);
   const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
@@ -804,11 +800,9 @@ function TrendsTab({group}) {
 }
 
 /* ── MEMBERS ─────────────────────────────────────── */
-function MembersTab({group,user,isAdmin,isCreator,updateGroup}) {
-  const [names,setNames]=useState({});
+function MembersTab({group,user,isAdmin,isCreator,updateGroup,names}) {
   const members=group.members||[];
   const admins=group.admins||[];
-  useEffect(()=>{(async()=>{const e=await Promise.all(members.map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();},[members.join(",")]);
   const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];return {...g,admins:a.includes(username)?a.filter(x=>x!==username):[...a,username]};});};
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
