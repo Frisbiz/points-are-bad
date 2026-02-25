@@ -565,7 +565,7 @@ function NextMatchCountdown({ group }) {
   return (
     <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"12px 18px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
       <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase"}}>Next match</div>
-      <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.home} <span style={{color:"var(--text-dim)"}}>vs</span> {next.away}</div>
+      <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.away} <span style={{color:"var(--text-dim)"}}>vs</span> {next.home}</div>
       <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:"var(--text-bright)",letterSpacing:3}}>
         {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
         {pad(hours)}:{pad(mins)}:{pad(secs)}
@@ -1159,7 +1159,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
         </div>
       </Section>
 
-      <Section title="⚡ Live Data — football-data.org">
+      <Section title="⚡ Live Data: football-data.org">
         <div style={{background:"#0a120a",border:"1px solid #1a2a1a",borderRadius:10,padding:"18px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
