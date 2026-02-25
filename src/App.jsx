@@ -607,20 +607,33 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures}) {
           </div>
         );
       })}
-      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures}/>}
+      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup}/>}
     </div>
   );
 }
 
-function AllPicksTable({group,gwFixtures}) {
+function AllPicksTable({group,gwFixtures,isAdmin,updateGroup}) {
   const [names,setNames]=useState({});
+  const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const members = group.members||[];
   const preds = group.predictions||{};
   useEffect(()=>{(async()=>{const e=await Promise.all(members.map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();},[members.join(",")]);
   const scored = gwFixtures.filter(f=>f.result);
+
+  const editKey = (u,fid) => `${u}:${fid}`;
+  const startEdit = (u,fid) => setEditing(e=>({...e,[editKey(u,fid)]:preds[u]?.[fid]||""}));
+  const savePred = async (u,fid) => {
+    const val = editing[editKey(u,fid)];
+    if (val && /^\d+-\d+$/.test(val)) {
+      await updateGroup(g=>{const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};return {...g,predictions:p};});
+    }
+    setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
+  };
+
   return (
     <div style={{marginTop:40}}>
-      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#fff",marginBottom:16,letterSpacing:-0.5}}>All Picks This Week</h2>
+      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#fff",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
+      {isAdmin&&<div style={{fontSize:10,color:"#2a2a3a",letterSpacing:1,marginBottom:14}}>ADMIN — click any pick to edit</div>}
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <thead><tr style={{borderBottom:"1px solid #1a1a26"}}>
@@ -633,9 +646,31 @@ function AllPicksTable({group,gwFixtures}) {
               <tr key={f.id} style={{borderBottom:"1px solid #0e0e18"}}>
                 <td style={{padding:"10px 12px",color:"#555"}}>{f.home} vs {f.away}</td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"#fff",letterSpacing:2}}>{f.result}</td>
-                {members.map(u=>{const pred=preds[u]?.[f.id];const pts=calcPts(pred,f.result);return (
-                  <td key={u} style={{padding:"10px 12px",textAlign:"center"}}><div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><span style={{color:"#333",fontSize:11}}>{pred||"–"}</span><BadgeScore score={pts}/></div></td>
-                );})}
+                {members.map(u=>{
+                  const pred=preds[u]?.[f.id];
+                  const pts=calcPts(pred,f.result);
+                  const key=editKey(u,f.id);
+                  const isEditingCell=editing[key]!==undefined;
+                  return (
+                    <td key={u} style={{padding:"10px 12px",textAlign:"center"}}>
+                      {isAdmin&&isEditingCell?(
+                        <input autoFocus value={editing[key]}
+                          onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
+                          onBlur={()=>savePred(u,f.id)}
+                          onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
+                          style={{width:52,background:"#0a0a14",border:"1px solid #3a3a6a",borderRadius:6,color:"#8888cc",padding:"4px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
+                      ):(
+                        <div onClick={()=>isAdmin&&startEdit(u,f.id)}
+                          style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
+                          onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="#1a1a2a";}}
+                          onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                          <span style={{color:"#333",fontSize:11}}>{pred||"–"}</span>
+                          <BadgeScore score={pts}/>
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
