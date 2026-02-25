@@ -839,6 +839,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
   const weeklyTotals = members.map(u=>scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0));
   const sortedUnique = [...new Set(weeklyTotals)].sort((a,b)=>a-b);
   const weeklyColor = t=>{const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
+  const weeklyGlow = t=>{const r=sortedUnique.indexOf(t);return r===0?"0 0 10px #fbbf2499,0 0 22px #fbbf2455":r===1?"0 0 7px #9ca3af66,0 0 14px #9ca3af33":r===2?"0 0 5px #cd7f3255,0 0 10px #cd7f3222":"none";};
 
   const editKey = (u,fid) => `${u}:${fid}`;
   const startEdit = (u,fid) => setEditing(e=>({...e,[editKey(u,fid)]:preds[u]?.[fid]||""}));
@@ -905,7 +906,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
             <td/>
             {members.map((u,ui)=>{
               const total=weeklyTotals[ui];
-              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:weeklyColor(total)}}>{total}</td>;
+              return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:weeklyColor(total),textShadow:weeklyGlow(total)}}>{total}</td>;
             })}
           </tr></tfoot>}
         </table>
