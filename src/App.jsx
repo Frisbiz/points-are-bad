@@ -648,17 +648,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
     setTimeout(()=>setFetchMsg(""),6000);
   };
 
-  const addGW = async () => {
-    await updateGroup(g=>{
-      const seas = g.season || 2025;
-      const seasonGWs = (g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas);
-      // Guard against duplicates: only add if the next GW doesn't already exist
-      const next = seasonGWs.length>0 ? Math.max(...seasonGWs.map(gw=>gw.gw))+1 : 1;
-      if (seasonGWs.some(gw=>gw.gw===next)) return g;
-      return {...g,gameweeks:[...(g.gameweeks||[]),{gw:next,season:seas,fixtures:makeFixturesFallback(next,seas)}],currentGW:next};
-    });
-  };
-
   const deleteGW = async () => {
     const activeSeason = group.season || 2025;
     const gwToDelete = currentGW;
@@ -769,7 +758,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
             </div>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
-          {isAdmin&&<Btn variant="muted" small onClick={addGW}>+ GW</Btn>}
           {isAdmin&&deleteGWStep===0&&<Btn variant="danger" small onClick={()=>setDeleteGWStep(1)}>Delete GW</Btn>}
           {isAdmin&&deleteGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
             <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Delete GW{currentGW}?</span>
