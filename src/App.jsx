@@ -585,7 +585,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
   const [saving,setSaving]=useState({});
   const [fetching,setFetching]=useState(false);
   const [fetchMsg,setFetchMsg]=useState("");
-  const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [wizardQueue, setWizardQueue] = useState(null);
   const [wizardStep, setWizardStep] = useState(0);
   const [deleteGWStep, setDeleteGWStep] = useState(0);
@@ -646,45 +645,27 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
     await updateGroup(g=>({...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:null}:f)}))}));
   };
 
-  const fetchFromAPI = async (keepPreds) => {
-    setSyncModalOpen(false);
+  const fetchFromAPI = async () => {
     setFetching(true); setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
     try {
       const matches = await fetchMatchweek(group.apiKey, currentGW, group.season||2025);
       if (!matches.length) { setFetchMsg("No matches found for this gameweek."); setFetching(false); return; }
-      const newFixtures = parseMatchesToFixtures(matches, currentGW);
+      const apiFixtures = parseMatchesToFixtures(matches, currentGW);
+      const apiByTeams = {};
+      apiFixtures.forEach(f => { apiByTeams[`${f.home}|${f.away}`] = f; });
       await updateGroup(g => {
         const seas = g.season || 2025;
-        const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||seas)===seas);
-        const oldFixtures = gwObj?.fixtures || [];
-        let newPreds = {...(g.predictions||{})};
-        if (keepPreds) {
-          const newIdByTeams = {};
-          newFixtures.forEach(f => { newIdByTeams[`${f.home}|${f.away}`] = f.id; });
-          Object.keys(newPreds).forEach(u => {
-            const up = {...newPreds[u]};
-            oldFixtures.forEach(f => {
-              const key = `${f.home}|${f.away}`;
-              const newId = newIdByTeams[key];
-              if (newId && newId !== f.id && up[f.id] !== undefined) {
-                up[newId] = up[f.id];
-                delete up[f.id];
-              }
-            });
-            newPreds[u] = up;
-          });
-        } else {
-          const oldIds = new Set(oldFixtures.map(f=>f.id));
-          Object.keys(newPreds).forEach(u => {
-            const up = {...newPreds[u]};
-            oldIds.forEach(id => { delete up[id]; });
-            newPreds[u] = up;
-          });
-        }
-        return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||seas)===seas ? {...gw,fixtures:newFixtures} : gw), predictions:newPreds};
+        return {...g, gameweeks: g.gameweeks.map(gw => {
+          if (!(gw.gw===currentGW&&(gw.season||seas)===seas)) return gw;
+          return {...gw, fixtures: gw.fixtures.map(f => {
+            const apiF = apiByTeams[`${f.home}|${f.away}`];
+            if (!apiF) return f;
+            return {...f, result:apiF.result, status:apiF.status, date:apiF.date};
+          })};
+        })};
       });
-      const finished = newFixtures.filter(f=>f.result).length;
-      setFetchMsg(`✓ Updated ${newFixtures.length} fixtures${finished>0?`, ${finished} with results`:""}.`);
+      const finished = apiFixtures.filter(f=>f.result).length;
+      setFetchMsg(`✓ Updated ${apiFixtures.length} fixtures${finished>0?`, ${finished} with results`:""}.`);
     } catch(e) { setFetchMsg(`Error: ${e.message}`); }
     setFetching(false);
     setTimeout(()=>setFetchMsg(""),6000);
@@ -713,7 +694,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
     setDeleteGWStep(0);
   };
 
-  const setGW = (gw) => {setDeleteGWStep(0);setSyncModalOpen(false);setViewGW(gw);};
+  const setGW = (gw) => {setDeleteGWStep(0);setViewGW(gw);};
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
@@ -803,21 +784,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
         </div>,
         document.body
       )}
-      {syncModalOpen&&createPortal(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:400,width:"100%",textAlign:"center"}}>
-            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:16}}>SYNC GW{currentGW} FROM API</div>
-            <div style={{fontSize:14,color:"var(--text)",marginBottom:8}}>Fixtures will be replaced with live data.</div>
-            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:28}}>What should happen to existing picks?</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              <Btn variant="success" onClick={()=>fetchFromAPI(true)}>Keep picks (remap by team)</Btn>
-              <Btn variant="danger" onClick={()=>fetchFromAPI(false)}>Clear picks</Btn>
-              <Btn variant="muted" small onClick={()=>setSyncModalOpen(false)}>Cancel</Btn>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
@@ -860,7 +826,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
             <Btn variant="danger" small onClick={deleteGW}>Yes, delete</Btn>
             <Btn variant="muted" small onClick={()=>setDeleteGWStep(0)}>Cancel</Btn>
           </div>}
-          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={()=>setSyncModalOpen(true)} disabled={fetching}>{fetching?"Fetching...":hasApiKey?"⚡ Sync Fixtures":"⚡ Sync (needs API key)"}</Btn>}
+          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching}>{fetching?"Fetching...":hasApiKey?"⚡ Sync Fixtures":"⚡ Sync (needs API key)"}</Btn>}
         </div>
       </div>
 
