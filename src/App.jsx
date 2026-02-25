@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 // ─── FIREBASE CONFIG ────────────────────────────────────────────────────────
@@ -180,6 +180,7 @@ const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');
   :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#555566;--text-dim2:#666;--text-dim3:#555;--text-mid:#999;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;}
   [data-theme="light"]{--bg:#f4f1e8;--surface:#fff;--card:#eeeae0;--card-hi:#e8e5db;--card-hover:#e5e2d8;--input-bg:#fff;--border:#dddad0;--border2:#e0ddd4;--border3:#e4e1d8;--text:#1a1814;--text-dim:#888;--text-dim2:#666;--text-dim3:#777;--text-mid:#444;--text-bright:#0f0d0a;--text-inv:#f4f1e8;--scrollbar:#ccc;--btn-bg:#111;--btn-text:#f4f1e8;}
+  html,body{background:var(--bg);}
   *{box-sizing:border-box;margin:0;padding:0;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -573,6 +574,7 @@ function NextMatchCountdown({ group }) {
 
 function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   const mob = useMobile();
+  const gwStripRef = useRef(null);
   const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
   const [saving,setSaving]=useState({});
@@ -643,10 +645,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <div className="gw-strip" style={{display:"flex",gap:3,maxWidth:280}}>
-            {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).map(g=>(
-              <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0}}>GW{g.gw}</button>
-            ))}
+          <div style={{display:"flex",alignItems:"center",gap:3}}>
+            <button onClick={()=>gwStripRef.current&&(gwStripRef.current.scrollLeft-=160)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
+            <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:400,overflowX:"auto"}}>
+              {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).map(g=>(
+                <button key={g.gw} onClick={()=>setGW(g.gw)} style={{background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 11px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,flexShrink:0}}>GW{g.gw}</button>
+              ))}
+            </div>
+            <button onClick={()=>gwStripRef.current&&(gwStripRef.current.scrollLeft+=160)} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
           {isAdmin&&<Btn variant="muted" small onClick={addGW}>+ GW</Btn>}
           {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching}>{fetching?"Fetching...":hasApiKey?"⚡ Sync Fixtures":"⚡ Sync (needs API key)"}</Btn>}
