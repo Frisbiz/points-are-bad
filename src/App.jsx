@@ -652,6 +652,15 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
   const setGW = async (gw) => {await updateGroup(g=>({...g,currentGW:gw}));};
 
   useEffect(()=>{
+    if (!gwStripRef.current) return;
+    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025));
+    const idx = seasonGWs.findIndex(g=>g.gw===currentGW);
+    if (idx<0) return;
+    const pos = idx*57 - gwStripRef.current.clientWidth/2 + 27;
+    gwStripRef.current.scrollLeft = Math.max(0, pos);
+  },[currentGW]);
+
+  useEffect(()=>{
     if (lget(wizardKey)===currentGW) return;
     const unpicked = gwFixtures.filter(f=>{
       const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
