@@ -1211,7 +1211,21 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
       return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
     });
-    setBackfillMsg(added > 0 ? `Added ${added} missing GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
+    setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
+    setTimeout(()=>setBackfillMsg(""),3000);
+  };
+  const backfillAllGWs = async () => {
+    const seas = group.season || 2025;
+    let added = 0;
+    await updateGroup(g => {
+      const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
+      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n));
+      if (!missing.length) { added = 0; return g; }
+      added = missing.length;
+      const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
+      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
+    });
+    setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const leaveGroup=async()=>{
@@ -1250,7 +1264,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
                   <div>
                     <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Gameweeks</div>
                     <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                      <Btn variant="muted" small onClick={backfillGWs}>Create all 38 GWs</Btn>
+                      <Btn variant="muted" small onClick={backfillGWs}>Create future GWs</Btn>
+                      <Btn variant="muted" small onClick={backfillAllGWs}>Create all GWs</Btn>
                       {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
                     </div>
                   </div>
