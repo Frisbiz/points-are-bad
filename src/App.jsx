@@ -944,7 +944,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 24px",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,color:"var(--text-bright)",letterSpacing:10,lineHeight:1}}>{group.code}</div>
+          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,color:"var(--text-bright)",letterSpacing:10,lineHeight:1}}>{group.code}</div>
           <div>
             <Btn onClick={copyCode} variant={copied?"success":"ghost"}>{copied?"Copied!":"Copy Code"}</Btn>
             <div style={{fontSize:11,color:"var(--text-dim)",marginTop:8,letterSpacing:0.3}}>Share with friends to join.</div>
