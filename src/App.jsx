@@ -102,8 +102,6 @@ function parseMatchesToFixtures(matches, matchday) {
   });
 }
 
-// Scores are stored home-away internally but displayed away-home (away is on left)
-const flipScore = s => s && s.includes("-") ? s.split("-").reverse().join("-") : s;
 
 function calcPts(pred, result) {
   if (!pred || !result) return null;
@@ -569,7 +567,7 @@ function NextMatchCountdown({ group }) {
   return (
     <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"12px 18px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
       <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase"}}>Next match</div>
-      <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.away} <span style={{color:"var(--text-dim)"}}>vs</span> {next.home}</div>
+      <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.home} <span style={{color:"var(--text-dim)"}}>vs</span> {next.away}</div>
       <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:"var(--text-bright)",letterSpacing:3}}>
         {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
         {pad(hours)}:{pad(mins)}:{pad(secs)}
@@ -723,13 +721,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>GW{currentGW} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
               <div style={{textAlign:"right",flex:1}}>
-                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.home]||"#555",display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
+                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.home]||"#555",display:"inline-block",marginLeft:6,verticalAlign:"middle"}}/>
               </div>
               <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
               <div style={{textAlign:"left",flex:1}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.away]||"#555",display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
-                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.away]||"#555",display:"inline-block",marginLeft:6,verticalAlign:"middle"}}/>
               </div>
             </div>
             {wizardFixture.date&&<div style={{fontSize:11,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
@@ -794,9 +792,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
 
       {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
-        <div style={{textAlign:"right"}}>Away</div>
-        <div style={{textAlign:"center"}}>Result</div>
         <div>Home</div>
+        <div style={{textAlign:"center"}}>Result</div>
+        <div style={{textAlign:"right"}}>Away</div>
         <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
@@ -809,7 +807,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const resultBlock = f.result?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{flipScore(f.result)}</span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
             {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
             {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
             {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
@@ -824,7 +822,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const pickBlock = locked?(
-          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{flipScore(myPreds[f.id])||"–"}</span>
+          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
         ):(
           <>
             <input value={myPred} placeholder="1-1"
@@ -840,13 +838,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -861,14 +859,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,gwFixtures,names}) {
         return (
           <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
-              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
-            </div>
-            <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
+            </div>
+            <div style={{textAlign:"center"}}>{resultBlock}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
+              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
             </div>
             <div style={{textAlign:"center"}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={pts}/></div>
@@ -928,7 +926,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
             {scored.map(f=>(
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)"}}>
                 <td style={{padding:"10px 12px",color:"var(--text-mid)"}}>{f.home} vs {f.away}</td>
-                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{flipScore(f.result)}</td>
+                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
@@ -947,7 +945,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{flipScore(pred)||"–"}</span>
+                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
                           <BadgeScore score={pts}/>
                         </div>
                       )}
