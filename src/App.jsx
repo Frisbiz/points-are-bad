@@ -69,7 +69,7 @@ const TEAM_NAME_MAP = {
   "Leicester City FC": "Leicester", "Liverpool FC": "Liverpool",
   "Manchester City FC": "Man City", "Manchester United FC": "Man Utd", "Newcastle United FC": "Newcastle",
   "Nottingham Forest FC": "Nott'm Forest", "Southampton FC": "Southampton",
-  "Tottenham Hotspur FC": "Spurs", "West Ham United FC": "West Ham",
+  "Sunderland AFC": "Sunderland", "Tottenham Hotspur FC": "Spurs", "West Ham United FC": "West Ham",
   "Wolverhampton Wanderers FC": "Wolves",
 };
 
