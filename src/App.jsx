@@ -548,7 +548,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       </header>
       <nav className="bot-nav">
         {NAV.map(t=>(
-          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"0 6px",textTransform:"uppercase",flex:1}}>{t}</button>
+          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"10px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
