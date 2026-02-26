@@ -27,3 +27,4 @@ dist-ssr
 .env
 CLAUDE.md
 seed.js
+seed-demo.js
