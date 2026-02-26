@@ -303,6 +303,15 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
   const [createName,setCreateName]=useState("");
   const [joinCode,setJoinCode]=useState("");
   const [error,setError]=useState("");
+  const [thumbs,setThumbs]=useState([]);
+  const spawnThumb = (e) => {
+    const id = Date.now() + Math.random();
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = r.left + r.width/2 + (Math.random()-0.5)*20;
+    const y = r.top;
+    setThumbs(t=>[...t,{id,x,y}]);
+    setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+  };
   const [creating,setCreating]=useState(false);
 
   useEffect(()=>{loadGroups();},[]);
@@ -351,7 +360,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'DM Mono',monospace",color:"var(--text)"}}>
       <style>{CSS}</style>
       <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:20,color:"var(--text-bright)"}}>POINTS <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400}}>are bad</span></div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:20,color:"var(--text-bright)"}}>POINTS <span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:10,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
+        {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span></div>
       </header>
       <div style={{maxWidth:640,margin:"0 auto",padding:"40px 24px"}}>
