@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "firebase": "^12.9.0",
+    "firebase-admin": "^13.6.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "recharts": "^3.7.0"
