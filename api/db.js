@@ -16,7 +16,7 @@ const db = getFirestore();
 const ALLOWED_PREFIXES = ["user:", "group:", "groupcode:"];
 
 function validKey(key) {
-  return typeof key === "string" && ALLOWED_PREFIXES.some(p => key.startsWith(p));
+  return typeof key === "string" && key.length <= 200 && ALLOWED_PREFIXES.some(p => key.startsWith(p));
 }
 
 export default async function handler(req, res) {
