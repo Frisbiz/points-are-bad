@@ -202,7 +202,9 @@ const CSS = `
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
-  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:stretch;height:54px;padding-bottom:env(safe-area-inset-bottom);}
+  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
+  .bot-nav .nb{height:54px;border-bottom:none!important;border-top:2px solid transparent;}
+  .bot-nav .nb.active{border-top-color:var(--text)!important;}
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
 `;
