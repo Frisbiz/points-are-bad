@@ -506,11 +506,14 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       const entry = s.gwTotals.find(g => g.gw === gwNum && (g.season || activeSeason) === recapSeason);
       return { username: s.username, pts: entry ? entry.points : null };
     }).filter(s => s.pts !== null);
-    const winner = weeklyTotals.length > 0 ? weeklyTotals.reduce((a, b) => a.pts <= b.pts ? a : b) : null;
-    const perfectCount = recapGW.fixtures.reduce((acc, f) => {
-      return acc + (group.members || []).filter(u => calcPts((group.predictions || {})[u]?.[f.id], f.result) === 0).length;
+    const minPts = weeklyTotals.length > 0 ? Math.min(...weeklyTotals.map(t => t.pts)) : null;
+    const winners = minPts !== null ? weeklyTotals.filter(t => t.pts === minPts) : [];
+    const totalGoals = recapGW.fixtures.reduce((sum, f) => {
+      if (!f.result) return sum;
+      const [h, a] = f.result.split("-").map(Number);
+      return sum + (isNaN(h) || isNaN(a) ? 0 : h + a);
     }, 0);
-    recapContent = { gwNum, winner, perfectCount };
+    recapContent = { gwNum, winners, minPts, totalGoals };
   }
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
@@ -558,8 +561,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
               <span style={{opacity:0.6,marginRight:10}}>GW{recapContent.gwNum} RECAP</span>
-              {recapContent.winner && <span style={{marginRight:8}}>{names[recapContent.winner.username] || recapContent.winner.username} won the week <span style={{opacity:0.7}}>({recapContent.winner.pts} pts)</span></span>}
-              {recapContent.perfectCount > 0 && <span style={{opacity:0.7}}>· {recapContent.perfectCount} perfect{recapContent.perfectCount !== 1 ? "s" : ""}</span>}
+              {recapContent.winners.length > 0 && <span style={{marginRight:8}}>{recapContent.winners.map(w => names[w.username] || w.username).join(" & ")} won the week <span style={{opacity:0.7}}>({recapContent.minPts} pts)</span></span>}
+              {recapContent.totalGoals > 0 && <span style={{opacity:0.7}}>· {recapContent.totalGoals} goals</span>}
             </div>
             <button onClick={() => { lset(recapKey, true); setRecapDismissed(true); }}
               style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
