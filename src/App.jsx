@@ -14,12 +14,14 @@ async function sget(key) {
 
 async function sset(key, val) {
   try {
-    await fetch("/api/db", {
+    const res = await fetch("/api/db", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, value: val }),
     });
-  } catch(e) { console.error("sset error", key, e); }
+    if (!res.ok) { console.error("sset error", key, res.status); return false; }
+    return true;
+  } catch(e) { console.error("sset error", key, e); return false; }
 }
 
 // Session stored locally (only needed on this browser)
@@ -430,7 +432,7 @@ export default function App() {
   };
   const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
   const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh)setGroup(fresh);},[group?.id]);
-  const updateGroup = useCallback(async(updater)=>{if(!group)return;const fresh=await sget(`group:${group.id}`);const next=typeof updater==="function"?updater(fresh):updater;await sset(`group:${group.id}`,next);setGroup(next);},[group?.id]);
+  const updateGroup = useCallback(async(updater)=>{if(!group)return;const fresh=await sget(`group:${group.id}`);const next=typeof updater==="function"?updater(fresh):updater;if(await sset(`group:${group.id}`,next))setGroup(next);},[group?.id]);
 
   if (!boot) return <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>loading...</div>;
   if (!user) return <AuthScreen onLogin={handleLogin} />;
