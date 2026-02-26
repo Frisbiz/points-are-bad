@@ -2,46 +2,23 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-// ─── FIREBASE CONFIG ────────────────────────────────────────────────────────
-const FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-// ─── FIRESTORE HELPERS ───────────────────────────────────────────────────────
-let db = null;
-
-async function getDB() {
-  if (db) return db;
-  const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js");
-  const { getFirestore, doc, getDoc, setDoc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js");
-  const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
-  db = getFirestore(app);
-  db._doc = doc;
-  db._getDoc = getDoc;
-  db._setDoc = setDoc;
-  db._deleteDoc = deleteDoc;
-  return db;
-}
-
+// ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key) {
   try {
-    const db = await getDB();
-    const ref = db._doc(db, "data", key.replace(/[/\\]/g, "_"));
-    const snap = await db._getDoc(ref);
-    return snap.exists() ? snap.data().value : null;
+    const res = await fetch("/api/db?key=" + encodeURIComponent(key));
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.value;
   } catch(e) { console.error("sget error", key, e); return null; }
 }
 
 async function sset(key, val) {
   try {
-    const db = await getDB();
-    const ref = db._doc(db, "data", key.replace(/[/\\]/g, "_"));
-    await db._setDoc(ref, { value: val, updatedAt: Date.now() });
+    await fetch("/api/db", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value: val }),
+    });
   } catch(e) { console.error("sset error", key, e); }
 }
 
