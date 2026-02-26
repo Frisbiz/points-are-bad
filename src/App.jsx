@@ -553,8 +553,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
-          <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-            <div style={{fontSize:11,color:"#8888cc",letterSpacing:1}}>
+          <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
               <span style={{opacity:0.6,marginRight:10}}>GW{recapContent.gwNum} RECAP</span>
               {recapContent.winner && <span style={{marginRight:8}}>{names[recapContent.winner.username] || recapContent.winner.username} won the week <span style={{opacity:0.7}}>({recapContent.winner.pts} pts)</span></span>}
               {recapContent.perfectCount > 0 && <span style={{opacity:0.7}}>· {recapContent.perfectCount} perfect{recapContent.perfectCount !== 1 ? "s" : ""}</span>}
