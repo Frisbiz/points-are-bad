@@ -892,8 +892,18 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const [deleteGWStep, setDeleteGWStep] = useState(0);
   const [wizardPred, setWizardPred] = useState("");
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
-  const [viewGW, setViewGW] = useState(group.currentGW||1);
   const activeSeason = group.season||2025;
+  const [viewGW, setViewGW] = useState(()=>{
+    const now = new Date();
+    const seas = group.season||2025;
+    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
+    for (const gwObj of seasonGWs) {
+      if ((gwObj.fixtures||[]).some(f=>f.date&&!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&new Date(f.date)>now)) return gwObj.gw;
+    }
+    const withResults = seasonGWs.filter(gwObj=>(gwObj.fixtures||[]).some(f=>f.result));
+    if (withResults.length) return withResults[withResults.length-1].gw;
+    return group.currentGW||1;
+  });
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const picksLockedKey = `picks-locked:${group.id}:${user.username}:${activeSeason}:gw${currentGW}`;
