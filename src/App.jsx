@@ -228,7 +228,7 @@ function computeStats(group) {
 }
 
 /* ── AUTH ─────────────────────────────────────────── */
-function AuthScreen({ onLogin }) {
+function AuthScreen({ onLogin, successMsg }) {
   const [mode,setMode]=useState("login");
   const [username,setUsername]=useState("");
   const [displayName,setDisplayName]=useState("");
@@ -332,6 +332,7 @@ function AuthScreen({ onLogin }) {
                 {mode==="register"&&<Input value={confirmPassword} onChange={setConfirmPassword} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />}
               </div>
               {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
+              {successMsg&&<div style={{color:"#22c55e",fontSize:12,marginTop:12}}>{successMsg}</div>}
               <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
                 {loading?"...":mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
               </Btn>
@@ -515,6 +516,11 @@ export default function App() {
   const [toast,setToast]=useState(null);
   const [bootError,setBootError]=useState(false);
   const toastTimer=useRef(null);
+  const [resetToken]=useState(()=>{
+    const p=new URLSearchParams(window.location.search);
+    return p.get("reset")||null;
+  });
+  const [resetDone,setResetDone]=useState(false);
   const showToast=useCallback((msg)=>{
     setToast(msg);
     if(toastTimer.current)clearTimeout(toastTimer.current);
@@ -609,8 +615,13 @@ export default function App() {
               padding:"6px 8px",fontFamily:"inherit"}}>clear session</button>
           </div>
         </div>
+      ):resetToken&&!resetDone?(
+        <ResetPasswordScreen token={resetToken} onDone={()=>{
+          window.history.replaceState({},"","/");
+          setResetDone(true);
+        }}/>
       ):!user?(
-        <AuthScreen onLogin={handleLogin}/>
+        <AuthScreen onLogin={handleLogin} successMsg={resetDone?"Password updated - please sign in.":null}/>
       ):!group?(
         <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)}/>
       ):(
