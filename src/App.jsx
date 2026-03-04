@@ -1672,7 +1672,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       const now = Date.now();
       const id = String(now);
       const { backups: _omit, ...snapshot } = group;
-      await sset(`backup:${group.id}:${id}`, { groupId: group.id, createdAt: now, createdBy: user.username, snapshot });
+      const ok = await sset(`backup:${group.id}:${id}`, { groupId: group.id, createdAt: now, createdBy: user.username, snapshot });
+      if (!ok) throw new Error("Failed to write backup");
       await updateGroup(g => {
         const list = [{ id, createdAt: now, createdBy: user.username }, ...(g.backups||[])].slice(0, 5);
         return { ...g, backups: list };
@@ -1688,6 +1689,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
   const deleteBackup = async (id) => {
     setBackupBusy(true);
+    await sset(`backup:${group.id}:${id}`, null);
     await updateGroup(g => ({ ...g, backups: (g.backups||[]).filter(b => b.id !== id) }));
     setRestoringId(null);
     setBackupBusy(false);
