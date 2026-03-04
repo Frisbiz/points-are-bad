@@ -431,7 +431,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setCreating(true);
     const id = Date.now().toString();
     const code = genCode();
-    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:1,apiKey:"",season:2025,hiddenGWs:[]};
+    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:1,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:"unlimited",adminLog:[]};
     await sset(`group:${id}`,group);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
@@ -817,7 +817,7 @@ function LeagueTab({group,user,names}) {
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>(
-            <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"#2a2a4a":"var(--border3)"}`}}>
+            <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
                   {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
@@ -825,7 +825,7 @@ function LeagueTab({group,user,names}) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
-                <div style={{fontSize:mob?12:14,color:p.username===user.username?"#9090e0":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
@@ -1056,6 +1056,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   },[currentGW,group.id]);
 
   useEffect(()=>{
+    if (currentGW !== (group.currentGW||1)) return;
     const now = Date.now();
     if (group.lastAutoSync && (now - group.lastAutoSync) < 86_400_000) return;
     const seas = group.season||2025;
@@ -1125,11 +1126,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
               <div style={{textAlign:"right",flex:1}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
-                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.home]||"#555",display:"inline-block",marginLeft:6,verticalAlign:"middle"}}/>
+                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.home]||"var(--text-dim)",display:"inline-block",marginLeft:6,verticalAlign:"middle"}}/>
               </div>
               <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
               <div style={{textAlign:"left",flex:1}}>
-                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.away]||"#555",display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>
+                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.away]||"var(--text-dim)",display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
               </div>
             </div>
@@ -1265,13 +1266,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"var(--text-dim)",flexShrink:0}}/>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
+                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"var(--text-dim)",flexShrink:0}}/>
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1288,11 +1289,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
-              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"#333",flexShrink:0}}/>
+              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"var(--text-dim)",flexShrink:0}}/>
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"#333",flexShrink:0}}/>
+              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"var(--text-dim)",flexShrink:0}}/>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{textAlign:"center"}}>{pickBlock}</div>
@@ -1308,7 +1309,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
         </div>
       )}
-      {(picksLocked||gwFixtures.some(f=>f.result))&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names}/>}
+      {(picksLocked||gwFixtures.some(f=>f.result))&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
       {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
@@ -1320,7 +1321,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
+function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const members = group.members||[];
   const preds = group.predictions||{};
@@ -1340,7 +1341,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
       const fixture = gwFixtures.find(f=>f.id===fid);
       await updateGroup(g=>{
         const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};
-        const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:group.currentGW,old:oldVal,new:val};
+        const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:viewedGW??group.currentGW,old:oldVal,new:val};
         return {...g,predictions:p,adminLog:[...(g.adminLog||[]),entry]};
       });
     }
@@ -1417,8 +1418,8 @@ function TrendsTab({group,names}) {
   const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
   const completedGws = gws.filter(g=>g.fixtures.length>0&&g.fixtures.every(f=>f.result));
-  const gwLine=completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw)?.points??0;});return r;});
-  const cumLine=completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw)).reduce((a,e)=>a+e.points,0);});return r;});
+  const gwLine=completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw&&e.season===(g.season||activeSeason))?.points??0;});return r;});
+  const cumLine=completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))).reduce((a,e)=>a+e.points,0);});return r;});
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result);if(pp===null)return;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
@@ -1490,7 +1491,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
           return (
-            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"#2a2a4a":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
+            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
                 <Avatar name={names[username]||username} color={PALETTE[members.indexOf(username)%PALETTE.length]}/>
                 <div style={{flex:1,minWidth:0}}>
@@ -1502,7 +1503,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                     </div>
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:14,color:isMe?"#9090d0":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
+                      <span style={{fontSize:14,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
                       {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",fontSize:11,padding:"0 2px",fontFamily:"inherit",lineHeight:1}}>✎</button>}
                     </div>
                   )}
@@ -1530,7 +1531,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
             <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
               {log.map(e=>(
-                <div key={e.id} style={{background:"var(--card)",border:`1px solid ${e.action==="kick"?"#2a1010":"var(--border3)"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div key={e.id} style={{background:"var(--card)",border:`1px solid ${e.action==="kick"?"#ef444430":"var(--border3)"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                     {e.action==="kick"?(
                       <>
@@ -1662,8 +1663,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     if(isCreator)return;
     const fresh=await sget(`user:${user.username}`);
     if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
-    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
-    onLeave();
+    const ok=await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
+    if(ok)onLeave();
   };
 
   const createBackup = async () => {
@@ -1907,7 +1908,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
           {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","⚡ Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
               <span style={{color:"var(--text-dim)"}}>{l}</span>
-              <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"#555"):"inherit"}}>{v}</span>
+              <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
             </div>
           ))}
         </div>
