@@ -907,7 +907,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const picksLockedKey = `picks-locked:${group.id}:${user.username}:${activeSeason}:gw${currentGW}`;
-  const [picksLocked, setPicksLocked] = useState(()=>!!lget(picksLockedKey));
+  const [picksLocked, setPicksLocked] = useState(false);
+  useEffect(()=>{setPicksLocked(!!lget(picksLockedKey));},[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>!!f.result);
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
@@ -1019,7 +1020,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
     setDeleteGWStep(0);
   };
 
-  const setGW = (gw) => {setDeleteGWStep(0);setPicksLocked(false);setViewGW(gw);};
+  const setGW = (gw) => {setDeleteGWStep(0);setViewGW(gw);};
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
@@ -1309,7 +1310,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
         </div>
       )}
-      {(picksLocked||gwFixtures.some(f=>f.result))&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
+      {(picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
       {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
