@@ -890,6 +890,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const [wizardQueue, setWizardQueue] = useState(null);
   const [wizardStep, setWizardStep] = useState(0);
   const [deleteGWStep, setDeleteGWStep] = useState(0);
+  const [removeGWStep, setRemoveGWStep] = useState(0);
   const [wizardPred, setWizardPred] = useState("");
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
   const activeSeason = group.season||2025;
@@ -1020,7 +1021,33 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
     setDeleteGWStep(0);
   };
 
-  const setGW = (gw) => {setDeleteGWStep(0);setViewGW(gw);};
+  const removeGW = async () => {
+    const seas0 = group.season || 2025;
+    const gwToRemove = currentGW;
+    await updateGroup(g=>{
+      const seas = g.season || seas0;
+      const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToRemove&&(gw.season||seas)===seas);
+      const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
+      const preds = {...(g.predictions||{})};
+      Object.keys(preds).forEach(u=>{
+        const up = {...preds[u]};
+        fixtureIds.forEach(id=>{delete up[id];});
+        preds[u] = up;
+      });
+      const remaining = (g.gameweeks||[]).filter(gw=>!(gw.gw===gwToRemove&&(gw.season||seas)===seas));
+      const newCurrentGW = remaining.filter(gw=>(gw.season||seas)===seas).sort((a,b)=>b.gw-a.gw)[0]?.gw || 1;
+      return {...g, gameweeks:remaining, predictions:preds, currentGW:newCurrentGW};
+    });
+    setRemoveGWStep(0);
+  };
+
+  const setGW = (gw) => {setDeleteGWStep(0);setRemoveGWStep(0);setViewGW(gw);};
+
+  useEffect(()=>{
+    const seas = group.season||2025;
+    const exists = (group.gameweeks||[]).some(g=>g.gw===viewGW&&(g.season||seas)===seas);
+    if (!exists) setViewGW(group.currentGW||1);
+  },[group.gameweeks]);
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
@@ -1190,7 +1217,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
             </div>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
-          {isAdmin&&deleteGWStep===0&&<Btn variant="danger" small onClick={()=>setDeleteGWStep(1)}>Clear GW</Btn>}
+          {isAdmin&&deleteGWStep===0&&removeGWStep===0&&<Btn variant="danger" small onClick={()=>setDeleteGWStep(1)}>Clear GW</Btn>}
           {isAdmin&&deleteGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
             <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Clear GW{currentGW}?</span>
             <Btn variant="danger" small onClick={()=>setDeleteGWStep(2)}>Confirm</Btn>
@@ -1200,6 +1227,17 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
             <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Really clear GW{currentGW}? All picks lost.</span>
             <Btn variant="danger" small onClick={deleteGW}>Yes, clear</Btn>
             <Btn variant="muted" small onClick={()=>setDeleteGWStep(0)}>Cancel</Btn>
+          </div>}
+          {isAdmin&&removeGWStep===0&&deleteGWStep===0&&<Btn variant="danger" small onClick={()=>setRemoveGWStep(1)}>Delete GW</Btn>}
+          {isAdmin&&removeGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Delete GW{currentGW}?</span>
+            <Btn variant="danger" small onClick={()=>setRemoveGWStep(2)}>Confirm</Btn>
+            <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
+          </div>}
+          {isAdmin&&removeGWStep===2&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Permanently remove GW{currentGW}?</span>
+            <Btn variant="danger" small onClick={removeGW}>Yes, delete</Btn>
+            <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
           </div>}
           {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching}>{fetching?"Fetching...":hasApiKey?"⚡ Sync Fixtures":"⚡ Sync (needs API key)"}</Btn>}
         </div>
