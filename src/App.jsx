@@ -1350,7 +1350,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names}) {
   return (
     <div style={{marginTop:40}}>
       <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
-      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN — click any pick to edit</div>}
+      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
