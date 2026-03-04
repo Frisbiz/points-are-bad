@@ -271,6 +271,7 @@ function AuthScreen({ onLogin, successMsg }) {
     if (mode==="register") {
       if (!displayName.trim()){setError("Display name required.");setLoading(false);return;}
       if (!email.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){setError("Valid email required.");setLoading(false);return;}
+      if (password.trim().length<6){setError("Password must be at least 6 characters.");setLoading(false);return;}
       if (password!==confirmPassword){setError("Passwords do not match.");setLoading(false);return;}
       const uname = username.toLowerCase();
       if (!/^[a-z0-9_\-]+$/.test(uname)) {
@@ -284,8 +285,9 @@ function AuthScreen({ onLogin, successMsg }) {
       const exEmail = await sget(emailKey);
       if (exEmail){setError("Email already in use.");setLoading(false);return;}
       const user = {username:uname,displayName:displayName.trim(),password,email:email.trim().toLowerCase(),groupIds:[]};
-      await sset(`user:${uname}`,user);
-      await sset(emailKey,{username:uname});
+      const ok1 = await sset(`user:${uname}`,user);
+      const ok2 = await sset(emailKey,{username:uname});
+      if (!ok1||!ok2){setError("Registration failed - please try again.");setLoading(false);return;}
       onLogin(user);
     } else {
       const user = await sget(`user:${username.toLowerCase()}`);
@@ -357,6 +359,7 @@ function ResetPasswordScreen({ token, onDone }) {
 
   const handle = async () => {
     if (!newPassword.trim()){setError("Password required.");return;}
+    if (newPassword.trim().length<6){setError("Password must be at least 6 characters.");return;}
     if (newPassword!==confirm){setError("Passwords do not match.");return;}
     setLoading(true);setError("");
     try {
@@ -668,6 +671,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   };
   const changePassword = async () => {
     if (!pwCurrent||!pwNew||!pwConfirm){setPwError("Fill in all fields.");return;}
+    if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
     const fresh = await sget(`user:${user.username}`);
@@ -740,7 +744,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         </div>
       </header>
       {accountOpen&&createPortal(
-  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
     <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:20}}>ACCOUNT</div>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>

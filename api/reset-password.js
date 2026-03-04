@@ -18,6 +18,9 @@ export default async function handler(req, res) {
 
   const { token, newPassword } = req.body || {};
   if (!token || !newPassword) return res.status(400).json({ error: "Missing fields" });
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(token)) {
+    return res.status(400).json({ error: "Invalid or expired reset link" });
+  }
 
   try {
     const tokenKey = `reset:${token}`;
