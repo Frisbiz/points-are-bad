@@ -1200,7 +1200,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           </>
         );
         if (mob) return (
-          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2}}>
+          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:locked?0.55:1,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -1223,7 +1223,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           </div>
         );
         return (
-          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2}}>
+          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2,opacity:locked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
