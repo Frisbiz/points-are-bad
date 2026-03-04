@@ -627,7 +627,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </div>
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} names={names}/>}
+        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave}/>}
@@ -714,7 +714,7 @@ function NextMatchCountdown({ group, unpickedCount = 0 }) {
   );
 }
 
-function FixturesTab({group,user,isAdmin,updateGroup,names}) {
+function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const mob = useMobile();
   const gwStripRef = useRef(null);
   const [resultDraft,setResultDraft]=useState({});
@@ -751,6 +751,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
   const canViewAllPicks = unpickedUnlocked.length===0;
 
   const savePred = async (fixtureId, val) => {
+    const f = gwFixtures.find(fx => fx.id === fixtureId);
+    const locked = !!(f?.result || f?.status==="FINISHED" || f?.status==="IN_PLAY" || f?.status==="PAUSED" || (f?.date && new Date(f.date) <= new Date()));
+    if (locked) return;
     if (!/^\d+-\d+$/.test(val)) return;
     if (val === "1-1") {
       const limit = group.draw11Limit || "unlimited";
@@ -767,7 +770,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,names}) {
       }
     }
     setSaving(s=>({...s,[fixtureId]:true}));
-    await updateGroup(g=>{const p={...(g.predictions||{})};p[user.username]={...(p[user.username]||{}),[fixtureId]:val};return {...g,predictions:p};});
+    await patchGroup(`predictions.${user.username}.${fixtureId}`, val);
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
