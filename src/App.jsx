@@ -231,7 +231,6 @@ function computeStats(group) {
 function AuthScreen({ onLogin, successMsg }) {
   const [mode,setMode]=useState("login");
   const [username,setUsername]=useState("");
-  const [displayName,setDisplayName]=useState("");
   const [password,setPassword]=useState("");
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
@@ -269,7 +268,6 @@ function AuthScreen({ onLogin, successMsg }) {
     if (!username.trim()||!password.trim()){setError("Fill in all fields.");return;}
     setLoading(true);setError("");
     if (mode==="register") {
-      if (!displayName.trim()){setError("Display name required.");setLoading(false);return;}
       if (!email.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){setError("Valid email required.");setLoading(false);return;}
       if (password.trim().length<6){setError("Password must be at least 6 characters.");setLoading(false);return;}
       if (password!==confirmPassword){setError("Passwords do not match.");setLoading(false);return;}
@@ -284,7 +282,7 @@ function AuthScreen({ onLogin, successMsg }) {
       const emailKey = `useremail:${email.trim().toLowerCase()}`;
       const exEmail = await sget(emailKey);
       if (exEmail){setError("Email already in use.");setLoading(false);return;}
-      const user = {username:uname,displayName:displayName.trim(),password,email:email.trim().toLowerCase(),groupIds:[]};
+      const user = {username:uname,displayName:uname[0].toUpperCase()+uname.slice(1),password,email:email.trim().toLowerCase(),groupIds:[]};
       const ok1 = await sset(`user:${uname}`,user);
       const ok2 = await sset(emailKey,{username:uname});
       if (!ok1||!ok2){setError("Registration failed - please try again.");setLoading(false);return;}
@@ -327,8 +325,7 @@ function AuthScreen({ onLogin, successMsg }) {
                 ))}
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                {mode==="register"&&<Input value={displayName} onChange={setDisplayName} placeholder="Display name" autoFocus />}
-                {mode==="register"&&<Input value={email} onChange={v=>setEmail(v)} placeholder="Email" type="email" />}
+                {mode==="register"&&<Input value={email} onChange={v=>setEmail(v)} placeholder="Email" type="email" autoFocus />}
                 <Input value={username} onChange={v=>setUsername(v.toLowerCase())} placeholder="Username" autoFocus={mode==="login"} onKeyDown={e=>e.key==="Enter"&&handle()} />
                 <Input value={password} onChange={setPassword} placeholder="Password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />
                 {mode==="register"&&<Input value={confirmPassword} onChange={setConfirmPassword} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />}
@@ -669,6 +666,12 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
   };
+  const updateNickname = async (targetUsername, newName) => {
+    const fresh = await sget(`user:${targetUsername}`);
+    if (!fresh) return;
+    await sset(`user:${targetUsername}`, {...fresh, displayName: newName.trim()});
+    setNames(n => ({...n, [targetUsername]: newName.trim()}));
+  };
   const changePassword = async () => {
     if (!pwCurrent||!pwNew||!pwConfirm){setPwError("Fill in all fields.");return;}
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
@@ -749,9 +752,6 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:20}}>ACCOUNT</div>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Display name</span><span style={{color:"var(--text-mid)"}}>{user.displayName}</span>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
           <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-mid)"}}>{user.username}</span>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
@@ -794,7 +794,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
-        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names}/>}
+        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave}/>}
       </main>
     </div>
@@ -1394,9 +1394,15 @@ function TrendsTab({group,names}) {
 }
 
 /* ── MEMBERS ─────────────────────────────────────── */
-function MembersTab({group,user,isAdmin,isCreator,updateGroup,names}) {
+function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickname}) {
   const members=group.members||[];
   const admins=group.admins||[];
+  const [editingNick,setEditingNick]=useState(null);
+  const [nickDraft,setNickDraft]=useState("");
+  const saveNick=async(username)=>{
+    if(nickDraft.trim())await updateNickname(username,nickDraft.trim());
+    setEditingNick(null);
+  };
   const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];return {...g,admins:a.includes(username)?a.filter(x=>x!==username):[...a,username]};});};
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
@@ -1416,10 +1422,21 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names}) {
           const isMe=username===user.username;
           return (
             <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"#2a2a4a":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
                 <Avatar name={names[username]||username} color={PALETTE[members.indexOf(username)%PALETTE.length]}/>
-                <div>
-                  <div style={{fontSize:14,color:isMe?"#9090d0":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  {editingNick===username ? (
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <Input value={nickDraft} onChange={setNickDraft} autoFocus onKeyDown={e=>{if(e.key==="Enter")saveNick(username);if(e.key==="Escape")setEditingNick(null);}} style={{padding:"3px 8px",fontSize:13,height:"auto"}}/>
+                      <Btn small onClick={()=>saveNick(username)}>Save</Btn>
+                      <Btn small variant="ghost" onClick={()=>setEditingNick(null)}>Cancel</Btn>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:14,color:isMe?"#9090d0":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
+                      {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",fontSize:11,padding:"0 2px",fontFamily:"inherit",lineHeight:1}}>✎</button>}
+                    </div>
+                  )}
                   <div style={{display:"flex",gap:6,marginTop:4}}>
                     {mIsCreator&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"1px 6px"}}>CREATOR</span>}
                     {isAdmin&&mIsAdmin&&!mIsCreator&&<span style={{fontSize:9,color:"#60a5fa",letterSpacing:2,background:"#60a5fa15",border:"1px solid #60a5fa30",borderRadius:4,padding:"1px 6px"}}>ADMIN</span>}
