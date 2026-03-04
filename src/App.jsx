@@ -251,8 +251,8 @@ function AuthScreen({ onLogin }) {
     if (mode==="register") {
       if (!displayName.trim()){setError("Display name required.");setLoading(false);return;}
       const uname = username.toLowerCase();
-      if (!/^[a-z0-9_.\-]+$/.test(uname)) {
-        setError("Username may only contain letters, numbers, underscores, hyphens, and dots.");
+      if (!/^[a-z0-9_\-]+$/.test(uname)) {
+        setError("Username may only contain letters, numbers, underscores, and hyphens.");
         setLoading(false);
         return;
       }
