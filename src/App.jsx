@@ -415,6 +415,9 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
   };
   const [creating,setCreating]=useState(false);
+  const [setupMode,setSetupMode]=useState(false);
+  const [setupGW,setSetupGW]=useState("1");
+  const [setupLimit,setSetupLimit]=useState("unlimited");
 
   useEffect(()=>{loadGroups();},[]);
 
@@ -431,13 +434,14 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setCreating(true);
     const id = Date.now().toString();
     const code = genCode();
-    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:1,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:"unlimited",adminLog:[]};
+    const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
+    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,adminLog:[]};
     await sset(`group:${id}`,group);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
     const updated = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
     await sset(`user:${user.username}`,updated);
-    onUpdateUser(updated);setCreateName("");setCreating(false);
+    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setCreating(false);
     onEnterGroup(group);
   };
 
@@ -489,8 +493,32 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16}}>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CREATE GROUP</div>
-            <Input value={createName} onChange={setCreateName} placeholder="Group name..." onKeyDown={e=>e.key==="Enter"&&createGroup()} />
-            <Btn onClick={createGroup} disabled={creating||!createName.trim()} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>{creating?"...":"Create →"}</Btn>
+            {!setupMode?(
+              <>
+                <Input value={createName} onChange={setCreateName} placeholder="Group name..." onKeyDown={e=>e.key==="Enter"&&createName.trim()&&setSetupMode(true)} />
+                <Btn onClick={()=>setSetupMode(true)} disabled={!createName.trim()} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>Next →</Btn>
+              </>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                <div style={{fontSize:13,color:"var(--text-bright)",fontFamily:"'Playfair Display',serif",fontWeight:700,marginBottom:2}}>{createName}</div>
+                <div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW</div>
+                  <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
+                </div>
+                <div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>1-1 LIMIT PER WEEK</div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    {[["unlimited","Unlimited"],["2","2"],["1","1"],["none","None"]].map(([val,label])=>(
+                      <button key={val} onClick={()=>setSetupLimit(val)} style={{background:setupLimit===val?"var(--btn-bg)":"var(--card)",color:setupLimit===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:4}}>
+                  <Btn variant="ghost" small onClick={()=>setSetupMode(false)}>← Back</Btn>
+                  <Btn onClick={createGroup} disabled={creating} style={{flex:1,textAlign:"center"}}>{creating?"...":"Create Group →"}</Btn>
+                </div>
+              </div>
+            )}
           </div>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>JOIN WITH CODE</div>
