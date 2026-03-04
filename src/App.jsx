@@ -235,6 +235,8 @@ function AuthScreen({ onLogin }) {
   const [password,setPassword]=useState("");
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [email,setEmail]=useState("");
+  const [confirmPassword,setConfirmPassword]=useState("");
   const [thumbs,setThumbs]=useState([]);
   const spawnThumb = (e) => {
     const id = Date.now() + Math.random();
@@ -250,16 +252,22 @@ function AuthScreen({ onLogin }) {
     setLoading(true);setError("");
     if (mode==="register") {
       if (!displayName.trim()){setError("Display name required.");setLoading(false);return;}
+      if (!email.trim()||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())){setError("Valid email required.");setLoading(false);return;}
+      if (password!==confirmPassword){setError("Passwords do not match.");setLoading(false);return;}
       const uname = username.toLowerCase();
       if (!/^[a-z0-9_\-]+$/.test(uname)) {
         setError("Username may only contain letters, numbers, underscores, and hyphens.");
         setLoading(false);
         return;
       }
-      const ex = await sget(`user:${username.toLowerCase()}`);
+      const ex = await sget(`user:${uname}`);
       if (ex){setError("Username taken.");setLoading(false);return;}
-      const user = {username:username.toLowerCase(),displayName:displayName.trim(),password,groupIds:[]};
-      await sset(`user:${username.toLowerCase()}`,user);
+      const emailKey = `useremail:${email.trim().toLowerCase()}`;
+      const exEmail = await sget(emailKey);
+      if (exEmail){setError("Email already in use.");setLoading(false);return;}
+      const user = {username:uname,displayName:displayName.trim(),password,email:email.trim().toLowerCase(),groupIds:[]};
+      await sset(`user:${uname}`,user);
+      await sset(emailKey,{username:uname});
       onLogin(user);
     } else {
       const user = await sget(`user:${username.toLowerCase()}`);
@@ -281,15 +289,17 @@ function AuthScreen({ onLogin }) {
         <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
           <div style={{display:"flex",background:"var(--bg)",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
             {["login","register"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+              <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
                 {m==="login"?"Sign In":"Register"}
               </button>
             ))}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {mode==="register"&&<Input value={displayName} onChange={setDisplayName} placeholder="Display name" autoFocus />}
+            {mode==="register"&&<Input value={email} onChange={v=>setEmail(v)} placeholder="Email" type="email" />}
             <Input value={username} onChange={v=>setUsername(v.toLowerCase())} placeholder="Username" autoFocus={mode==="login"} onKeyDown={e=>e.key==="Enter"&&handle()} />
             <Input value={password} onChange={setPassword} placeholder="Password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />
+            {mode==="register"&&<Input value={confirmPassword} onChange={setConfirmPassword} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />}
           </div>
           {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
           <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
@@ -532,7 +542,7 @@ export default function App() {
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,dark,toggleDark}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
-  const [names,setNames]=useState({});
+  const [names,setNames]=useState(()=>{const init={};(group.members||[]).forEach(u=>{init[u]=u[0].toUpperCase()+u.slice(1);});init[user.username]=user.displayName;return init;});
   const [profileOpen,setProfileOpen]=useState(false);
   const profileRef=useRef(null);
   useEffect(()=>{
@@ -542,7 +552,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     return()=>document.removeEventListener("mousedown",handler);
   },[profileOpen]);
   useEffect(()=>{
-    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||u];}));setNames(Object.fromEntries(e));})();
+    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||(u[0].toUpperCase()+u.slice(1))];}));setNames(Object.fromEntries(e));})();
   },[group.members?.join(",")]);
   const spawnThumb = (e) => {
     e.stopPropagation();
@@ -733,17 +743,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const [deleteGWStep, setDeleteGWStep] = useState(0);
   const [wizardPred, setWizardPred] = useState("");
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
-  const [viewGW, setViewGW] = useState(()=>{
-    const seas = group.season||2025;
-    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
-    const preds = group.predictions?.[user.username]||{};
-    const now = new Date();
-    const next = seasonGWs.find(gwObj=>gwObj.fixtures.some(f=>{
-      const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=now));
-      return !locked&&!preds[f.id];
-    }));
-    return next ? next.gw : (group.currentGW||1);
-  });
+  const [viewGW, setViewGW] = useState(group.currentGW||1);
   const activeSeason = group.season||2025;
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
