@@ -51,9 +51,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid path" });
     }
     try {
-      await db.collection("data").doc(key.replace(/[/\\]/g, "_")).update({ [path]: value });
+      await db.collection("data").doc(key.replace(/[/\\]/g, "_")).update({ [path]: value, updatedAt: Date.now() });
       return res.status(200).json({ ok: true });
     } catch (e) {
+      if (e.code === 5) return res.status(404).json({ error: "Document not found" });
       console.error("db PATCH error", key, path, e);
       return res.status(500).json({ error: "Patch failed" });
     }
