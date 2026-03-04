@@ -896,6 +896,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const activeSeason = group.season||2025;
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
+  const picksLockedKey = `picks-locked:${group.id}:${user.username}:${activeSeason}:gw${currentGW}`;
+  const [picksLocked, setPicksLocked] = useState(()=>!!lget(picksLockedKey));
+  const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>!!f.result);
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
   const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
@@ -1006,7 +1009,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
     setDeleteGWStep(0);
   };
 
-  const setGW = (gw) => {setDeleteGWStep(0);setViewGW(gw);};
+  const setGW = (gw) => {setDeleteGWStep(0);setPicksLocked(false);setViewGW(gw);};
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
@@ -1168,7 +1171,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
-        const locked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+        const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const resultBlock = f.result?(
@@ -1239,7 +1242,15 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           </div>
         );
       })}
-      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names}/>}
+      {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(group.members||[]).length>1&&(
+        <div style={{marginTop:16,marginBottom:8}}>
+          <Btn variant="success" style={{width:"100%"}} onClick={()=>{lset(picksLockedKey,true);setPicksLocked(true);}}>
+            LOCK IN PICKS
+          </Btn>
+          <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
+        </div>
+      )}
+      {(picksLocked||gwFixtures.some(f=>f.result))&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names}/>}
       {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
