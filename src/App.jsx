@@ -250,6 +250,12 @@ function AuthScreen({ onLogin }) {
     setLoading(true);setError("");
     if (mode==="register") {
       if (!displayName.trim()){setError("Display name required.");setLoading(false);return;}
+      const uname = username.toLowerCase();
+      if (!/^[a-z0-9_.\-]+$/.test(uname)) {
+        setError("Username may only contain letters, numbers, underscores, hyphens, and dots.");
+        setLoading(false);
+        return;
+      }
       const ex = await sget(`user:${username.toLowerCase()}`);
       if (ex){setError("Username taken.");setLoading(false);return;}
       const user = {username:username.toLowerCase(),displayName:displayName.trim(),password,groupIds:[]};
