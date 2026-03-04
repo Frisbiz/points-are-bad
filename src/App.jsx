@@ -347,6 +347,56 @@ function AuthScreen({ onLogin }) {
   );
 }
 
+/* ── PASSWORD RESET ───────────────────────────────── */
+function ResetPasswordScreen({ token, onDone }) {
+  const [newPassword,setNewPassword]=useState("");
+  const [confirm,setConfirm]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+
+  const handle = async () => {
+    if (!newPassword.trim()){setError("Password required.");return;}
+    if (newPassword!==confirm){setError("Passwords do not match.");return;}
+    setLoading(true);setError("");
+    try {
+      const res = await fetch("/api/reset-password",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({token,newPassword}),
+      });
+      const data = await res.json();
+      if (!res.ok){setError(data.error||"Reset failed.");setLoading(false);return;}
+      onDone();
+    } catch {
+      setError("Network error. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
+      <style>{CSS}</style>
+      <div style={{width:"100%",maxWidth:400}}>
+        <div style={{textAlign:"center",marginBottom:48}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"var(--text-bright)",letterSpacing:-3,lineHeight:1}}>POINTS</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:7,marginTop:10}}>ARE BAD</div>
+        </div>
+        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
+          <div style={{fontSize:12,color:"var(--text-dim)",letterSpacing:2,marginBottom:20}}>SET NEW PASSWORD</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <Input value={newPassword} onChange={setNewPassword} placeholder="New password" type="password" autoFocus onKeyDown={e=>e.key==="Enter"&&handle()} />
+            <Input value={confirm} onChange={setConfirm} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />
+          </div>
+          {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
+          <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
+            {loading?"...":"SET PASSWORD"}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── GROUP LOBBY ─────────────────────────────────── */
 function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
   const [groups,setGroups]=useState([]);
