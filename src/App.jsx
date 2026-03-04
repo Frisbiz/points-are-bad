@@ -418,8 +418,28 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
   const [setupMode,setSetupMode]=useState(false);
   const [setupGW,setSetupGW]=useState("1");
   const [setupLimit,setSetupLimit]=useState("unlimited");
+  const [setupGWLoading,setSetupGWLoading]=useState(false);
 
   useEffect(()=>{loadGroups();},[]);
+
+  useEffect(()=>{
+    if (!setupMode) return;
+    setSetupGWLoading(true);
+    (async()=>{
+      try {
+        const resp = await fetch("/api/fixtures?season=2025");
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const matches = data.matches||[];
+        if (!matches.length) return;
+        const now = new Date();
+        const upcoming = matches.filter(m=>m.status!=="FINISHED"&&new Date(m.utcDate)>=now);
+        const gw = upcoming.length ? Math.min(...upcoming.map(m=>m.matchday)) : Math.max(...matches.map(m=>m.matchday));
+        if (gw>=1&&gw<=38) setSetupGW(String(gw));
+      } catch{}
+      setSetupGWLoading(false);
+    })();
+  },[setupMode]);
 
   const loadGroups = async () => {
     setLoading(true);
@@ -502,7 +522,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
                 <div style={{fontSize:13,color:"var(--text-bright)",fontFamily:"'Playfair Display',serif",fontWeight:700,marginBottom:2}}>{createName}</div>
                 <div>
-                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW</div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
                   <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
                 </div>
                 <div>
