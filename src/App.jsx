@@ -1576,6 +1576,9 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [backfillMsg, setBackfillMsg] = useState("");
   const [syncDatesMsg, setSyncDatesMsg] = useState("");
   const [syncingDates, setSyncingDates] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [restoringId, setRestoringId] = useState(null);
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
@@ -1661,6 +1664,49 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
     await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
     onLeave();
+  };
+
+  const createBackup = async () => {
+    setBackupBusy(true);
+    try {
+      const now = Date.now();
+      const id = String(now);
+      const { backups: _omit, ...snapshot } = group;
+      await sset(`backup:${group.id}:${id}`, { groupId: group.id, createdAt: now, createdBy: user.username, snapshot });
+      await updateGroup(g => {
+        const list = [{ id, createdAt: now, createdBy: user.username }, ...(g.backups||[])].slice(0, 5);
+        return { ...g, backups: list };
+      });
+      setBackupMsg("✓ Backup created");
+      setTimeout(() => setBackupMsg(""), 3000);
+    } catch(e) {
+      setBackupMsg("Error: " + e.message);
+      setTimeout(() => setBackupMsg(""), 4000);
+    }
+    setBackupBusy(false);
+  };
+
+  const deleteBackup = async (id) => {
+    setBackupBusy(true);
+    await updateGroup(g => ({ ...g, backups: (g.backups||[]).filter(b => b.id !== id) }));
+    setRestoringId(null);
+    setBackupBusy(false);
+  };
+
+  const restoreBackup = async (id) => {
+    setBackupBusy(true);
+    try {
+      const bk = await sget(`backup:${group.id}:${id}`);
+      if (!bk || !bk.snapshot) { setBackupMsg("Backup not found."); setBackupBusy(false); return; }
+      await updateGroup(g => ({ ...bk.snapshot, backups: g.backups }));
+      setRestoringId(null);
+      setBackupMsg("✓ Restored");
+      setTimeout(() => setBackupMsg(""), 3000);
+    } catch(e) {
+      setBackupMsg("Error: " + e.message);
+      setTimeout(() => setBackupMsg(""), 4000);
+    }
+    setBackupBusy(false);
   };
 
   return (
@@ -1770,6 +1816,46 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
             })}
           </div>
           {limitSaved&&<div style={{fontSize:11,color:"#22c55e",marginTop:8}}>Saved</div>}
+        </Section>
+      )}
+
+      {isAdmin&&(
+        <Section title="Backups">
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <Btn variant="amber" small onClick={createBackup} disabled={backupBusy}>{backupBusy?"Saving...":"BACKUP NOW"}</Btn>
+              {backupMsg&&<span style={{fontSize:11,color:backupMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{backupMsg}</span>}
+            </div>
+            {(group.backups||[]).length===0&&(
+              <div style={{fontSize:11,color:"var(--text-dim)"}}>No backups yet.</div>
+            )}
+            {(group.backups||[]).map(bk=>{
+              const dateStr=new Date(bk.createdAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+              const displayName=`${bk.createdBy[0].toUpperCase()}${bk.createdBy.slice(1)}`;
+              const isRestoring=restoringId===bk.id;
+              return (
+                <div key={bk.id} style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <div>
+                      <span style={{fontSize:12,color:"var(--text-mid)"}}>{dateStr}</span>
+                      <span style={{fontSize:11,color:"var(--text-dim)",marginLeft:8}}>by {displayName}</span>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <Btn variant="ghost" small onClick={()=>deleteBackup(bk.id)} disabled={backupBusy}>Delete</Btn>
+                      <Btn variant="danger" small onClick={()=>setRestoringId(isRestoring?null:bk.id)} disabled={backupBusy}>Restore</Btn>
+                    </div>
+                  </div>
+                  {isRestoring&&(
+                    <div style={{borderTop:"1px solid var(--border3)",paddingTop:8,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <span style={{fontSize:11,color:"#ef4444",flex:1}}>This will overwrite all current group data.</span>
+                      <Btn variant="muted" small onClick={()=>setRestoringId(null)}>Cancel</Btn>
+                      <Btn variant="danger" small onClick={()=>restoreBackup(bk.id)} disabled={backupBusy}>Yes, restore</Btn>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </Section>
       )}
 
