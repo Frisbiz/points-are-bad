@@ -238,6 +238,10 @@ function AuthScreen({ onLogin }) {
   const [email,setEmail]=useState("");
   const [confirmPassword,setConfirmPassword]=useState("");
   const [thumbs,setThumbs]=useState([]);
+  const [forgotMode,setForgotMode]=useState(false);
+  const [forgotEmail,setForgotEmail]=useState("");
+  const [forgotMsg,setForgotMsg]=useState("");
+  const [forgotLoading,setForgotLoading]=useState(false);
   const spawnThumb = (e) => {
     const id = Date.now() + Math.random();
     const r = e.currentTarget.getBoundingClientRect();
@@ -245,6 +249,20 @@ function AuthScreen({ onLogin }) {
     const y = r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+  };
+
+  const sendReset = async () => {
+    if (!forgotEmail.trim()) return;
+    setForgotLoading(true);
+    try {
+      await fetch("/api/send-reset", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({email: forgotEmail.trim()}),
+      });
+    } catch {}
+    setForgotMsg("If that email is registered, a reset link has been sent.");
+    setForgotLoading(false);
   };
 
   const handle = async () => {
@@ -287,24 +305,41 @@ function AuthScreen({ onLogin }) {
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
         <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
-          <div style={{display:"flex",background:"var(--bg)",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
-            {["login","register"].map(m=>(
-              <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
-                {m==="login"?"Sign In":"Register"}
-              </button>
-            ))}
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {mode==="register"&&<Input value={displayName} onChange={setDisplayName} placeholder="Display name" autoFocus />}
-            {mode==="register"&&<Input value={email} onChange={v=>setEmail(v)} placeholder="Email" type="email" />}
-            <Input value={username} onChange={v=>setUsername(v.toLowerCase())} placeholder="Username" autoFocus={mode==="login"} onKeyDown={e=>e.key==="Enter"&&handle()} />
-            <Input value={password} onChange={setPassword} placeholder="Password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />
-            {mode==="register"&&<Input value={confirmPassword} onChange={setConfirmPassword} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />}
-          </div>
-          {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
-          <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
-            {loading?"...":mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
-          </Btn>
+          {forgotMode ? (
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{fontSize:12,color:"var(--text-dim)",letterSpacing:1}}>Enter your email and we'll send a reset link.</div>
+              <Input value={forgotEmail} onChange={setForgotEmail} placeholder="Email" type="email" autoFocus onKeyDown={e=>e.key==="Enter"&&sendReset()} />
+              {forgotMsg&&<div style={{fontSize:12,color:"#22c55e"}}>{forgotMsg}</div>}
+              <Btn onClick={sendReset} disabled={forgotLoading||!forgotEmail.trim()} style={{width:"100%",padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
+                {forgotLoading?"...":"SEND LINK"}
+              </Btn>
+              <button onClick={()=>{setForgotMode(false);setForgotMsg("");setForgotEmail("");}} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back to sign in</button>
+            </div>
+          ) : (
+            <>
+              <div style={{display:"flex",background:"var(--bg)",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
+                {["login","register"].map(m=>(
+                  <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+                    {m==="login"?"Sign In":"Register"}
+                  </button>
+                ))}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {mode==="register"&&<Input value={displayName} onChange={setDisplayName} placeholder="Display name" autoFocus />}
+                {mode==="register"&&<Input value={email} onChange={v=>setEmail(v)} placeholder="Email" type="email" />}
+                <Input value={username} onChange={v=>setUsername(v.toLowerCase())} placeholder="Username" autoFocus={mode==="login"} onKeyDown={e=>e.key==="Enter"&&handle()} />
+                <Input value={password} onChange={setPassword} placeholder="Password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />
+                {mode==="register"&&<Input value={confirmPassword} onChange={setConfirmPassword} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />}
+              </div>
+              {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
+              <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
+                {loading?"...":mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
+              </Btn>
+              {mode==="login"&&<div style={{textAlign:"center",marginTop:12}}>
+                <button onClick={()=>setForgotMode(true)} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>Forgot password?</button>
+              </div>}
+            </>
+          )}
         </div>
         <div style={{textAlign:"center",marginTop:20,color:"var(--border2)",fontSize:11,letterSpacing:1}}>Premier League Prediction Game</div>
       </div>
