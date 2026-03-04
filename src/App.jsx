@@ -24,6 +24,24 @@ async function sset(key, val) {
   } catch(e) { console.error("sset error", key, e); return false; }
 }
 
+async function spatch(key, path, value) {
+  try {
+    const res = await fetch("/api/db", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, path, value }),
+    });
+    if (!res.ok) { console.error("spatch error", key, path, res.status); return false; }
+    return true;
+  } catch(e) { console.error("spatch error", key, path, e); return false; }
+}
+
+function applyPath(obj, dotPath, value) {
+  const parts = dotPath.split(".");
+  if (parts.length === 1) return { ...obj, [parts[0]]: value };
+  return { ...obj, [parts[0]]: applyPath(obj[parts[0]] || {}, parts.slice(1).join("."), value) };
+}
+
 // Session stored locally (only needed on this browser)
 function lget(key) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
