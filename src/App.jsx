@@ -411,6 +411,14 @@ export default function App() {
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
   const [dark,setDark]=useState(()=>localStorage.getItem("theme")!=="light");
+  const [toast,setToast]=useState(null);
+  const [bootError,setBootError]=useState(false);
+  const toastTimer=useRef(null);
+  const showToast=useCallback((msg)=>{
+    setToast(msg);
+    if(toastTimer.current)clearTimeout(toastTimer.current);
+    toastTimer.current=setTimeout(()=>setToast(null),4000);
+  },[]);
 
   useEffect(()=>{
     document.documentElement.setAttribute("data-theme",dark?"dark":"light");
@@ -451,7 +459,22 @@ export default function App() {
   };
   const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
   const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh)setGroup(fresh);},[group?.id]);
-  const updateGroup = useCallback(async(updater)=>{if(!group)return;const fresh=await sget(`group:${group.id}`);const next=typeof updater==="function"?updater(fresh):updater;if(await sset(`group:${group.id}`,next))setGroup(next);},[group?.id]);
+  const updateGroup = useCallback(async(updater)=>{
+    if(!group)return false;
+    const fresh=await sget(`group:${group.id}`);
+    const next=typeof updater==="function"?updater(fresh):updater;
+    const ok=await sset(`group:${group.id}`,next);
+    if(ok)setGroup(next);
+    else showToast("Save failed - check your connection.");
+    return ok;
+  },[group?.id,showToast]);
+  const patchGroup=useCallback(async(path,value)=>{
+    if(!group)return false;
+    const ok=await spatch(`group:${group.id}`,path,value);
+    if(ok)setGroup(g=>applyPath(g,path,value));
+    else showToast("Save failed - check your connection.");
+    return ok;
+  },[group?.id,showToast]);
 
   if (!boot) return <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>loading...</div>;
   if (!user) return <AuthScreen onLogin={handleLogin} />;
