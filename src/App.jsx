@@ -39,7 +39,8 @@ async function spatch(key, path, value) {
 function applyPath(obj, dotPath, value) {
   const parts = dotPath.split(".");
   if (parts.length === 1) return { ...obj, [parts[0]]: value };
-  return { ...obj, [parts[0]]: applyPath(obj[parts[0]] || {}, parts.slice(1).join("."), value) };
+  const nested = (obj[parts[0]] !== null && typeof obj[parts[0]] === "object") ? obj[parts[0]] : {};
+  return { ...obj, [parts[0]]: applyPath(nested, parts.slice(1).join("."), value) };
 }
 
 // Session stored locally (only needed on this browser)
