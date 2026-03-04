@@ -425,25 +425,26 @@ export default function App() {
     localStorage.setItem("theme",dark?"dark":"light");
   },[dark]);
 
-  useEffect(()=>{
-    (async()=>{
-      const saved = lget("session");
-      if (saved?.username) {
-        const u = await sget(`user:${saved.username}`);
-        if (u) {
-          setUser(u);
-          if (saved.groupId) {
-            const g = await sget(`group:${saved.groupId}`);
-            if (g && g.members?.includes(u.username)) {
-              setGroup(g);
-              if (saved.tab) setTab(saved.tab);
-            }
-          }
+  const runBoot=useCallback(async()=>{
+    setBootError(false);
+    setBoot(false);
+    const saved=lget("session");
+    if(saved?.username){
+      const u=await sget(`user:${saved.username}`);
+      if(!u){setBootError(true);setBoot(true);return;}
+      setUser(u);
+      if(saved.groupId){
+        const g=await sget(`group:${saved.groupId}`);
+        if(g&&g.members?.includes(u.username)){
+          setGroup(g);
+          if(saved.tab)setTab(saved.tab);
         }
       }
-      setBoot(true);
-    })();
+    }
+    setBoot(true);
   },[]);
+
+  useEffect(()=>{runBoot();},[]);
 
   const handleLogin = async (u) => {lset("session",{username:u.username});setUser(u);};
   const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);};
@@ -476,17 +477,53 @@ export default function App() {
     return ok;
   },[group?.id,showToast]);
 
-  if (!boot) return <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>loading...</div>;
-  if (!user) return <AuthScreen onLogin={handleLogin} />;
-  if (!group) return <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} />;
-
-  const isAdmin = group.admins?.includes(user.username);
-  const isCreator = group.creatorUsername===user.username;
-  return <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin} isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} updateGroup={updateGroup} refreshGroup={refreshGroup} dark={dark} toggleDark={()=>setDark(d=>!d)} />;
+  const isAdmin=!!(user&&group&&group.admins?.includes(user.username));
+  const isCreator=!!(user&&group&&group.creatorUsername===user.username);
+  return (
+    <>
+      {toast&&(
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
+          background:"#ef444418",border:"1px solid #ef4444",borderRadius:8,padding:"10px 20px",
+          color:"#ef4444",fontSize:12,letterSpacing:1,zIndex:9999,pointerEvents:"none",
+          fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>
+          {toast}
+        </div>
+      )}
+      {!boot?(
+        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",
+          justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>
+          loading...
+        </div>
+      ):bootError?(
+        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
+          alignItems:"center",justifyContent:"center",gap:16,color:"var(--text-dim)",
+          fontFamily:"monospace",fontSize:12}}>
+          <div>Connection failed.</div>
+          <div style={{display:"flex",gap:12}}>
+            <button onClick={runBoot} style={{background:"none",border:"1px solid var(--border)",
+              borderRadius:6,color:"var(--text)",cursor:"pointer",fontSize:11,letterSpacing:1.5,
+              padding:"6px 14px",fontFamily:"inherit"}}>RETRY</button>
+            <button onClick={()=>{ldel("session");window.location.reload();}} style={{background:"none",
+              border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:10,letterSpacing:1,
+              padding:"6px 8px",fontFamily:"inherit"}}>clear session</button>
+          </div>
+        </div>
+      ):!user?(
+        <AuthScreen onLogin={handleLogin}/>
+      ):!group?(
+        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)}/>
+      ):(
+        <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
+          isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
+          updateGroup={updateGroup} patchGroup={patchGroup} refreshGroup={refreshGroup}
+          dark={dark} toggleDark={()=>setDark(d=>!d)}/>
+      )}
+    </>
+  );
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,refreshGroup,dark,toggleDark}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,dark,toggleDark}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState({});
