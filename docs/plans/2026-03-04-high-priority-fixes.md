@@ -208,26 +208,24 @@ Replace the existing early returns and final return (lines 437-443) with a singl
         </div>
       )}
       {!boot?(
-        bootError?(
-          <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
-            alignItems:"center",justifyContent:"center",gap:16,color:"var(--text-dim)",
-            fontFamily:"monospace",fontSize:12}}>
-            <div>Connection failed.</div>
-            <div style={{display:"flex",gap:12}}>
-              <button onClick={runBoot} style={{background:"none",border:"1px solid var(--border)",
-                borderRadius:6,color:"var(--text)",cursor:"pointer",fontSize:11,letterSpacing:1.5,
-                padding:"6px 14px",fontFamily:"inherit"}}>RETRY</button>
-              <button onClick={()=>{ldel("session");window.location.reload();}} style={{background:"none",
-                border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:10,letterSpacing:1,
-                padding:"6px 8px",fontFamily:"inherit"}}>clear session</button>
-            </div>
+        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",
+          justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>
+          loading...
+        </div>
+      ):bootError?(
+        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
+          alignItems:"center",justifyContent:"center",gap:16,color:"var(--text-dim)",
+          fontFamily:"monospace",fontSize:12}}>
+          <div>Connection failed.</div>
+          <div style={{display:"flex",gap:12}}>
+            <button onClick={runBoot} style={{background:"none",border:"1px solid var(--border)",
+              borderRadius:6,color:"var(--text)",cursor:"pointer",fontSize:11,letterSpacing:1.5,
+              padding:"6px 14px",fontFamily:"inherit"}}>RETRY</button>
+            <button onClick={()=>{ldel("session");window.location.reload();}} style={{background:"none",
+              border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:10,letterSpacing:1,
+              padding:"6px 8px",fontFamily:"inherit"}}>clear session</button>
           </div>
-        ):(
-          <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",
-            justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>
-            loading...
-          </div>
-        )
+        </div>
       ):!user?(
         <AuthScreen onLogin={handleLogin}/>
       ):!group?(
