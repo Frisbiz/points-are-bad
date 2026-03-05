@@ -154,7 +154,7 @@ function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
     .map(f=>new Date(f.date).getTime())
     .sort((a,b)=>a-b);
 
-  // Not enough dated fixtures to determine median -- skip re-grouping
+  // Not enough dated fixtures to determine median - skip re-grouping
   if (dates.length < 3) {
     return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
   }
