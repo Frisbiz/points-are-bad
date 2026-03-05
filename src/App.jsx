@@ -1180,7 +1180,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
         let globalDoc = await sget(globalKey);
         const now = Date.now();
         if (!globalDoc || !globalDoc.updatedAt || (now-globalDoc.updatedAt)>86_400_000) {
-          if (!group.apiKey) return;
           const allMatches = await fetchMatchweek(group.apiKey, null, seas);
           if (!allMatches.length) return;
           const byGW = {};
