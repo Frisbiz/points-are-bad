@@ -24,6 +24,13 @@ async function sset(key, val) {
   } catch(e) { console.error("sset error", key, e); return false; }
 }
 
+async function sdel(key) {
+  try {
+    const res = await fetch(`/api/db?key=${encodeURIComponent(key)}`, { method: "DELETE" });
+    return res.ok;
+  } catch(e) { console.error("sdel error", key, e); return false; }
+}
+
 async function spatch(key, path, value) {
   try {
     const res = await fetch("/api/db", {
@@ -114,8 +121,8 @@ function mergeGlobalIntoGroup(globalDoc, g) {
     const globalFixtures = globalGWMap[gwObj.gw];
     if (!globalFixtures||!globalFixtures.length) return gwObj;
     const oldFixtures = gwObj.fixtures||[];
-    const allTBD = oldFixtures.length>0&&oldFixtures.every(f=>f.home==="TBD"&&f.away==="TBD");
-    if (allTBD) return {...gwObj,fixtures:globalFixtures};
+    const gwHasPicks=oldFixtures.some(f=>hasPick(f.id));
+    if (!gwHasPicks) return {...gwObj,fixtures:globalFixtures};
     const oldByApiId={};
     const oldByTeams={};
     oldFixtures.forEach(f=>{
@@ -133,8 +140,7 @@ function mergeGlobalIntoGroup(globalDoc, g) {
         toAdd.push(gf);
       }
     });
-    const gwHasPicks=oldFixtures.some(f=>hasPick(f.id));
-    return {...gwObj,fixtures:[...working,...(gwHasPicks?[]:toAdd)]};
+    return {...gwObj,fixtures:[...working,...toAdd]};
   });
   return {...g,gameweeks:updatedGameweeks,lastAutoSync:Date.now()};
 }
@@ -505,7 +511,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     const id = Date.now().toString();
     const code = genCode();
     const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
-    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,adminLog:[]};
+    const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
+    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,adminLog:[]};
     try {
       const globalDoc = await sget("fixtures:PL:2025");
       if (globalDoc&&(globalDoc.gameweeks||[]).length) {
