@@ -13,7 +13,7 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
-const ALLOWED_PREFIXES = ["user:", "group:", "groupcode:", "reset:", "useremail:", "backup:"];
+const ALLOWED_PREFIXES = ["user:", "group:", "groupcode:", "reset:", "useremail:", "backup:", "fixtures:"];
 
 function validKey(key) {
   return typeof key === "string" && key.length <= 200 && ALLOWED_PREFIXES.some(p => key.startsWith(p));
