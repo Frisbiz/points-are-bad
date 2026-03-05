@@ -510,9 +510,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
       const globalDoc = await sget("fixtures:PL:2025");
       if (globalDoc&&(globalDoc.gameweeks||[]).length) {
         newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
-        newGroup.lastAutoSync = globalDoc.updatedAt||Date.now();
       }
-    } catch{}
+    } catch(e){ console.error("createGroup global seed failed",e); }
     await sset(`group:${id}`,newGroup);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
