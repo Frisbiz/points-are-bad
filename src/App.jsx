@@ -1041,9 +1041,15 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   const fetchFromAPI = async () => {
     setFetching(true); setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
     try {
-      const matches = await fetchMatchweek(group.apiKey, currentGW, group.season||2025);
+      const seas = group.season||2025;
+      const matches = await fetchMatchweek(group.apiKey, currentGW, seas);
       if (!matches.length) { setFetchMsg("No matches found for this gameweek."); setFetching(false); return; }
       const apiFixtures = parseMatchesToFixtures(matches, currentGW);
+      const globalKey = `fixtures:PL:${seas}`;
+      const existingGlobal = await sget(globalKey)||{season:seas,gameweeks:[]};
+      const globalGWs = (existingGlobal.gameweeks||[]).filter(g=>g.gw!==currentGW);
+      globalGWs.push({gw:currentGW,fixtures:apiFixtures});
+      await sset(globalKey,{season:seas,updatedAt:Date.now(),gameweeks:globalGWs});
       await updateGroup(g => {
         const seas = g.season || 2025;
         const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||seas)===seas);
