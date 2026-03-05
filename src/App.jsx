@@ -505,14 +505,21 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     const id = Date.now().toString();
     const code = genCode();
     const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
-    const group = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,adminLog:[]};
-    await sset(`group:${id}`,group);
+    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeAllGWs(2025),currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,adminLog:[]};
+    try {
+      const globalDoc = await sget("fixtures:PL:2025");
+      if (globalDoc&&(globalDoc.gameweeks||[]).length) {
+        newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
+        newGroup.lastAutoSync = globalDoc.updatedAt||Date.now();
+      }
+    } catch{}
+    await sset(`group:${id}`,newGroup);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
     const updated = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
     await sset(`user:${user.username}`,updated);
     onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setCreating(false);
-    onEnterGroup(group);
+    onEnterGroup(newGroup);
   };
 
   const joinGroup = async () => {
