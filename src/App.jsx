@@ -106,7 +106,7 @@ function parseMatchesToFixtures(matches, matchday) {
 function mergeGlobalIntoGroup(globalDoc, g) {
   const seas = g.season||2025;
   const globalGWMap = {};
-  (globalDoc.gameweeks||[]).forEach(gwObj=>{globalGWMap[gwObj.gw]=gwObj.fixtures;});
+  (globalDoc.gameweeks||[]).filter(gwObj=>(gwObj.season||seas)===seas).forEach(gwObj=>{globalGWMap[gwObj.gw]=gwObj.fixtures;});
   const preds = g.predictions||{};
   const hasPick = id=>Object.values(preds).some(up=>up[id]!==undefined);
   const updatedGameweeks = (g.gameweeks||[]).map(gwObj=>{
