@@ -469,20 +469,25 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
             (gwObj.fixtures||[]).map(f=>({...f,matchday:gwObj.gw}))
           );
           const upcoming = allFixtures.filter(f=>f.status!=="FINISHED"&&f.date&&new Date(f.date)>=now);
-          const gw = upcoming.length ? Math.min(...upcoming.map(f=>f.matchday)) : Math.max(...allFixtures.map(f=>f.matchday));
-          if (gw>=1&&gw<=38) setSetupGW(String(gw));
+          const gw = upcoming.length
+            ? Math.min(...upcoming.map(f=>f.matchday))
+            : allFixtures.length
+              ? Math.max(...allFixtures.map(f=>f.matchday))
+              : null;
+          if (gw!==null&&gw>=1&&gw<=38) setSetupGW(String(gw));
         } else {
           const resp = await fetch("/api/fixtures?season=2025");
           if (!resp.ok) return;
           const data = await resp.json();
           const matches = data.matches||[];
           if (!matches.length) return;
-          const upcoming = matches.filter(m=>m.status!=="FINISHED"&&new Date(m.utcDate)>=now);
+          const upcoming = matches.filter(m=>m.status!=="FINISHED"&&m.utcDate&&new Date(m.utcDate)>=now);
           const gw = upcoming.length ? Math.min(...upcoming.map(m=>m.matchday)) : Math.max(...matches.map(m=>m.matchday));
           if (gw>=1&&gw<=38) setSetupGW(String(gw));
         }
-      } catch{}
-      setSetupGWLoading(false);
+      } catch{} finally {
+        setSetupGWLoading(false);
+      }
     })();
   },[setupMode]);
 
