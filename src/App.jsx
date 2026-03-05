@@ -1281,19 +1281,40 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
       .filter(gw=>(gw.season||seas)===seas&&(gw.fixtures||[]).some(f=>!f.result));
     if(!incompleteGWs.length) return;
     const targetGW=Math.max(...incompleteGWs.map(gw=>gw.gw));
-    const cooldownKey=`gw-api-sync:${seas}:${targetGW}`;
     (async()=>{
       try {
         let globalDoc=await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
         const now=Date.now();
-        const lastSync=lget(cooldownKey);
-        if(!lastSync||(now-lastSync)>3_600_000){
-          const matches=await fetchMatchweek(group.apiKey,targetGW,seas);
-          if(!matches.length) return;
-          const apiFixtures=parseMatchesToFixtures(matches,targetGW);
-          lset(cooldownKey,now);
-          globalDoc=regroupGlobalDoc(globalDoc,targetGW,apiFixtures);
-          await sset(globalKey,globalDoc);
+        const existingGWNums=new Set((globalDoc.gameweeks||[]).map(g=>g.gw));
+        const missingPast=Array.from({length:targetGW-1},(_,i)=>i+1).some(n=>!existingGWNums.has(n));
+        const fullSyncKey=`fixtures-full-sync:${seas}`;
+        if(missingPast){
+          const lastFull=lget(fullSyncKey);
+          if(!lastFull||(now-lastFull)>86_400_000){
+            const allMatches=await fetchMatchweek(group.apiKey,null,seas);
+            if(!allMatches.length) return;
+            lset(fullSyncKey,now);
+            const byGW={};
+            allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
+            let updated={...globalDoc};
+            Object.entries(byGW).forEach(([gw,ms])=>{
+              const gwNum=Number(gw);
+              updated=regroupGlobalDoc(updated,gwNum,parseMatchesToFixtures(ms,gwNum));
+            });
+            globalDoc=updated;
+            await sset(globalKey,globalDoc);
+          }
+        } else {
+          const cooldownKey=`gw-api-sync:${seas}:${targetGW}`;
+          const lastSync=lget(cooldownKey);
+          if(!lastSync||(now-lastSync)>3_600_000){
+            const matches=await fetchMatchweek(group.apiKey,targetGW,seas);
+            if(!matches.length) return;
+            const apiFixtures=parseMatchesToFixtures(matches,targetGW);
+            lset(cooldownKey,now);
+            globalDoc=regroupGlobalDoc(globalDoc,targetGW,apiFixtures);
+            await sset(globalKey,globalDoc);
+          }
         }
         if(globalDoc.updatedAt<=(group.lastAutoSync||0)) return;
         await updateGroup(g=>mergeGlobalIntoGroup(globalDoc,g));
