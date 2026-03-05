@@ -1277,24 +1277,29 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   useEffect(()=>{
     const seas = group.season||2025;
     const globalKey = `fixtures:PL:${seas}`;
+    const incompleteGWs=(group.gameweeks||[])
+      .filter(gw=>(gw.season||seas)===seas&&(gw.fixtures||[]).some(f=>!f.result));
+    if(!incompleteGWs.length) return;
+    const targetGW=Math.max(...incompleteGWs.map(gw=>gw.gw));
+    const cooldownKey=`gw-api-sync:${seas}:${targetGW}`;
     (async()=>{
       try {
-        let globalDoc = await sget(globalKey);
-        const now = Date.now();
-        if (!globalDoc || !globalDoc.updatedAt || (now-globalDoc.updatedAt)>86_400_000) {
-          const allMatches = await fetchMatchweek(group.apiKey, null, seas);
-          if (!allMatches.length) return;
-          const byGW = {};
-          allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
-          const gameweeks = Object.entries(byGW).map(([gw,ms])=>({gw:Number(gw),fixtures:parseMatchesToFixtures(ms,Number(gw))}));
-          globalDoc = {season:seas,updatedAt:now,gameweeks};
+        let globalDoc=await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
+        const now=Date.now();
+        const lastSync=lget(cooldownKey);
+        if(!lastSync||(now-lastSync)>3_600_000){
+          const matches=await fetchMatchweek(group.apiKey,targetGW,seas);
+          if(!matches.length) return;
+          const apiFixtures=parseMatchesToFixtures(matches,targetGW);
+          lset(cooldownKey,now);
+          globalDoc=regroupGlobalDoc(globalDoc,targetGW,apiFixtures);
           await sset(globalKey,globalDoc);
         }
-        if (!globalDoc || globalDoc.updatedAt<=(group.lastAutoSync||0)) return;
+        if(globalDoc.updatedAt<=(group.lastAutoSync||0)) return;
         await updateGroup(g=>mergeGlobalIntoGroup(globalDoc,g));
       } catch(_){}
     })();
-  },[activeSeason]);
+  },[activeSeason,group.currentGW]);
 
   const showWizard = wizardQueue!==null&&wizardStep<(wizardQueue?.length??0)&&lget(wizardKey)!==currentGW;
   const wizardFixture = showWizard?wizardQueue[wizardStep]:null;
