@@ -1709,6 +1709,10 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [backupMsg, setBackupMsg] = useState("");
   const [backupBusy, setBackupBusy] = useState(false);
   const [restoringId, setRestoringId] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletePw, setDeletePw] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
@@ -1794,6 +1798,23 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
     if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
     const ok=await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
     if(ok)onLeave();
+  };
+  const deleteGroup = async () => {
+    if (!deletePw) { setDeleteError("Enter your password."); return; }
+    setDeleteLoading(true); setDeleteError("");
+    const fresh = await sget(`user:${user.username}`);
+    if (!fresh || fresh.password !== deletePw) {
+      setDeleteError("Incorrect password.");
+      setDeleteLoading(false);
+      return;
+    }
+    await sdel(`group:${group.id}`);
+    await sdel(`groupcode:${group.code}`);
+    await Promise.all((group.members || []).map(async m => {
+      const u = await sget(`user:${m}`);
+      if (u) await sset(`user:${m}`, { ...u, groupIds: (u.groupIds || []).filter(id => id !== group.id) });
+    }));
+    onLeave();
   };
 
   const createBackup = async () => {
@@ -2053,6 +2074,25 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       </Section>
 
       {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
+      {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
+      {deleteModalOpen&&createPortal(
+        <div onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
+            <div style={{fontSize:10,color:"#ef4444",letterSpacing:3,marginBottom:12}}>DELETE GROUP</div>
+            <div style={{fontSize:13,color:"var(--text)",marginBottom:6}}>This permanently deletes <strong>{group.name}</strong> and all its data.</div>
+            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20}}>Enter your password to confirm.</div>
+            <Input value={deletePw} onChange={setDeletePw} placeholder="Your password" type="password" onKeyDown={e=>e.key==="Enter"&&deleteGroup()} />
+            {deleteError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{deleteError}</div>}
+            <div style={{display:"flex",gap:10,marginTop:16}}>
+              <Btn variant="danger" onClick={deleteGroup} disabled={deleteLoading} style={{flex:1,textAlign:"center"}}>
+                {deleteLoading?"...":"Delete permanently"}
+              </Btn>
+              <Btn variant="ghost" onClick={()=>setDeleteModalOpen(false)} style={{flex:1,textAlign:"center"}}>Cancel</Btn>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
