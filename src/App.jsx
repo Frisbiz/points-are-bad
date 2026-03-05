@@ -142,7 +142,24 @@ function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return {...gwObj,fixtures:[...working,...toAdd]};
   });
-  return {...g,gameweeks:updatedGameweeks,lastAutoSync:Date.now()};
+  // Build index: "home|away" -> GW number from global doc
+  const globalPairToGW = {};
+  (globalDoc.gameweeks||[]).forEach(gwObj=>{
+    (gwObj.fixtures||[]).forEach(f=>{globalPairToGW[`${f.home}|${f.away}`]=gwObj.gw;});
+  });
+
+  // Remove fixtures that have been re-assigned to a different GW in the global doc
+  const deduped = updatedGameweeks.map(gwObj=>{
+    if((gwObj.season||seas)!==seas) return gwObj;
+    const filtered=(gwObj.fixtures||[]).filter(f=>{
+      const globalGW=globalPairToGW[`${f.home}|${f.away}`];
+      if(globalGW===undefined||globalGW===gwObj.gw) return true;
+      return hasPick(f.id);
+    });
+    return {...gwObj,fixtures:filtered};
+  });
+
+  return {...g,gameweeks:deduped,lastAutoSync:Date.now()};
 }
 
 function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
