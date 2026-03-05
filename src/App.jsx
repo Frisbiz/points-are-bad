@@ -388,7 +388,7 @@ function AuthScreen({ onLogin, successMsg }) {
       if (password.trim().length<6){setError("Password must be at least 6 characters.");setLoading(false);return;}
       if (password!==confirmPassword){setError("Passwords do not match.");setLoading(false);return;}
       const uname = username.toLowerCase();
-      if (!/^[a-z0-9_\-]+$/.test(uname)) {
+      if (!/^[a-z0-9_-]+$/.test(uname)) {
         setError("Username may only contain letters, numbers, underscores, and hyphens.");
         setLoading(false);
         return;
@@ -906,7 +906,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          {true&&<div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>}
+          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>
           <button onClick={toggleDark} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"3px 8px",fontFamily:"inherit",marginRight:10,flexShrink:0,lineHeight:1}}>{dark?"☀":"☾"}</button>
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
@@ -1775,7 +1775,6 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
-  const [apiKey,setApiKey]=useState(group.apiKey||"");
   const [apiSaved,setApiSaved]=useState(false);
   const [season,setSeason]=useState(String(group.season||2025));
   const [copied,setCopied]=useState(false);
@@ -1796,7 +1795,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
   const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
-  const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:apiKey.trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
+  const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:(g.apiKey||"").trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
   const saveScope=async(val)=>{await updateGroup(g=>({...g,scoreScope:val}));};
   const startNewSeason=async()=>{
     const yr=parseInt(newSeasonYear);
