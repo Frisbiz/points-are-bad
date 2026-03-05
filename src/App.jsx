@@ -1173,53 +1173,27 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
   },[currentGW,group.id]);
 
   useEffect(()=>{
-    if (currentGW !== (group.currentGW||1)) return;
-    const now = Date.now();
-    if (group.lastAutoSync && (now - group.lastAutoSync) < 86_400_000) return;
     const seas = group.season||2025;
+    const globalKey = `fixtures:PL:${seas}`;
     (async()=>{
       try {
-        const matches = await fetchMatchweek(group.apiKey, currentGW, seas);
-        if (!matches.length) return;
-        const apiFixtures = parseMatchesToFixtures(matches, currentGW);
-        await updateGroup(g=>{
-          const s = g.season||2025;
-          const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||s)===s);
-          const oldFixtures = gwObj?.fixtures||[];
-          const allTBD = oldFixtures.length>0&&oldFixtures.every(f=>f.home==="TBD"&&f.away==="TBD");
-          let finalFixtures;
-          if (allTBD) {
-            finalFixtures = apiFixtures;
-          } else {
-            const oldByApiId={};
-            const oldByTeams={};
-            oldFixtures.forEach(f=>{
-              if(f.apiId) oldByApiId[String(f.apiId)]=f;
-              oldByTeams[`${f.home}|${f.away}`]=f;
-            });
-            const matchedIds=new Set();
-            const working=[...oldFixtures];
-            const toAdd=[];
-            apiFixtures.forEach(af=>{
-              const existing=(af.apiId&&oldByApiId[String(af.apiId)])||oldByTeams[`${af.home}|${af.away}`];
-              if(existing){
-                matchedIds.add(existing.id);
-                const idx=working.findIndex(f=>f.id===existing.id);
-                if(idx>=0) working[idx]={...existing,result:af.result,status:af.status,date:af.date,apiId:af.apiId,home:af.home,away:af.away};
-              } else {
-                toAdd.push(af);
-              }
-            });
-            const preds=g.predictions||{};
-            const hasPick=id=>Object.values(preds).some(up=>up[id]!==undefined);
-            const gwHasPicks=oldFixtures.some(f=>hasPick(f.id));
-            finalFixtures=[...working.filter(f=>matchedIds.has(f.id)||hasPick(f.id)),...(gwHasPicks?[]:toAdd)];
-          }
-          return {...g,lastAutoSync:Date.now(),gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||s)===s?{...gw,fixtures:finalFixtures}:gw)};
-        });
+        let globalDoc = await sget(globalKey);
+        const now = Date.now();
+        if (!globalDoc || !globalDoc.updatedAt || (now-globalDoc.updatedAt)>86_400_000) {
+          if (!group.apiKey) return;
+          const allMatches = await fetchMatchweek(group.apiKey, null, seas);
+          if (!allMatches.length) return;
+          const byGW = {};
+          allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
+          const gameweeks = Object.entries(byGW).map(([gw,ms])=>({gw:Number(gw),fixtures:parseMatchesToFixtures(ms,Number(gw))}));
+          globalDoc = {season:seas,updatedAt:now,gameweeks};
+          await sset(globalKey,globalDoc);
+        }
+        if (!globalDoc || globalDoc.updatedAt<=(group.lastAutoSync||0)) return;
+        await updateGroup(g=>mergeGlobalIntoGroup(globalDoc,g));
       } catch(_){}
     })();
-  },[currentGW,activeSeason]);
+  },[activeSeason]);
 
   const showWizard = wizardQueue!==null&&wizardStep<(wizardQueue?.length??0)&&lget(wizardKey)!==currentGW;
   const wizardFixture = showWizard?wizardQueue[wizardStep]:null;
