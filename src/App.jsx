@@ -103,6 +103,41 @@ function parseMatchesToFixtures(matches, matchday) {
   });
 }
 
+function mergeGlobalIntoGroup(globalDoc, g) {
+  const seas = g.season||2025;
+  const globalGWMap = {};
+  (globalDoc.gameweeks||[]).forEach(gwObj=>{globalGWMap[gwObj.gw]=gwObj.fixtures;});
+  const preds = g.predictions||{};
+  const hasPick = id=>Object.values(preds).some(up=>up[id]!==undefined);
+  const updatedGameweeks = (g.gameweeks||[]).map(gwObj=>{
+    if ((gwObj.season||seas)!==seas) return gwObj;
+    const globalFixtures = globalGWMap[gwObj.gw];
+    if (!globalFixtures||!globalFixtures.length) return gwObj;
+    const oldFixtures = gwObj.fixtures||[];
+    const allTBD = oldFixtures.length>0&&oldFixtures.every(f=>f.home==="TBD"&&f.away==="TBD");
+    if (allTBD) return {...gwObj,fixtures:globalFixtures};
+    const oldByApiId={};
+    const oldByTeams={};
+    oldFixtures.forEach(f=>{
+      if(f.apiId) oldByApiId[String(f.apiId)]=f;
+      oldByTeams[`${f.home}|${f.away}`]=f;
+    });
+    const working=[...oldFixtures];
+    const toAdd=[];
+    globalFixtures.forEach(gf=>{
+      const existing=(gf.apiId&&oldByApiId[String(gf.apiId)])||oldByTeams[`${gf.home}|${gf.away}`];
+      if(existing){
+        const idx=working.findIndex(f=>f.id===existing.id);
+        if(idx>=0) working[idx]={...existing,result:gf.result,status:gf.status,date:gf.date,apiId:gf.apiId,home:gf.home,away:gf.away};
+      } else {
+        toAdd.push(gf);
+      }
+    });
+    const gwHasPicks=oldFixtures.some(f=>hasPick(f.id));
+    return {...gwObj,fixtures:[...working,...(gwHasPicks?[]:toAdd)]};
+  });
+  return {...g,gameweeks:updatedGameweeks,lastAutoSync:Date.now()};
+}
 
 function calcPts(pred, result) {
   if (!pred || !result) return null;
