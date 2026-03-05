@@ -145,6 +145,64 @@ function mergeGlobalIntoGroup(globalDoc, g) {
   return {...g,gameweeks:updatedGameweeks,lastAutoSync:Date.now()};
 }
 
+function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
+  const otherGWs = (globalDoc.gameweeks||[]).filter(g=>g.gw!==gwNum);
+
+  // Compute median date of incoming fixtures
+  const dates = newFixtures
+    .filter(f=>f.date)
+    .map(f=>new Date(f.date).getTime())
+    .sort((a,b)=>a-b);
+
+  // Not enough dated fixtures to determine median -- skip re-grouping
+  if (dates.length < 3) {
+    return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
+  }
+
+  const median = dates[Math.floor(dates.length/2)];
+  const THRESHOLD = 14*24*60*60*1000;
+
+  // Compute median date for each other GW already in the global doc
+  const otherMedians = {};
+  otherGWs.forEach(gwObj=>{
+    const d=(gwObj.fixtures||[]).filter(f=>f.date).map(f=>new Date(f.date).getTime()).sort((a,b)=>a-b);
+    if(d.length>=3) otherMedians[gwObj.gw]=d[Math.floor(d.length/2)];
+  });
+
+  // Split fixtures into normal and orphaned
+  const normal=[], orphaned=[];
+  newFixtures.forEach(f=>{
+    if(!f.date){normal.push(f);return;}
+    const fDate=new Date(f.date).getTime();
+    if(median-fDate>THRESHOLD){
+      let bestGW=null, bestDiff=Infinity;
+      Object.entries(otherMedians).forEach(([gw,m])=>{
+        const diff=Math.abs(m-fDate);
+        if(diff<bestDiff){bestDiff=diff;bestGW=Number(gw);}
+      });
+      bestGW!==null ? orphaned.push({fixture:f,targetGW:bestGW}) : normal.push(f);
+    } else {
+      normal.push(f);
+    }
+  });
+
+  // Abort if too few normal fixtures remain
+  if(normal.length<3&&orphaned.length>0){
+    return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
+  }
+
+  // Add orphaned fixtures to their target GWs, avoiding duplicates by home|away pair
+  const updatedOthers = otherGWs.map(gwObj=>{
+    const additions=orphaned.filter(o=>o.targetGW===gwObj.gw).map(o=>o.fixture);
+    if(!additions.length) return gwObj;
+    const addPairs=new Set(additions.map(f=>`${f.home}|${f.away}`));
+    const kept=(gwObj.fixtures||[]).filter(f=>!addPairs.has(`${f.home}|${f.away}`));
+    return {...gwObj,fixtures:[...kept,...additions]};
+  });
+
+  return {...globalDoc, updatedAt:Date.now(), gameweeks:[...updatedOthers,{gw:gwNum,fixtures:normal}]};
+}
+
 function calcPts(pred, result) {
   if (!pred || !result) return null;
   const [ph, pa] = pred.split("-").map(Number);
