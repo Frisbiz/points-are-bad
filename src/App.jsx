@@ -1621,7 +1621,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               </tr>
             ))}
           </tbody>
-          {scored.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--border)"}}>
+          {gwFixtures.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--border)"}}>
             <td style={{padding:"10px 12px",color:"var(--text-dim)",letterSpacing:2,fontSize:10}}>TOTAL</td>
             <td/>
             {members.map((u,ui)=>{
