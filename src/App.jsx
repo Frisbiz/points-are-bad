@@ -1105,7 +1105,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
     return !locked&&!myPreds[f.id];
   });
   const canViewAllPicks = unpickedUnlocked.length===0;
-  const weekHasStarted = gwFixtures.some(f=>!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date())));
 
   const savePred = async (fixtureId, val) => {
     const f = gwFixtures.find(fx => fx.id === fixtureId);
@@ -1539,7 +1538,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
         </div>
       )}
-      {(picksLocked||allFixturesFinished)&&weekHasStarted&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
+      {(picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
       {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
