@@ -707,7 +707,8 @@ export default function App() {
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
-  const [dark,setDark]=useState(()=>localStorage.getItem("theme")!=="light");
+  const THEMES=["dark","light","excel","terminal","nord","pitch"];
+  const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return THEMES.includes(t)?t:"dark";});
   const [toast,setToast]=useState(null);
   const [bootError,setBootError]=useState(false);
   const toastTimer=useRef(null);
@@ -723,9 +724,9 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
-    document.documentElement.setAttribute("data-theme",dark?"dark":"light");
-    localStorage.setItem("theme",dark?"dark":"light");
-  },[dark]);
+    document.documentElement.setAttribute("data-theme",theme);
+    localStorage.setItem("theme",theme);
+  },[theme]);
 
   const runBoot=useCallback(async()=>{
     setBootError(false);
@@ -823,7 +824,7 @@ export default function App() {
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
           updateGroup={updateGroup} patchGroup={patchGroup} refreshGroup={refreshGroup}
-          dark={dark} toggleDark={()=>setDark(d=>!d)}/>
+          theme={theme} setTheme={setTheme}/>
       )}
     </>
   );
