@@ -634,7 +634,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
       <style>{CSS}</style>
       <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS <span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span></div>
         </div>
