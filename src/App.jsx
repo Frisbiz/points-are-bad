@@ -831,7 +831,7 @@ export default function App() {
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,dark,toggleDark}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{const init={};(group.members||[]).forEach(u=>{init[u]=u[0].toUpperCase()+u.slice(1);});init[user.username]=user.displayName;return init;});
@@ -917,7 +917,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
           <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>
-          <button onClick={toggleDark} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"3px 8px",fontFamily:"inherit",marginRight:10,flexShrink:0,lineHeight:1}}>{dark?"☀":"☾"}</button>
+
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
               <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
@@ -988,10 +988,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </div>
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names}/>}
+        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme}/>}
       </main>
     </div>
   );
