@@ -1,10 +1,10 @@
 <div align="center">
 
-# Points Are Bad
+<img src="public/logo.png" alt="Points Are Bad" width="400" />
 
-A Premier League score prediction game for friend groups.
+<p>A Premier League score prediction game for friend groups.</p>
 
-**[pab.wtf](https://pab.wtf)**
+<a href="https://pab.wtf"><strong>pab.wtf →</strong></a>
 
 <br />
 
