@@ -702,6 +702,14 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
 /* ── MAIN APP ────────────────────────────────────── */
 const NAV = ["League","Fixtures","Trends","Members","Group"];
 const THEMES=["dark","light","excel","terminal","nord","pitch"];
+const THEME_META=[
+  {key:"dark",   label:"Dark",     swatches:["#080810","#0e0e1a","#e8e4d9"]},
+  {key:"light",  label:"Light",    swatches:["#f4f1e8","#fff","#1a1814"]},
+  {key:"excel",  label:"Excel",    swatches:["#ffffff","#f2f2f2","#1a1a1a"]},
+  {key:"terminal",label:"Terminal",swatches:["#000000","#0a0a0a","#00cc44"]},
+  {key:"nord",   label:"Nord",     swatches:["#2e3440","#3b4252","#eceff4"]},
+  {key:"pitch",  label:"Pitch",    swatches:["#0d1f0d","#122012","#d4ecd4"]},
+];
 
 export default function App() {
   const [user,setUser]=useState(null);
@@ -1974,6 +1982,22 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   return (
     <div style={{maxWidth:520}}>
       <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
+
+      <Section title="Appearance">
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+          {THEME_META.map(t=>(
+            <button key={t.key} onClick={()=>setTheme(t.key)}
+              style={{background:"var(--card)",border:`2px solid ${theme===t.key?"var(--btn-bg)":"var(--border)"}`,borderRadius:10,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8,transition:"border-color 0.15s",fontFamily:"inherit"}}>
+              <div style={{display:"flex",gap:4}}>
+                {t.swatches.map((c,i)=><div key={i} style={{width:14,height:14,borderRadius:"50%",background:c,border:"1px solid #ffffff22"}}/>)}
+              </div>
+              <div style={{fontSize:10,color:theme===t.key?"var(--btn-bg)":"var(--text-dim)",letterSpacing:1.5,textTransform:"uppercase",fontWeight:theme===t.key?700:400}}>
+                {t.label}{theme===t.key&&" ✓"}
+              </div>
+            </button>
+          ))}
+        </div>
+      </Section>
 
       {isAdmin&&(
         <Section title="Seasons">
