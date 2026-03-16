@@ -32,7 +32,8 @@
     <script>
       try {
         var t = localStorage.getItem("theme");
-        if (t === "light") document.documentElement.setAttribute("data-theme", "light");
+        var valid = ["dark","light","excel","terminal","nord","pitch"];
+        if (t && valid.includes(t)) document.documentElement.setAttribute("data-theme", t);
       } catch(e) {}
     </script>
   </head>
