@@ -1075,7 +1075,7 @@ function NextMatchCountdown({ group, unpickedCount = 0 }) {
   );
 }
 
-function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
+function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const mob = useMobile();
   const gwStripRef = useRef(null);
   const [resultDraft,setResultDraft]=useState({});
@@ -1803,7 +1803,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
+function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme}) {
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
   const [apiSaved,setApiSaved]=useState(false);
