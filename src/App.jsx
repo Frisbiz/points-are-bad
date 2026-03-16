@@ -1615,7 +1615,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               const rowBg=theme==="excel"?(fi%2===0?"#ffffff":"#f5f5f5"):undefined;
               return (
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
-                <td style={{padding:"10px 12px",color:"var(--text-mid)"}}>{f.home} vs {f.away}</td>
+                <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>{f.home} vs {f.away}</td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
@@ -1626,18 +1626,18 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                     const ptsBg=pts===null?"transparent":pts===0?"#d4edda":pts<=3?"transparent":pts===4?"#fef3c7":"#fee2e2";
                     const ptsColor=pts===null?"#999":pts===0?"#16a34a":pts<=3?"#666":pts===4?"#ca8a04":"#dc2626";
                     return [
-                      <td key={`${u}-pick`} style={{padding:"8px 10px",textAlign:"center",borderRight:"1px solid #d0d0d0",background:rowBg,cursor:isAdmin?"pointer":"default"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
+                      <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"1px solid #d0d0d0",background:rowBg,cursor:isAdmin?"pointer":"default"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
                           <input autoFocus value={editing[key]}
                             onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
                             onBlur={()=>savePred(u,f.id)}
                             onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
-                            style={{width:44,background:"#fff",border:"1px solid #8888cc",borderRadius:3,color:"#333",padding:"2px 4px",fontFamily:"inherit",fontSize:13,textAlign:"center",outline:"none"}}/>
+                            style={{width:40,background:"#fff",border:"1px solid #8888cc",borderRadius:3,color:"#333",padding:"2px 4px",fontFamily:"inherit",fontSize:13,textAlign:"center",outline:"none"}}/>
                         ):(
                           <span style={{fontSize:13,fontWeight:600,color:"#222"}}>{pred||"–"}</span>
                         )}
                       </td>,
-                      <td key={`${u}-pts`} style={{padding:"8px 6px",textAlign:"center",background:ptsBg,minWidth:24}}>
+                      <td key={`${u}-pts`} style={{padding:"5px 5px",textAlign:"center",background:ptsBg,minWidth:20}}>
                         <span style={{fontSize:13,fontWeight:600,color:ptsColor}}>{pts!==null?pts:""}</span>
                       </td>
                     ];
@@ -1671,10 +1671,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
             <td/>
             {members.map((u,ui)=>{
               const total=weeklyTotals[ui];
-              if(theme==="excel") return [
-                <td key={`${u}-total`} style={{padding:"10px 10px",textAlign:"center",fontSize:13,fontWeight:700,color:weeklyColor(total)}}>{total}</td>,
-                <td key={`${u}-total-spacer`}/>
-              ];
+              if(theme==="excel") return <td key={u} colSpan={2} style={{padding:"7px 8px",textAlign:"center",fontSize:13,fontWeight:700,color:weeklyColor(total)}}>{total}</td>;
               return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:weeklyColor(total),textShadow:weeklyGlow(total)}}>{total}</td>;
             })}
           </tr></tfoot>}
