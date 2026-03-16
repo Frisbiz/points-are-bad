@@ -1601,10 +1601,10 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
       {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
       <div style={{overflowX:"auto"}} className={theme==="excel"?"excel-mode":""}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
-            <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
-            <th style={{padding:"8px 12px",textAlign:"center",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
-            {members.map((u,ui)=>{const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];return <th key={u} style={{padding:"8px 12px",textAlign:"center",color:isWinner?"#fbbf24":"var(--text-mid)",fontWeight:isWinner?700:400,textShadow:isWinner?"0 0 10px #fbbf2488":"none"}}>{isWinner&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;})}
+          <thead><tr style={{borderBottom:"1px solid var(--border)",background:theme==="excel"?"#1a1a1a":undefined}}>
+            <th style={{padding:"8px 12px",textAlign:"left",color:theme==="excel"?"#fff":"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
+            <th style={{padding:"8px 12px",textAlign:"center",color:theme==="excel"?"#fff":"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
+            {members.map((u,ui)=>{const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;return <th key={u} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isWinner&&!excelBg&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;})}
           </tr></thead>
           <tbody>
             {gwFixtures.map(f=>(
@@ -1629,8 +1629,17 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
-                          <BadgeScore score={pts}/>
+                          {theme==="excel"?(
+                            <div style={{display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{pred||"–"}</span>
+                              {pts!==null&&<span style={{fontSize:13,fontWeight:600,color:pts===0?"#22c55e":pts<=2?"#f59e0b":"#ef4444"}}>{pts}</span>}
+                            </div>
+                          ):(
+                            <>
+                              <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
+                              <BadgeScore score={pts}/>
+                            </>
+                          )}
                         </div>
                       )}
                     </td>
