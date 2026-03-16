@@ -701,13 +701,13 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
 
 /* ── MAIN APP ────────────────────────────────────── */
 const NAV = ["League","Fixtures","Trends","Members","Group"];
+const THEMES=["dark","light","excel","terminal","nord","pitch"];
 
 export default function App() {
   const [user,setUser]=useState(null);
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
-  const THEMES=["dark","light","excel","terminal","nord","pitch"];
   const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return THEMES.includes(t)?t:"dark";});
   const [toast,setToast]=useState(null);
   const [bootError,setBootError]=useState(false);
