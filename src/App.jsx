@@ -1556,7 +1556,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
         </div>
       )}
-      {(picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
+      {(picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme}/>}
       {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
@@ -1568,7 +1568,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW}) {
+function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW,theme}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const members = group.members||[];
   const preds = group.predictions||{};
@@ -1599,7 +1599,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
     <div style={{marginTop:40}}>
       <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
       {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
-      <div style={{overflowX:"auto"}}>
+      <div style={{overflowX:"auto"}} className={theme==="excel"?"excel-mode":""}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
             <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
