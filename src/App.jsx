@@ -1604,11 +1604,17 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
           <thead><tr style={{borderBottom:"1px solid var(--border)",background:theme==="excel"?"#1a1a1a":undefined}}>
             <th style={{padding:"8px 12px",textAlign:"left",color:theme==="excel"?"#fff":"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
             <th style={{padding:"8px 12px",textAlign:"center",color:theme==="excel"?"#fff":"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
-            {members.map((u,ui)=>{const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;return <th key={u} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isWinner&&!excelBg&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;})}
+            {members.map((u,ui)=>{
+              const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];
+              const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;
+              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isWinner&&!excelBg&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;
+            })}
           </tr></thead>
           <tbody>
-            {gwFixtures.map(f=>(
-              <tr key={f.id} style={{borderBottom:"1px solid var(--border3)"}}>
+            {gwFixtures.map((f,fi)=>{
+              const rowBg=theme==="excel"?(fi%2===0?"#ffffff":"#f5f5f5"):undefined;
+              return (
+              <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
                 <td style={{padding:"10px 12px",color:"var(--text-mid)"}}>{f.home} vs {f.away}</td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result}</td>
                 {members.map(u=>{
@@ -1616,6 +1622,26 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                   const pts=calcPts(pred,f.result);
                   const key=editKey(u,f.id);
                   const isEditingCell=editing[key]!==undefined;
+                  if(theme==="excel"){
+                    const ptsBg=pts===null?"transparent":pts===0?"#d4edda":pts<=3?"transparent":pts===4?"#fef3c7":"#fee2e2";
+                    const ptsColor=pts===null?"#999":pts===0?"#16a34a":pts<=3?"#666":pts===4?"#ca8a04":"#dc2626";
+                    return [
+                      <td key={`${u}-pick`} style={{padding:"8px 10px",textAlign:"center",borderRight:"1px solid #d0d0d0",background:rowBg,cursor:isAdmin?"pointer":"default"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
+                        {isAdmin&&isEditingCell?(
+                          <input autoFocus value={editing[key]}
+                            onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
+                            onBlur={()=>savePred(u,f.id)}
+                            onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
+                            style={{width:44,background:"#fff",border:"1px solid #8888cc",borderRadius:3,color:"#333",padding:"2px 4px",fontFamily:"inherit",fontSize:13,textAlign:"center",outline:"none"}}/>
+                        ):(
+                          <span style={{fontSize:13,fontWeight:600,color:"#222"}}>{pred||"–"}</span>
+                        )}
+                      </td>,
+                      <td key={`${u}-pts`} style={{padding:"8px 6px",textAlign:"center",background:ptsBg,minWidth:24}}>
+                        <span style={{fontSize:13,fontWeight:600,color:ptsColor}}>{pts!==null?pts:""}</span>
+                      </td>
+                    ];
+                  }
                   return (
                     <td key={u} style={{padding:"10px 12px",textAlign:"center"}}>
                       {isAdmin&&isEditingCell?(
@@ -1629,30 +1655,26 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          {theme==="excel"?(
-                            <div style={{display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{pred||"–"}</span>
-                              {pts!==null&&<span style={{fontSize:13,fontWeight:600,color:pts===0?"#22c55e":pts<=2?"#f59e0b":"#ef4444"}}>{pts}</span>}
-                            </div>
-                          ):(
-                            <>
-                              <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
-                              <BadgeScore score={pts}/>
-                            </>
-                          )}
+                          <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
+                          <BadgeScore score={pts}/>
                         </div>
                       )}
                     </td>
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
           {gwFixtures.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--border)"}}>
             <td style={{padding:"10px 12px",color:"var(--text-dim)",letterSpacing:2,fontSize:10}}>TOTAL</td>
             <td/>
             {members.map((u,ui)=>{
               const total=weeklyTotals[ui];
+              if(theme==="excel") return [
+                <td key={`${u}-total`} style={{padding:"10px 10px",textAlign:"center",fontSize:13,fontWeight:700,color:weeklyColor(total)}}>{total}</td>,
+                <td key={`${u}-total-spacer`}/>
+              ];
               return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:weeklyColor(total),textShadow:weeklyGlow(total)}}>{total}</td>;
             })}
           </tr></tfoot>}
