@@ -80,4 +80,4 @@ Opens at [http://localhost:5173](http://localhost:5173).
 
 ## Self-hosting
 
-You'll need a Firebase project with Firestore enabled. Firestore rules are in `firestore.rules` — review before deploying.
+You'll need a Firebase project with Firestore enabled. Firestore rules are in `firestore.rules`. Review before deploying.
