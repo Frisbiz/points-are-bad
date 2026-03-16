@@ -1,69 +1,83 @@
 # Points Are Bad
 
-A Premier League score prediction game to play with friends. Every gameweek, everyone submits their predicted scorelines. The further off you are, the more points you get. Lowest score wins.
+> A Premier League score prediction game where getting it wrong is the whole problem.
+
+**[pab.wtf](https://pab.wtf)**
 
 ---
 
-## How It Works
+Most prediction games reward you for getting things right. This one punishes you for getting things wrong. Every goal your prediction misses costs you a point. Get the exact score and you walk away clean. Miss by a mile and you're carrying the shame all season.
 
-Before each gameweek kicks off, you predict the exact scoreline for every match. Once results are in, points are calculated like this:
-
-> Each goal your prediction is off costs you 1 point.
-
-So if you predict 1-1 and the actual result is 2-3, that's 1+2 = **3 points**. Nail the exact score and you get **0 points** and a star to brag about.
-
-At the end of the season, whoever has the fewest points wins.
+Lowest points wins. Points are bad.
 
 ---
 
-## Getting Started
+## How scoring works
 
-1. Create an account (just a username and password, nothing fancy)
-2. Create a group or join one with a 4-digit invite code
-3. Head to the Fixtures tab and start predicting
+Each goal your prediction is off by = 1 point.
 
-That's it. Share your group code with friends and you're off.
+```
+Prediction: 1-1   Result: 2-3   →  1 + 2 = 3 points
+Prediction: 2-1   Result: 2-1   →  0 points  ★
+```
+
+Nail the exact scoreline and you get zero. That's as good as it gets. At the end of the season, whoever has accumulated the least points takes the bragging rights.
+
+| Prediction | Result | Points |
+|---|---|---|
+| 2-1 | 2-1 | **0** ★ |
+| 1-0 | 2-0 | 1 |
+| 1-1 | 2-3 | 3 |
+| 0-0 | 4-2 | 6 |
 
 ---
 
 ## Features
 
-**Predictions** -- Submit scorelines for each match in a gameweek before they're played.
+**Gameweek predictions** — Submit exact scorelines for every match before kickoff. Once a fixture locks, your pick is locked too.
 
-**Live fixture sync** -- Admins can pull the latest fixtures and results directly from the Premier League with one click.
+**Pick reveal** — You can't see what anyone else predicted until you've submitted all your own picks. No peeking.
 
-**Leaderboard** -- A running table sorted by total points, lowest first. Updated as results come in.
+**Live sync** — Fixtures and results pull straight from the Premier League API. One button, done.
 
-**Trends** -- Charts showing how each player's points are tracking over the season: per-gameweek scores, a cumulative race, perfect predictions, and a points distribution breakdown.
+**Leaderboard** — Running totals, sorted lowest first. Updates in real time as results come in.
 
-**Perfect predictions** -- Getting a scoreline exactly right (0 points) is tracked separately because it deserves recognition.
+**Trends** — Per-gameweek charts, a cumulative points race, perfect prediction counts, and a score distribution breakdown so you can see exactly who's been fluking it.
 
-**Admin controls** -- Group creators can promote admins, kick members, and manage group settings.
+**Seasons** — Full multi-season support. Start a new season without losing the history.
 
----
+**Groups** — Create a private group, share the 4-digit code, and you're playing. Admins can manage members, lock gameweeks, and edit picks if something needs correcting.
 
-## Scoring at a Glance
-
-| Prediction | Result | Points |
-|---|---|---|
-| 2-1 | 2-1 | 0 (perfect!) |
-| 1-0 | 2-0 | 1 |
-| 1-1 | 2-3 | 3 |
-| 0-0 | 4-2 | 6 |
-
-Lower is always better.
+**Themes** — Six visual themes: Dark, Light, Excel, Terminal, Nord, and Pitch. Excel mode gives you a proper spreadsheet-style picks table — coloured player columns, alternating rows, and points colour-coded right next to each prediction.
 
 ---
 
-## Running Locally
+## Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) and you're good to go.
+Open [http://localhost:5173](http://localhost:5173). Create an account, start a group, share the code.
 
 ---
 
-Built with React, Firebase, and a lot of wishful thinking about scorelines.
+## Stack
+
+- **React** + **Vite**
+- **Firebase / Firestore** for data
+- **Premier League API** for fixtures and results
+- Deployed at [pab.wtf](https://pab.wtf) via Vercel
+
+---
+
+## Self-hosting
+
+You'll need a Firebase project with Firestore enabled and an API key for fixture data. Drop your config in and you're good.
+
+Firestore rules are included in `firestore.rules`. Review them before going live.
+
+---
+
+Built for a group chat that got too competitive about football scores.
