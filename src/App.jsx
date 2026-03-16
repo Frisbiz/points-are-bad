@@ -328,7 +328,7 @@ const CSS = `
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
   .excel-mode table td,.excel-mode table th{border:1px solid var(--border)!important;border-radius:0!important;padding:5px 8px!important;}
   .excel-mode table thead tr{background:var(--card-hi)!important;}
-  .excel-mode table thead th{font-weight:700!important;color:var(--text-mid)!important;font-size:10px!important;}
+  .excel-mode table thead th{font-weight:700!important;color:var(--text-mid)!important;}
   .excel-mode table{border-collapse:collapse!important;border:1px solid var(--border2)!important;}
 `;
 
