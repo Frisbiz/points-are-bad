@@ -689,7 +689,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
                 onMouseEnter={e=>e.currentTarget.style.borderColor="var(--text-dim)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
                   <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
-                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"}</div>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"} · {(g.mode||"open").toUpperCase()}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {g.creatorUsername===user.username&&<span style={{fontSize:10,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"2px 8px"}}>CREATOR</span>}
