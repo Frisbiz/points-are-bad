@@ -1576,6 +1576,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
+        const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const resultBlock = f.result?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
             <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
@@ -1597,7 +1598,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):isAdmin&&hasApiKey?(
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
-        const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = locked?(
