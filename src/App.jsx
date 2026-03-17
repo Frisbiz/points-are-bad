@@ -1424,6 +1424,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   };
   const handleWizardSkip = ()=>advanceWizard();
 
+  const dibsTurnFor = group.mode==="dibs"
+    ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
+    : {};
+
   return (
     <div>
       {showWizard&&wizardFixture&&createPortal(
@@ -1567,9 +1571,15 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):isAdmin&&hasApiKey?(
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
+        const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
+        const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = locked?(
           <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
-        ):(
+        ) : waitingFor ? (
+          <span style={{color:"var(--text-dim2)",fontSize:11,fontStyle:"italic"}}>
+            waiting for {names[waitingFor]||waitingFor}
+          </span>
+        ) : (
           <>
             <input value={myPred} placeholder="1-1"
               onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
