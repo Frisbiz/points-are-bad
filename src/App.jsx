@@ -360,7 +360,7 @@ const CSS = `
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
-  .excel-mode table td,.excel-mode table th{border:1px solid #aaaaaa;border-radius:0!important;padding:5px 8px!important;}
+  .excel-mode table td,.excel-mode table th{border:1px solid #888888;border-radius:0!important;padding:5px 8px!important;}
   .excel-mode table thead tr{background:var(--card-hi)!important;}
   .excel-mode table thead th{font-weight:700!important;color:var(--text-mid)!important;}
   .excel-mode table{border-collapse:collapse!important;border:1px solid var(--border2)!important;}
