@@ -1587,7 +1587,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):f.status==="POSTPONED"?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
-            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,lineHeight:1,padding:0,opacity:isHidden?0.25:0.6,transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity=1} onMouseLeave={e=>e.currentTarget.style.opacity=isHidden?0.25:0.6}>👁</button>}
+            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:isHidden?"#f59e0b15":"#f59e0b25",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",fontSize:12,lineHeight:1,padding:"2px 5px",color:isHidden?"#f59e0b55":"#f59e0b",transition:"all 0.15s"}} onMouseEnter={e=>{e.currentTarget.style.background="#f59e0b35";e.currentTarget.style.color="#f59e0b";}} onMouseLeave={e=>{e.currentTarget.style.background=isHidden?"#f59e0b15":"#f59e0b25";e.currentTarget.style.color=isHidden?"#f59e0b55":"#f59e0b";}}>👁</button>}
           </div>
         ):isAdmin&&!hasApiKey?(
           <div style={{display:"flex",gap:4,justifyContent:"center"}}>
