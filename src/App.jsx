@@ -1681,6 +1681,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
 function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW,theme,dibsTurnFor={}}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
+  const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
   const members = group.members||[];
   const preds = group.predictions||{};
   const scored = gwFixtures.filter(f=>f.result);
@@ -1696,18 +1697,51 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
     const val = editing[editKey(u,fid)];
     if (val && /^\d+-\d+$/.test(val)) {
       const oldVal = preds[u]?.[fid]||null;
-      const fixture = gwFixtures.find(f=>f.id===fid);
-      await updateGroup(g=>{
-        const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};
-        const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:viewedGW??group.currentGW,old:oldVal,new:val};
-        return {...g,predictions:p,adminLog:[...(g.adminLog||[]),entry]};
-      });
+      if (val !== oldVal) {
+        setEditConfirm({u,fid,val,oldVal});
+        return;
+      }
     }
     setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
+  };
+  const confirmSave = async () => {
+    const {u,fid,val,oldVal} = editConfirm;
+    const fixture = gwFixtures.find(f=>f.id===fid);
+    await updateGroup(g=>{
+      const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};
+      const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:viewedGW??group.currentGW,old:oldVal,new:val};
+      return {...g,predictions:p,adminLog:[...(g.adminLog||[]),entry]};
+    });
+    setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
+    setEditConfirm(null);
+  };
+  const cancelConfirm = () => {
+    const {u,fid} = editConfirm;
+    setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
+    setEditConfirm(null);
   };
 
   return (
     <div style={{marginTop:40}}>
+      {editConfirm&&createPortal(
+        <div onClick={cancelConfirm} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:28,width:"100%",maxWidth:340}}>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>EDIT PICK</div>
+            <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>{names[editConfirm.u]||editConfirm.u}</div>
+            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:18}}>{gwFixtures.find(f=>f.id===editConfirm.fid)?.home} vs {gwFixtures.find(f=>f.id===editConfirm.fid)?.away}</div>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24,fontSize:16,fontWeight:700}}>
+              <span style={{color:"var(--text-dim2)"}}>{editConfirm.oldVal||"—"}</span>
+              <span style={{fontSize:11,color:"var(--text-dim3)"}}>→</span>
+              <span style={{color:"var(--text-bright)"}}>{editConfirm.val}</span>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <Btn onClick={confirmSave} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>SAVE</Btn>
+              <Btn variant="ghost" onClick={cancelConfirm} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
       {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
       <div style={{overflowX:"auto"}} className={theme==="excel"?"excel-mode":""}>
