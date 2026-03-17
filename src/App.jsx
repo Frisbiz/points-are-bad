@@ -689,7 +689,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
                 onMouseEnter={e=>e.currentTarget.style.borderColor="var(--text-dim)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
                   <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
-                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"} · {(g.mode||"open").toUpperCase()}</div>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {(g.mode||"open").toUpperCase()}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {g.creatorUsername===user.username&&<span style={{fontSize:10,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"2px 8px"}}>CREATOR</span>}
@@ -981,7 +981,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>
+          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ API LIVE</div>
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
