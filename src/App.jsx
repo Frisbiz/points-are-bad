@@ -1056,7 +1056,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names}/>}
       </main>
     </div>
   );
@@ -1934,7 +1934,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme}) {
+function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme,names={}}) {
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
   const [apiSaved,setApiSaved]=useState(false);
@@ -1949,6 +1949,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const [backupMsg, setBackupMsg] = useState("");
   const [backupBusy, setBackupBusy] = useState(false);
   const [restoringId, setRestoringId] = useState(null);
+  const [skipModal, setSkipModal] = useState(null); // {playerId, fixtureId, home, away}
+  const [skipConfirm, setSkipConfirm] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletePw, setDeletePw] = useState("");
   const [deleteError, setDeleteError] = useState("");
@@ -2032,6 +2034,19 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
     setSyncingDates(false);
     setTimeout(()=>setSyncDatesMsg(""),5000);
   };
+  const issueSkip = async (playerId, fixtureId) => {
+    const current = (group.dibsSkips || {})[fixtureId] || [];
+    if (current.includes(playerId)) return;
+    await updateGroup(g => ({
+      ...g,
+      dibsSkips: {
+        ...(g.dibsSkips || {}),
+        [fixtureId]: [...((g.dibsSkips || {})[fixtureId] || []), playerId],
+      },
+    }));
+    setSkipModal(null);
+    setSkipConfirm(false);
+  };
   const leaveGroup=async()=>{
     if(isCreator)return;
     const fresh=await sget(`user:${user.username}`);
@@ -2105,6 +2120,61 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   return (
     <div style={{maxWidth:520}}>
       <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
+
+      {group.mode==="dibs"&&isAdmin&&(()=>{
+        const season = group.season||2025;
+        const openFixtures = (group.gameweeks||[])
+          .filter(gw=>(gw.season||season)===season)
+          .sort((a,b)=>a.gw-b.gw)
+          .flatMap(gw=>(gw.fixtures||[])
+            .filter(f=>!f.result&&f.status!=="FINISHED")
+            .map(f=>({...f,gw:gw.gw}))
+          );
+        const memberOrder = group.memberOrder || group.members || [];
+        return (
+          <Section title="Dibs — Pick Order">
+            <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:14,letterSpacing:0}}>
+              Pick rotation for this season. Order determines who has first pick each fixture.
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
+              {memberOrder.map((u,i)=>(
+                <div key={u} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)"}}>
+                  <span style={{fontSize:10,color:"var(--text-dim3)",width:18,textAlign:"right"}}>{i+1}</span>
+                  <span style={{fontSize:13,color:"var(--text)",flex:1}}>{names[u]||u}</span>
+                </div>
+              ))}
+            </div>
+
+            {openFixtures.length>0&&(
+              <>
+                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>SKIP PLAYER FOR FIXTURE</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {openFixtures.map(f=>{
+                    const turn = computeDibsTurn(group, f.id);
+                    if (!turn) return null;
+                    const skips = (group.dibsSkips||{})[f.id]||[];
+                    const waiting = memberOrder.filter(u=>!skips.includes(u)&&!/^\d+-\d+$/.test((group.predictions||{})[u]?.[f.id]||""));
+                    if (!waiting.length) return null;
+                    return (
+                      <div key={f.id} style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"10px 14px"}}>
+                        <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>GW{f.gw} · {f.home} vs {f.away}</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                          {waiting.map(u=>(
+                            <Btn key={u} small variant="ghost"
+                              onClick={()=>{setSkipModal({playerId:u,fixtureId:f.id,home:f.home,away:f.away});setSkipConfirm(false);}}>
+                              Skip {names[u]||u}
+                            </Btn>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </Section>
+        );
+      })()}
 
       <Section title="Appearance">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
@@ -2331,6 +2401,38 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
       {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
+      {skipModal&&createPortal(
+        <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:28,maxWidth:400,width:"100%"}}>
+            {!skipConfirm ? (
+              <>
+                <div style={{fontSize:15,color:"var(--text-bright)",marginBottom:10,fontWeight:700}}>
+                  Skip {names[skipModal.playerId]||skipModal.playerId} for {skipModal.home} vs {skipModal.away}?
+                </div>
+                <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20,lineHeight:1.6}}>
+                  This will move {names[skipModal.playerId]||skipModal.playerId}'s turn to the end of the queue for this fixture and unblock the next player. This cannot be undone.
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn variant="ghost" onClick={()=>{setSkipModal(null);setSkipConfirm(false);}}>Cancel</Btn>
+                  <Btn variant="amber" onClick={()=>setSkipConfirm(true)}>Continue →</Btn>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{fontSize:15,color:"#f59e0b",marginBottom:10,fontWeight:700}}>Are you sure?</div>
+                <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20,lineHeight:1.6}}>
+                  Skipping {names[skipModal.playerId]||skipModal.playerId} for {skipModal.home} vs {skipModal.away} is permanent.
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn variant="ghost" onClick={()=>setSkipConfirm(false)}>← Back</Btn>
+                  <Btn variant="danger" onClick={()=>issueSkip(skipModal.playerId,skipModal.fixtureId)}>Yes, Skip</Btn>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
       {deleteModalOpen&&createPortal(
         <div onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
           <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
