@@ -1175,9 +1175,15 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
   const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
+  const dibsTurnFor = group.mode==="dibs"
+    ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
+    : {};
   const unpickedUnlocked = gwAdminLocked ? [] : gwFixtures.filter(f=>{
     const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
-    return !locked&&!myPreds[f.id];
+    if (locked) return false;
+    if (myPreds[f.id]) return false;
+    if (group.mode==="dibs" && dibsTurnFor[f.id] !== user.username) return false;
+    return true;
   });
   const canViewAllPicks = unpickedUnlocked.length===0;
 
@@ -1215,7 +1221,19 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       }
     }
     setSaving(s=>({...s,[fixtureId]:true}));
-    await patchGroup(`predictions.${user.username}.${fixtureId}`, val);
+    await updateGroup(g => {
+      if (g.mode === "dibs") {
+        const freshTurn = computeDibsTurn(g, fixtureId);
+        if (freshTurn !== user.username) return g;
+        const takenFresh = Object.entries(g.predictions || {})
+          .filter(([u]) => u !== user.username)
+          .some(([, picks]) => picks?.[fixtureId] === val);
+        if (takenFresh) return g;
+      }
+      const p = {...(g.predictions || {})};
+      p[user.username] = {...(p[user.username] || {}), [fixtureId]: val};
+      return {...g, predictions: p};
+    });
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
@@ -1423,10 +1441,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     advanceWizard();
   };
   const handleWizardSkip = ()=>advanceWizard();
-
-  const dibsTurnFor = group.mode==="dibs"
-    ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
-    : {};
 
   return (
     <div>
@@ -1640,7 +1654,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {(group.mode==="dibs"
         ? (group.members||[]).length>1
         : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={group.mode==="dibs" ? Object.fromEntries(gwFixtures.map(f=>[f.id,computeDibsTurn(group,f.id)])) : {}}/>}
+      )&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
       {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
@@ -1847,7 +1861,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
     const entry={id:Date.now(),at:Date.now(),by:user.username,action:"kick",for:username};
-    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==username),admins:(g.admins||[]).filter(a=>a!==username),adminLog:[...(g.adminLog||[]),entry]}));
+    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==username),admins:(g.admins||[]).filter(a=>a!==username),memberOrder:(g.memberOrder||g.members||[]).filter(m=>m!==username),adminLog:[...(g.adminLog||[]),entry]}));
     const fresh=await sget(`user:${username}`);
     if(fresh)await sset(`user:${username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
   };
@@ -2410,7 +2424,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                   Skip {names[skipModal.playerId]||skipModal.playerId} for {skipModal.home} vs {skipModal.away}?
                 </div>
                 <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20,lineHeight:1.6}}>
-                  This will move {names[skipModal.playerId]||skipModal.playerId}'s turn to the end of the queue for this fixture and unblock the next player. This cannot be undone.
+                  This will permanently remove {names[skipModal.playerId]||skipModal.playerId}'s turn for this fixture and unblock the next player. They will not be able to pick this match. This cannot be undone.
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <Btn variant="ghost" onClick={()=>{setSkipModal(null);setSkipConfirm(false);}}>Cancel</Btn>
