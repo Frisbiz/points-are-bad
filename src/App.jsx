@@ -228,6 +228,40 @@ function calcPts(pred, result) {
   return Math.abs(ph - rh) + Math.abs(pa - ra);
 }
 
+function getFixtureSeasonIndex(group, fixtureId) {
+  const season = group.season || 2025;
+  const gws = (group.gameweeks || [])
+    .filter(gw => (gw.season || season) === season)
+    .sort((a, b) => a.gw - b.gw);
+  let idx = 0;
+  for (const gw of gws) {
+    for (const f of (gw.fixtures || [])) {
+      if (f.id === fixtureId) return idx;
+      idx++;
+    }
+  }
+  return 0;
+}
+
+function computeDibsTurn(group, fixtureId) {
+  const memberOrder = group.memberOrder || group.members || [];
+  const n = memberOrder.length;
+  if (n === 0) return null;
+  const seasonIdx = getFixtureSeasonIndex(group, fixtureId);
+  const skips = (group.dibsSkips || {})[fixtureId] || [];
+  const preds = group.predictions || {};
+  const rotStart = seasonIdx % n;
+  const queue = [];
+  for (let i = 0; i < n; i++) {
+    const member = memberOrder[(rotStart + i) % n];
+    if (!skips.includes(member)) queue.push(member);
+  }
+  for (const member of queue) {
+    if (preds[member]?.[fixtureId] === undefined) return member;
+  }
+  return null;
+}
+
 function genCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
 const PALETTE = ["#60a5fa","#f472b6","#4ade80","#fb923c","#a78bfa","#facc15","#34d399","#f87171"];
 const CLUB_COLORS = {
