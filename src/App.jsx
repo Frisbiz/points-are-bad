@@ -655,7 +655,12 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     const group = await sget(`group:${id}`);
     if (!group){setError("Group not found.");return;}
     if (group.members.includes(user.username)){setError("Already in this group!");return;}
-    const updated = {...group,members:[...group.members,user.username]};
+    const currentOrder = group.memberOrder || group.members || [];
+    const updated = {
+      ...group,
+      members:[...group.members,user.username],
+      memberOrder: currentOrder.includes(user.username) ? currentOrder : [...currentOrder, user.username],
+    };
     await sset(`group:${id}`,updated);
     const fresh = await sget(`user:${user.username}`);
     const updatedUser = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
