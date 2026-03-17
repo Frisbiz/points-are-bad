@@ -1637,8 +1637,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
         </div>
       )}
-      {(picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme}/>}
-      {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
+      {(group.mode==="dibs"
+        ? (group.members||[]).length>1
+        : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
+      )&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={group.mode==="dibs" ? Object.fromEntries(gwFixtures.map(f=>[f.id,computeDibsTurn(group,f.id)])) : {}}/>}
+      {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
           <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>Submit your picks to unlock all picks</div>
@@ -1649,7 +1652,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW,theme}) {
+function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW,theme,dibsTurnFor={}}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const members = group.members||[];
   const preds = group.predictions||{};
@@ -1688,7 +1691,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
             {members.map((u,ui)=>{
               const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];
               const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;
-              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isWinner&&!excelBg&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;
+              const isAwaiting = Object.values(dibsTurnFor).some(turn => turn === u);
+              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
+                ? <span style={{animation:"pulse 1.2s ease-in-out infinite",display:"inline-block"}}>{names[u]||u}</span>
+                : <>{isWinner&&!excelBg&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</>
+              }</th>;
             })}
           </tr></thead>
           <tbody>
@@ -1723,8 +1730,15 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                       </td>
                     ];
                   }
+                  const isCellAwaiting = dibsTurnFor[f.id] === u && !/^\d+-\d+$/.test(preds[u]?.[f.id] || "");
                   return (
-                    <td key={u} style={{padding:"10px 12px",textAlign:"center"}}>
+                    <td key={u} style={{
+                      padding:"10px 12px",
+                      textAlign:"center",
+                      outline: isCellAwaiting ? "1px solid #8888cc44" : "none",
+                      background: isCellAwaiting ? "#8888cc08" : "transparent",
+                      animation: isCellAwaiting ? "pulse 1.5s ease-in-out infinite" : "none",
+                    }}>
                       {isAdmin&&isEditingCell?(
                         <input autoFocus value={editing[key]}
                           onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
