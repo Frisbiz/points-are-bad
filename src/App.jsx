@@ -229,10 +229,9 @@ function calcPts(pred, result) {
 }
 
 function getFixtureSeasonIndex(group, fixtureId) {
-  const season = group.season || 2025;
   const gws = (group.gameweeks || [])
-    .filter(gw => (gw.season || season) === season)
-    .sort((a, b) => a.gw - b.gw);
+    .slice()
+    .sort((a, b) => ((a.season || 0) - (b.season || 0)) || (a.gw - b.gw));
   let idx = 0;
   for (const gw of gws) {
     for (const f of (gw.fixtures || [])) {
@@ -240,7 +239,7 @@ function getFixtureSeasonIndex(group, fixtureId) {
       idx++;
     }
   }
-  return 0;
+  return null;
 }
 
 function computeDibsTurn(group, fixtureId) {
@@ -248,6 +247,7 @@ function computeDibsTurn(group, fixtureId) {
   const n = memberOrder.length;
   if (n === 0) return null;
   const seasonIdx = getFixtureSeasonIndex(group, fixtureId);
+  if (seasonIdx === null) return null;
   const skips = (group.dibsSkips || {})[fixtureId] || [];
   const preds = group.predictions || {};
   const rotStart = seasonIdx % n;
@@ -257,7 +257,7 @@ function computeDibsTurn(group, fixtureId) {
     if (!skips.includes(member)) queue.push(member);
   }
   for (const member of queue) {
-    if (preds[member]?.[fixtureId] === undefined) return member;
+    if (!/^\d+-\d+$/.test(preds[member]?.[fixtureId] || "")) return member;
   }
   return null;
 }
