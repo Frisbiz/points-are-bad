@@ -631,7 +631,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     const code = genCode();
     const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
     const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
-    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},adminLog:[]};
+    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
     try {
       const globalDoc = await sget("fixtures:PL:2025");
       if (globalDoc&&(globalDoc.gameweeks||[]).length) {
@@ -1248,6 +1248,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     await updateGroup(g=>({...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:null}:f)}))}));
   };
 
+  const toggleFixtureHidden = async (fixtureId) => {
+    await updateGroup(g=>{
+      const h = g.hiddenFixtures||[];
+      return {...g, hiddenFixtures: h.includes(fixtureId) ? h.filter(id=>id!==fixtureId) : [...h, fixtureId]};
+    });
+  };
+
   const fetchFromAPI = async () => {
     setFetching(true); setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
     try {
@@ -1577,7 +1584,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
           </div>
         ):f.status==="POSTPONED"?(
-          <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+            <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
+            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,lineHeight:1,padding:0,opacity:isHidden?0.25:0.6,transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity=1} onMouseLeave={e=>e.currentTarget.style.opacity=isHidden?0.25:0.6}>👁</button>}
+          </div>
         ):isAdmin&&!hasApiKey?(
           <div style={{display:"flex",gap:4,justifyContent:"center"}}>
             <input placeholder="0-0" value={resultDraft[f.id]||""} onChange={e=>setResultDraft(d=>({...d,[f.id]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveResult(f.id)}
@@ -1587,6 +1597,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):isAdmin&&hasApiKey?(
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
+        const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = locked?(
@@ -1656,7 +1667,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {(group.mode==="dibs"
         ? (group.members||[]).length>1
         : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
+      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
       {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
