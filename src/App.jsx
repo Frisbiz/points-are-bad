@@ -360,7 +360,7 @@ const CSS = `
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
-  .excel-mode table td,.excel-mode table th{border:1px solid var(--border)!important;border-radius:0!important;padding:5px 8px!important;}
+  .excel-mode table td,.excel-mode table th{border:1px solid #aaaaaa!important;border-radius:0!important;padding:5px 8px!important;}
   .excel-mode table thead tr{background:var(--card-hi)!important;}
   .excel-mode table thead th{font-weight:700!important;color:var(--text-mid)!important;}
   .excel-mode table{border-collapse:collapse!important;border:1px solid var(--border2)!important;}
@@ -1741,7 +1741,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                     const ptsBg=pts===null?"transparent":pts===0?"#d4edda":pts<=3?"transparent":pts===4?"#fef3c7":"#fee2e2";
                     const ptsColor=pts===null?"#999":pts===0?"#16a34a":pts<=3?"#666":pts===4?"#ca8a04":"#dc2626";
                     return [
-                      <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"1px solid #d0d0d0",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
+                      <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"1px solid #e8e8e8",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
                           <input autoFocus value={editing[key]}
                             onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
