@@ -988,7 +988,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
           </nav>
-          <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:20,borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
+          <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
             <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
               <Avatar name={user.displayName} size={26}/>
               {myRank > 0 && (
