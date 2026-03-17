@@ -1186,6 +1186,20 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     const locked = !!(f?.result || f?.status==="FINISHED" || f?.status==="IN_PLAY" || f?.status==="PAUSED" || (f?.date && new Date(f.date) <= new Date()));
     if (locked) return;
     if (!/^\d+-\d+$/.test(val)) return;
+    // Dibs mode checks
+    if (group.mode === "dibs") {
+      const turn = computeDibsTurn(group, fixtureId);
+      if (turn !== user.username) return; // not your turn
+      // block duplicate scoreline
+      const taken = Object.entries(group.predictions || {})
+        .filter(([u]) => u !== user.username)
+        .some(([, picks]) => /^\d+-\d+$/.test(picks?.[fixtureId] || "") && picks[fixtureId] === val);
+      if (taken) {
+        alert(`"${val}" has already been claimed for this match. Pick a different scoreline.`);
+        setPredDraft(d => ({...d, [fixtureId]: myPreds[fixtureId] || ""}));
+        return;
+      }
+    }
     if (val === "1-1") {
       const limit = group.draw11Limit || "unlimited";
       if (limit !== "unlimited") {
