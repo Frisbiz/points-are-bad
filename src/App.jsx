@@ -1741,7 +1741,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                     const ptsBg=pts===null?"transparent":pts===0?"#d4edda":pts<=3?"transparent":pts===4?"#fef3c7":"#fee2e2";
                     const ptsColor=pts===null?"#999":pts===0?"#16a34a":pts<=3?"#666":pts===4?"#ca8a04":"#dc2626";
                     return [
-                      <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"1px solid #e8e8e8",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
+                      <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"1px dashed #cccccc",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
                           <input autoFocus value={editing[key]}
                             onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
