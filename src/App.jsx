@@ -1566,7 +1566,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
-        const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+        const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const resultBlock = f.result?(
@@ -1576,6 +1576,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
             {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
           </div>
+        ):f.status==="POSTPONED"?(
+          <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
         ):isAdmin&&!hasApiKey?(
           <div style={{display:"flex",gap:4,justifyContent:"center"}}>
             <input placeholder="0-0" value={resultDraft[f.id]||""} onChange={e=>setResultDraft(d=>({...d,[f.id]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveResult(f.id)}
@@ -1718,7 +1720,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               return (
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
                 <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>{f.home} vs {f.away}</td>
-                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result}</td>
+                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-bright)",letterSpacing:2}}>{f.result||f.status==="POSTPONED"?f.result||<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>:null}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
