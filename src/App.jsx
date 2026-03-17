@@ -578,6 +578,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
   const [setupGW,setSetupGW]=useState("1");
   const [setupLimit,setSetupLimit]=useState("unlimited");
   const [setupGWLoading,setSetupGWLoading]=useState(false);
+  const [setupPickMode,setSetupPickMode]=useState("open");
 
   useEffect(()=>{loadGroups();},[]);
 
@@ -630,7 +631,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     const code = genCode();
     const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
     const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
-    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,adminLog:[]};
+    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},adminLog:[]};
     try {
       const globalDoc = await sget("fixtures:PL:2025");
       if (globalDoc&&(globalDoc.gameweeks||[]).length) {
@@ -642,7 +643,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     const fresh = await sget(`user:${user.username}`);
     const updated = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
     await sset(`user:${user.username}`,updated);
-    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setCreating(false);
+    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setCreating(false);
     onEnterGroup(newGroup);
   };
 
@@ -709,6 +710,21 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
                   <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
                 </div>
                 <div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON MODE</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {[
+                      ["open","Open","Everyone picks freely each gameweek."],
+                      ["dibs","Dibs","Take turns claiming scorelines — no duplicates per match."],
+                    ].map(([val,label,desc])=>(
+                      <button key={val} onClick={()=>setSetupPickMode(val)}
+                        style={{background:setupPickMode===val?"var(--btn-bg)":"var(--card)",color:setupPickMode===val?"var(--btn-text)":"var(--text-dim2)",border:`1px solid ${setupPickMode===val?"var(--btn-bg)":"var(--border)"}`,borderRadius:6,padding:"8px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,textAlign:"left",transition:"all 0.15s"}}>
+                        <span style={{fontWeight:700,letterSpacing:2}}>{label.toUpperCase()}</span>
+                        <span style={{display:"block",fontSize:10,opacity:0.7,marginTop:2,letterSpacing:0}}>{desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>1-1 LIMIT PER WEEK</div>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                     {[["unlimited","Unlimited"],["2","2"],["1","1"],["none","None"]].map(([val,label])=>(
@@ -717,7 +733,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
                   </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
-                  <Btn variant="ghost" small onClick={()=>setSetupMode(false)}>← Back</Btn>
+                  <Btn variant="ghost" small onClick={()=>{setSetupMode(false);setSetupPickMode("open");}}>← Back</Btn>
                   <Btn onClick={createGroup} disabled={creating} style={{flex:1,textAlign:"center"}}>{creating?"...":"Create Group →"}</Btn>
                 </div>
               </div>
