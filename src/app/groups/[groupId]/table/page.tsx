@@ -12,12 +12,13 @@ import {
 } from "@/lib/mock-data";
 import { Fixture, Pick } from "@/lib/types";
 
-export default function TablePage({
+export default async function TablePage({
   params,
 }: {
-  params: { groupId: string };
+  params: Promise<{ groupId: string }>;
 }) {
-  const group = getGroupById(params.groupId);
+  const { groupId } = await params;
+  const group = getGroupById(groupId);
   if (!group) return notFound();
 
   const matchweek = getCurrentMatchweek();

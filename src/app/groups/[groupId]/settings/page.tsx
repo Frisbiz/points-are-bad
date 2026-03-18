@@ -6,12 +6,13 @@ import {
 } from "@/lib/mock-data";
 import { SettingsForm } from "./settings-form";
 
-export default function SettingsPage({
+export default async function SettingsPage({
   params,
 }: {
-  params: { groupId: string };
+  params: Promise<{ groupId: string }>;
 }) {
-  const group = getGroupById(params.groupId);
+  const { groupId } = await params;
+  const group = getGroupById(groupId);
   if (!group) return notFound();
 
   const member = getMembersForGroup(group.id).find(

@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
-export default function GroupIndex({
+export default async function GroupIndex({
   params,
 }: {
-  params: { groupId: string };
+  params: Promise<{ groupId: string }>;
 }) {
-  redirect(`/groups/${params.groupId}/picks`);
+  const { groupId } = await params;
+  redirect(`/groups/${groupId}/picks`);
 }

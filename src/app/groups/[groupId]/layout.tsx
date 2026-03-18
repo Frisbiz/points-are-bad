@@ -10,14 +10,15 @@ import {
   getSubmissionsForGroupMatchweek,
 } from "@/lib/mock-data";
 
-export default function GroupLayout({
+export default async function GroupLayout({
   children,
   params,
 }: {
   children: ReactNode;
-  params: { groupId: string };
+  params: Promise<{ groupId: string }>;
 }) {
-  const group = getGroupById(params.groupId);
+  const { groupId } = await params;
+  const group = getGroupById(groupId);
   if (!group) return notFound();
 
   const matchweek = getCurrentMatchweek();
@@ -68,7 +69,7 @@ export default function GroupLayout({
             {youSubmitted ? "You submitted" : "Submit picks to reveal others"}
           </span>
         </div>
-        <GroupTabs basePath={`/groups/${group.id}`} />
+        <GroupTabs basePath={`/groups/${groupId}`} />
       </div>
       {children}
     </div>
