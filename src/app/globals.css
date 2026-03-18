@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+}
+
+a {
+  @apply text-brand-secondary transition hover:opacity-80;
+}
+
+.card {
+  @apply rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-lg shadow-black/30 backdrop-blur;
+}
