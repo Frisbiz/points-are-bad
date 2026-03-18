@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
+import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key) {
@@ -1544,7 +1544,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             <Btn variant="danger" small onClick={removeGW}>Yes, delete</Btn>
             <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
           </div>}
-          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching} style={{display:"flex",alignItems:"center",gap:5}}>{fetching?"Fetching...":<><Flash size={12} color="currentColor"/>{hasApiKey?"Sync Fixtures":"Sync (needs API key)"}</>}</Btn>}
+          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching} style={{display:"flex",alignItems:"center",gap:5}}>{fetching?"Fetching...":<><Sync size={12} color="currentColor"/>{hasApiKey?"Sync Fixtures":"Sync (needs API key)"}</>}</Btn>}
         </div>
       </div>
 
