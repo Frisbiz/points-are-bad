@@ -473,7 +473,7 @@ function LandingPage({onContinue}) {
           <div style={{display:"flex",justifyContent:"flex-end"}}>
             {/* prediction demo */}
             <div style={{width:"100%",maxWidth:320}}>
-              <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:24}}>
+              <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:24,minHeight:280}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20}}>
                   <div>
                     <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:5}}>Matchweek 32</div>
