@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key) {
@@ -981,7 +982,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ API LIVE</div>
+          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
@@ -1000,8 +1001,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
             {profileOpen&&(
               <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:100,boxShadow:"0 4px 16px #00000030"}}>
                 <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>{user.displayName}</div>
-                <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"block",marginBottom:2}}>ACCOUNT</button>
-                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"block"}}>LOG OUT</button>
+                <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
+                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
               </div>
             )}
           </div>
@@ -1514,7 +1515,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                     textAlign:"center",
                     opacity:adminHidden?0.4:1,
                   }}>
-                    {adminHidden?"🔒":""}GW{g.gw}
+                    {adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}GW{g.gw}
                   </button>
                 );
               })}
@@ -1543,21 +1544,21 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             <Btn variant="danger" small onClick={removeGW}>Yes, delete</Btn>
             <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
           </div>}
-          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching}>{fetching?"Fetching...":hasApiKey?"⚡ Sync Fixtures":"⚡ Sync (needs API key)"}</Btn>}
+          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching} style={{display:"flex",alignItems:"center",gap:5}}>{fetching?"Fetching...":<><Flash size={12} color="currentColor"/>{hasApiKey?"Sync Fixtures":"Sync (needs API key)"}</>}</Btn>}
         </div>
       </div>
 
       {fetchMsg&&<div style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
 
-      {isAdmin&&<div style={{background:"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1}}>
-        ⚡ ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
+      {isAdmin&&<div style={{background:"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
+        <Flash size={12} color="#f59e0b" style={{flexShrink:0}}/> ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
       <NextMatchCountdown group={group} unpickedCount={unpickedUnlocked.length} />
 
       {gwAdminLocked && (
-        <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1}}>
-          🔒 THIS GAMEWEEK IS LOCKED BY YOUR ADMIN
+        <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
+          <Lock size={12} color="#ef4444"/> THIS GAMEWEEK IS LOCKED BY YOUR ADMIN
         </div>
       )}
 
@@ -1587,7 +1588,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):f.status==="POSTPONED"?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
-            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",fontSize:12,lineHeight:1,padding:"2px 5px",color:"#f59e0b",transition:"all 0.15s",position:"relative",overflow:"hidden"}}>{isHidden?<span style={{textDecoration:"line-through",opacity:0.4}}>👁</span>:<span>👁</span>}</button>}
+            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
           </div>
         ):isAdmin&&!hasApiKey?(
           <div style={{display:"flex",gap:4,justifyContent:"center"}}>
@@ -1670,7 +1671,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
       {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
-          <div style={{fontSize:28,marginBottom:12}}>🔒</div>
+          <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Lock size={28} color="var(--text-dim)"/></div>
           <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>Submit your picks to unlock all picks</div>
           <div style={{fontSize:11,color:"var(--text-dim)"}}>{unpickedUnlocked.length} fixture{unpickedUnlocked.length!==1?"s":""} remaining</div>
         </div>
@@ -1755,7 +1756,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               const isAwaiting = Object.values(dibsTurnFor).some(turn => turn === u);
               return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
                 ? <span style={{animation:"pulse 1.2s ease-in-out infinite",display:"inline-block"}}>{names[u]||u}</span>
-                : <>{isWinner&&!excelBg&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</>
+                : <>{isWinner&&!excelBg&&<Star size={13} color="#fbbf24" filled style={{marginRight:4,filter:"drop-shadow(0 0 4px #fbbf24aa)",flexShrink:0}}/>}{names[u]||u}</>
               }</th>;
             })}
           </tr></thead>
@@ -1935,7 +1936,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontSize:14,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
-                      {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",fontSize:11,padding:"0 2px",fontFamily:"inherit",lineHeight:1}}>✎</button>}
+                      {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",padding:"0 2px",lineHeight:1,display:"flex",alignItems:"center"}}><EditLine size={13} color="currentColor"/></button>}
                     </div>
                   )}
                   <div style={{display:"flex",gap:6,marginTop:4}}>
@@ -2409,7 +2410,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
         </div>
       </Section>
 
-      <Section title="⚡ Live Data: football-data.org">
+      <Section title="Live Data: football-data.org">
         <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"18px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
@@ -2417,7 +2418,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
           </div>
           <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
             Live Premier League data is active for all groups automatically.<br/>
-            {isAdmin&&<><br/><span style={{color:"var(--text-dim)"}}>As an admin, go to </span><strong style={{color:"#f59e0b"}}>Fixtures → ⚡ Sync Fixtures</strong><span style={{color:"var(--text-dim)"}}> to pull the latest matches and results at any time.</span></>}
+            {isAdmin&&<><br/><span style={{color:"var(--text-dim)"}}>As an admin, go to </span><strong style={{color:"#f59e0b"}}>Fixtures → Sync Fixtures</strong><span style={{color:"var(--text-dim)"}}> to pull the latest matches and results at any time.</span></>}
           </div>
           {isAdmin&&(
             <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
@@ -2442,7 +2443,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       <Section title="Info">
         <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
-          {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","⚡ Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
+          {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
               <span style={{color:"var(--text-dim)"}}>{l}</span>
               <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
