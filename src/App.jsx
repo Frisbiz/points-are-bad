@@ -388,6 +388,216 @@ function computeStats(group) {
 }
 
 /* ── AUTH ─────────────────────────────────────────── */
+/* ── LANDING PAGE ─────────────────────────────────── */
+function LandingPage({onContinue}) {
+  const [thumbs,setThumbs]=useState([]);
+  const [phase,setPhase]=useState("open");
+  const phaseIdx=useRef(0);
+  const PHASES=["open","locked","result","score"];
+  const PHASE_MS={open:2800,locked:1200,result:2000,score:3200};
+
+  useEffect(()=>{
+    let t;
+    const tick=()=>{
+      phaseIdx.current=(phaseIdx.current+1)%PHASES.length;
+      const next=PHASES[phaseIdx.current];
+      setPhase(next);
+      t=setTimeout(tick,PHASE_MS[next]);
+    };
+    t=setTimeout(tick,PHASE_MS.open);
+    return ()=>clearTimeout(t);
+  },[]);
+
+  const spawnThumb=(e)=>{
+    const id=Date.now()+Math.random();
+    const r=e.currentTarget.getBoundingClientRect();
+    const x=r.left+r.width/2+(Math.random()-0.5)*20;
+    const y=r.top;
+    setThumbs(t=>[...t,{id,x,y}]);
+    setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+  };
+
+  const statusLabel={open:"OPEN",locked:"LOCKED",result:"FINAL",score:"FINAL"}[phase];
+  const statusColor={
+    open:{color:"#22c55e",bg:"#22c55e15",border:"#22c55e25"},
+    locked:{color:"#f59e0b",bg:"#f59e0b15",border:"#f59e0b25"},
+    result:{color:"var(--text-dim)",bg:"transparent",border:"var(--border)"},
+    score:{color:"var(--text-dim)",bg:"transparent",border:"var(--border)"},
+  }[phase];
+
+  const scoreCell=(val,dim)=>(
+    <div style={{width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center",
+      background:"var(--bg)",border:"1px solid var(--border2)",borderRadius:8,
+      fontSize:22,fontWeight:500,fontFamily:"'DM Mono',monospace",
+      color:"var(--text-bright)",opacity:dim?0.4:1,transition:"opacity 0.4s"}}>
+      {val}
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
+      <style>{CSS}</style>
+      {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
+
+      {/* header */}
+      <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
+        <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span>
+            <span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:20}}>
+            <button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>
+            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"8px 18px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create Group</button>
+          </div>
+        </div>
+      </header>
+
+      <div style={{maxWidth:940,margin:"0 auto",padding:"0 24px"}}>
+
+        {/* hero */}
+        <section style={{padding:"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"center"}} className="land-hero">
+          <div className="fade">
+            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:28}}>Premier League · Score Predictions</div>
+            <h1 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:-2,lineHeight:1.05,marginBottom:24}}>
+              Predict every goal.
+            </h1>
+            <p style={{fontSize:12,color:"var(--text-mid)",lineHeight:1.8,maxWidth:380,marginBottom:36,letterSpacing:0.3}}>
+              A score prediction game for friend groups. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
+            </p>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"12px 28px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
+              <button onClick={onContinue} style={{background:"transparent",color:"var(--text-mid)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"12px 28px",borderRadius:8,fontWeight:400,fontFamily:"inherit",border:"1px solid var(--border2)",cursor:"pointer"}}>Sign in</button>
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"flex-end"}}>
+            {/* prediction demo */}
+            <div style={{width:"100%",maxWidth:320}}>
+              <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:24}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20}}>
+                  <div>
+                    <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:5}}>Matchweek 32</div>
+                    <div style={{fontSize:14,color:"var(--text-bright)",fontWeight:500}}>Arsenal vs Tottenham</div>
+                    <div style={{fontSize:10,color:"var(--text-dim2)",marginTop:2}}>Sat 15 Apr · 12:30</div>
+                  </div>
+                  <div style={{fontSize:9,letterSpacing:2,fontWeight:500,padding:"3px 9px",borderRadius:4,border:`1px solid ${statusColor.border}`,background:statusColor.bg,color:statusColor.color,transition:"all 0.2s"}}>
+                    {statusLabel}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:16}}>
+                  <div>
+                    <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Your pick</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      {scoreCell("2",phase!=="open")}
+                      <span style={{color:"var(--text-dim)",fontSize:14}}>-</span>
+                      {scoreCell("1",phase!=="open")}
+                    </div>
+                  </div>
+                  {(phase==="result"||phase==="score")&&(
+                    <div style={{animation:"fadein 0.2s ease forwards"}}>
+                      <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Actual</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        {scoreCell("3")}
+                        <span style={{color:"var(--text-dim)",fontSize:14}}>-</span>
+                        {scoreCell("1")}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
+                {phase==="score"&&(
+                  <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
+                    <div style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.5,marginBottom:6}}>|2-3| + |1-1| = 1 + 0</div>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:20,fontWeight:500,color:"var(--text-bright)"}}>1 point</span>
+                      <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>LOWER IS BETTER</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* how it works */}
+        <section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>The game</div>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:28,color:"var(--text-bright)",letterSpacing:-1,marginBottom:40}}>How it works.</h2>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}} className="land-steps">
+            {[
+              {num:"01",title:"Join or create a group",body:"Share an invite code. Everyone in your group sees the same fixtures each gameweek."},
+              {num:"02",title:"Submit your scorelines",body:"Pick exact home and away goals for every fixture before kickoff. Picks stay hidden until you lock them all in."},
+              {num:"03",title:"Lowest total wins",body:"Points are goals off per fixture. Zero is a perfect pick. The leaderboard runs all season."},
+            ].map(s=>(
+              <div key={s.num} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:"24px 22px"}}>
+                <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,marginBottom:14}}>{s.num}</div>
+                <div style={{fontSize:13,color:"var(--text-bright)",fontWeight:500,marginBottom:10}}>{s.title}</div>
+                <div style={{fontSize:11,color:"var(--text-mid)",lineHeight:1.75}}>{s.body}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* scoring */}
+        <section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"center"}} className="land-hero">
+            <div>
+              <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>Scoring</div>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:28,color:"var(--text-bright)",letterSpacing:-1,marginBottom:16}}>Points = goals off.</h2>
+              <p style={{fontSize:11,color:"var(--text-mid)",lineHeight:1.8,marginBottom:12}}>For each fixture, count how many goals off you were on each side and add them up. Zero is a perfect pick. Accumulate the least over the season.</p>
+              <p style={{fontSize:11,color:"var(--text-dim2)",lineHeight:1.8}}>Predict 2-1, actual 3-1: 1 goal off on home, 0 on away = 1 point. Predict 0-0, actual 4-3 = 7 points.</p>
+            </div>
+            <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:28}}>
+              <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:20}}>Formula</div>
+              <div style={{fontSize:15,color:"var(--text-bright)",fontWeight:500,letterSpacing:0.5,marginBottom:20}}>pts = |pH - aH| + |pA - aA|</div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",lineHeight:2,marginBottom:20}}>
+                <div>pH / aH = predicted / actual home goals</div>
+                <div>pA / aA = predicted / actual away goals</div>
+              </div>
+              <div style={{borderTop:"1px solid var(--border)",paddingTop:16,fontSize:11,color:"var(--text-mid)"}}>
+                predict 2-1, actual 3-1: |2-3| + |1-1| = <span style={{color:"var(--text-bright)",fontWeight:500}}>1 pt</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* features */}
+        <section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>Features</div>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:28,color:"var(--text-bright)",letterSpacing:-1,marginBottom:40}}>The details.</h2>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}} className="land-feats">
+            {[
+              {title:"Hidden picks",body:"Nobody sees your predictions until you lock them all in. No copying."},
+              {title:"Locks at kickoff",body:"Picks freeze the moment a match starts. No backdating, no excuses."},
+              {title:"Lowest score wins",body:"The leaderboard rewards accuracy, not optimism. Zero is the goal."},
+              {title:"Private groups",body:"Invite-only with a share code. Just your group, no strangers."},
+            ].map(f=>(
+              <div key={f.title} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:"20px 18px"}}>
+                <div style={{fontSize:12,color:"var(--text-bright)",fontWeight:500,marginBottom:10}}>{f.title}</div>
+                <div style={{fontSize:11,color:"var(--text-mid)",lineHeight:1.7}}>{f.body}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* cta */}
+        <section style={{borderTop:"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:16}}>Play</div>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:-2,lineHeight:1.1,marginBottom:16}}>Start a group.</h2>
+          <p style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.3,marginBottom:36}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
+          <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"13px 36px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
+        </section>
+
+      </div>
+
+      <style>{`
+        @media(max-width:720px){.land-hero{grid-template-columns:1fr!important;}.land-steps{grid-template-columns:1fr!important;}.land-feats{grid-template-columns:1fr 1fr!important;}}
+        @media(max-width:480px){.land-feats{grid-template-columns:1fr!important;}}
+      `}</style>
+    </div>
+  );
+}
+
 function AuthScreen({ onLogin, successMsg }) {
   const [mode,setMode]=useState("login");
   const [username,setUsername]=useState("");
@@ -774,6 +984,7 @@ export default function App() {
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
+  const [showLanding,setShowLanding]=useState(true);
   const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return THEMES.includes(t)?t:"dark";});
   const [toast,setToast]=useState(null);
   const [bootError,setBootError]=useState(false);
@@ -816,7 +1027,7 @@ export default function App() {
   useEffect(()=>{runBoot();},[]);
 
   const handleLogin = async (u) => {lset("session",{username:u.username});setUser(u);};
-  const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);};
+  const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
     setGroup(fresh||g);
@@ -882,6 +1093,8 @@ export default function App() {
           window.history.replaceState({},"","/");
           setResetDone(true);
         }}/>
+      ):!user&&showLanding?(
+        <LandingPage onContinue={()=>setShowLanding(false)}/>
       ):!user?(
         <AuthScreen onLogin={handleLogin} successMsg={resetDone?"Password updated - please sign in.":null}/>
       ):!group?(
