@@ -218,18 +218,6 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div style={{ display: "flex", gap: 40, borderTop: "1px solid var(--border)", paddingTop: 28 }}>
-            {[
-              { n: "0 pts", label: "Perfect pick" },
-              { n: "20+", label: "Fixtures / week" },
-              { n: "Free", label: "Always" },
-            ].map(({ n, label }) => (
-              <div key={label}>
-                <div style={{ fontSize: 16, fontWeight: 500, color: "var(--text-bright)", letterSpacing: -0.5 }}>{n}</div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 2, textTransform: "uppercase", marginTop: 4 }}>{label}</div>
-              </div>
-            ))}
-          </div>
         </motion.div>
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
