@@ -1,58 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-
-const grotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
 
 export const metadata: Metadata = {
   title: "Points Are Bad",
   description: "Predict Premier League scores with your friends. Low points win.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${grotesk.variable} bg-slate-950 text-slate-100 antialiased`}
-      >
-        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(61,214,208,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(229,68,109,0.14),transparent_30%),radial-gradient(circle_at_30%_70%,rgba(56,189,248,0.12),transparent_25%)]" />
-        <div className="relative min-h-screen">
-          <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-              <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-                <span className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary text-center text-sm leading-8 text-slate-950 shadow-lg">
-                  PB
-                </span>
-                <span>Points Are Bad</span>
+      <body>
+        <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'DM Mono', monospace" }}>
+          <header style={{ borderBottom: "1px solid var(--border)", padding: "0 24px", height: 60 }}>
+            <div style={{ maxWidth: 940, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
+              <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 18, color: "var(--text-bright)" }}>POINTS</span>
+                <span style={{ color: "var(--text-dim)", fontSize: 9, letterSpacing: 3, fontFamily: "'DM Mono', monospace", fontWeight: 400 }}>are bad</span>
               </Link>
-              <nav className="flex items-center gap-3 text-sm">
-                <Link
-                  href="/groups"
-                  className="rounded-full border border-slate-800 px-3 py-1.5 transition hover:border-brand-secondary hover:text-brand-secondary"
-                >
-                  My Groups
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <Link href="/login" style={{ fontSize: 11, color: "var(--text-dim2)", letterSpacing: 2, textTransform: "uppercase", textDecoration: "none" }}>
+                  Sign In
                 </Link>
-                <Link
-                  href="/login"
-                  className="rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary px-4 py-1.5 font-semibold text-slate-950 shadow hover:opacity-90"
-                >
-                  Sign in
+                <Link href="/signup" style={{ background: "var(--btn-bg)", color: "var(--btn-text)", fontSize: 11, letterSpacing: 2, textTransform: "uppercase", textDecoration: "none", padding: "8px 18px", borderRadius: 8, fontWeight: 500 }}>
+                  Create Group
                 </Link>
-              </nav>
+              </div>
             </div>
           </header>
-          <main className="mx-auto max-w-6xl px-4 py-6 sm:py-8">{children}</main>
-          <footer className="mx-auto max-w-6xl px-4 pb-10 text-xs text-slate-400">
-            Built for friends who know that low points are the goal.
-          </footer>
+          <main style={{ maxWidth: 940, margin: "0 auto", padding: "0 24px" }}>
+            {children}
+          </main>
         </div>
       </body>
     </html>

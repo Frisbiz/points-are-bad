@@ -8,15 +8,20 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
+        sans: ["DM Mono", "monospace"],
+        display: ["Playfair Display", "serif"],
       },
       colors: {
-        brand: {
-          primary: "#E5446D",
-          secondary: "#3DD6D0",
-          surface: "#0F172A",
-          muted: "#1E293B",
-        },
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        card: "var(--card)",
+        border: "var(--border)",
+        border2: "var(--border2)",
+        text: "var(--text)",
+        "text-dim": "var(--text-dim)",
+        "text-dim2": "var(--text-dim2)",
+        "text-mid": "var(--text-mid)",
+        "text-bright": "var(--text-bright)",
       },
     },
   },

@@ -1,19 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  --bg: #080810;
+  --surface: #0e0e1a;
+  --card: #0c0c18;
+  --card-hi: #0f0f1d;
+  --border: #1a1a26;
+  --border2: #1e1e2e;
+  --text: #e8e4d9;
+  --text-dim: #555566;
+  --text-dim2: #666;
+  --text-mid: #999;
+  --text-bright: #fff;
+  --btn-bg: #fff;
+  --btn-text: #000;
 }
 
-body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  -webkit-font-smoothing: antialiased;
 }
 
-a {
-  @apply text-brand-secondary transition hover:opacity-80;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-.card {
-  @apply rounded-2xl border border-slate-800 bg-slate-900/70 p-4 shadow-lg shadow-black/30 backdrop-blur;
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+.fade { animation: fadein 0.25s ease forwards; }
