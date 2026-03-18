@@ -504,16 +504,18 @@ function LandingPage({onContinue}) {
                     </div>
                   )}
                 </div>
-                {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
-                {phase==="score"&&(
-                  <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
-                    <div style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.5,marginBottom:6}}>|2-3| + |1-1| = 1 + 0</div>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:20,fontWeight:500,color:"var(--text-bright)"}}>1 point</span>
-                      <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>LOWER IS BETTER</span>
+                <div style={{minHeight:62}}>
+                  {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
+                  {phase==="score"&&(
+                    <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
+                      <div style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.5,marginBottom:6}}>|2-3| + |1-1| = 1 + 0</div>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:20,fontWeight:500,color:"var(--text-bright)"}}>1 point</span>
+                        <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>LOWER IS BETTER</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
