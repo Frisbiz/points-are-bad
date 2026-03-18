@@ -1241,12 +1241,22 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const saveResult = async (fixtureId) => {
     const val = resultDraft[fixtureId];
     if (!val||!/^\d+-\d+$/.test(val)) return;
-    await updateGroup(g=>({...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:val}:f)}))}));
+    await updateGroup(g=>{
+      const fixture = (g.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
+      const oldVal = fixture?.result||null;
+      if (oldVal===val) return {...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:val}:f)}))};
+      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"result",fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:currentGW,old:oldVal,new:val};
+      return {...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:val}:f)})),adminLog:[...(g.adminLog||[]),entry]};
+    });
     setResultDraft(d=>{const n={...d};delete n[fixtureId];return n;});
   };
 
   const clearResult = async (fixtureId) => {
-    await updateGroup(g=>({...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:null}:f)}))}));
+    await updateGroup(g=>{
+      const fixture = (g.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
+      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"result-clear",fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:currentGW,old:fixture?.result||null,new:null};
+      return {...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:null}:f)})),adminLog:[...(g.adminLog||[]),entry]};
+    });
   };
 
   const toggleFixtureHidden = async (fixtureId) => {
@@ -1301,6 +1311,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||s)===s?{...gw,fixtures:finalFixtures}:gw)};
       });
       const finished = apiFixtures.filter(f=>f.result).length;
+      await updateGroup(g=>{const entry={id:Date.now(),at:Date.now(),by:user.username,action:"api-sync",gw:currentGW,fixtures:apiFixtures.length,results:finished};return {...g,adminLog:[...(g.adminLog||[]),entry]};});
       setFetchMsg(`✓ Updated ${apiFixtures.length} fixtures${finished>0?`, ${finished} with results`:""}.`);
     } catch(e) { setFetchMsg(`Error: ${e.message}`); }
     setFetching(false);
@@ -1902,10 +1913,14 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
   const saveNick=async(username)=>{
-    if(nickDraft.trim())await updateNickname(username,nickDraft.trim());
+    if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
+      const oldName=names[username]||username;
+      await updateNickname(username,nickDraft.trim());
+      await updateGroup(g=>{const entry={id:Date.now(),at:Date.now(),by:user.username,action:"rename",for:username,old:oldName,new:nickDraft.trim()};return {...g,adminLog:[...(g.adminLog||[]),entry]};});
+    }
     setEditingNick(null);
   };
-  const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];return {...g,admins:a.includes(username)?a.filter(x=>x!==username):[...a,username]};});};
+  const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];const isNowAdmin=!a.includes(username);const entry={id:Date.now(),at:Date.now(),by:user.username,action:isNowAdmin?"make-admin":"remove-admin",for:username};return {...g,admins:isNowAdmin?[...a,username]:a.filter(x=>x!==username),adminLog:[...(g.adminLog||[]),entry]};});};
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
     const entry={id:Date.now(),at:Date.now(),by:user.username,action:"kick",for:username};
@@ -1960,33 +1975,47 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
         if(!log.length) return null;
         return (
           <div style={{marginTop:40}}>
-            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:16,letterSpacing:-0.5}}>Admin Log</h2>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
-              {log.map(e=>(
-                <div key={e.id} style={{background:"var(--card)",border:`1px solid ${e.action==="kick"?"#ef444430":"var(--border3)"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                  <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                    {e.action==="kick"?(
-                      <>
-                        <span style={{color:"#ef4444"}}>KICK</span>
-                        <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
-                        <span style={{color:"var(--text-dim)"}}>removed by {names[e.by]||e.by}</span>
-                      </>
-                    ):(
-                      <>
-                        <span style={{color:"#f59e0b"}}>GW{e.gw}</span>
-                        <span style={{color:"var(--text-mid)"}}>{e.fixture}</span>
-                        <span style={{color:"var(--text-dim)"}}>·</span>
-                        <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
-                        <span style={{color:"var(--text-dim3)"}}>{e.old||"–"}</span>
-                        <span style={{color:"var(--text-dim)"}}>→</span>
-                        <span style={{color:"#4ade80"}}>{e.new}</span>
-                        <span style={{color:"var(--text-dim)"}}>by {names[e.by]||e.by}</span>
-                      </>
-                    )}
+              {log.map(e=>{
+                const by=<span style={{color:"var(--text-dim)"}}>by {names[e.by]||e.by}</span>;
+                const who=<span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>;
+                let badge,content;
+                if(e.action==="kick"){
+                  badge="#ef4444";
+                  content=<>{who}<span style={{color:"var(--text-dim)"}}>kicked</span>{by}</>;
+                } else if(e.action==="rename"){
+                  badge="#a78bfa";
+                  content=<>{who}<span style={{color:"var(--text-dim3)"}}>{e.old}</span><span style={{color:"var(--text-dim)"}}>→</span><span style={{color:"#4ade80"}}>{e.new}</span>{by}</>;
+                } else if(e.action==="make-admin"){
+                  badge="#22c55e";
+                  content=<>{who}<span style={{color:"var(--text-dim)"}}>made admin</span>{by}</>;
+                } else if(e.action==="remove-admin"){
+                  badge="#f87171";
+                  content=<>{who}<span style={{color:"var(--text-dim)"}}>admin removed</span>{by}</>;
+                } else if(e.action==="api-sync"){
+                  badge="#22c55e";
+                  content=<><span style={{color:"#f59e0b"}}>GW{e.gw}</span><span style={{color:"var(--text-dim)"}}>synced {e.fixtures} fixtures{e.results>0?`, ${e.results} results`:""}</span>{by}</>;
+                } else if(e.action==="result"){
+                  badge="#f59e0b";
+                  content=<><span style={{color:"#f59e0b"}}>GW{e.gw}</span><span style={{color:"var(--text-mid)"}}>{e.fixture}</span><span style={{color:"var(--text-dim3)"}}>{e.old||"–"}</span><span style={{color:"var(--text-dim)"}}>→</span><span style={{color:"#4ade80"}}>{e.new}</span>{by}</>;
+                } else if(e.action==="result-clear"){
+                  badge="#ef4444";
+                  content=<><span style={{color:"#f59e0b"}}>GW{e.gw}</span><span style={{color:"var(--text-mid)"}}>{e.fixture}</span><span style={{color:"var(--text-dim)"}}>result cleared</span>{by}</>;
+                } else if(e.action==="dibs-skip"){
+                  badge="#f59e0b";
+                  content=<><span style={{color:"#f59e0b"}}>GW{e.gw}</span><span style={{color:"var(--text-mid)"}}>{e.fixture}</span>{who}<span style={{color:"var(--text-dim)"}}>skipped</span>{by}</>;
+                } else {
+                  badge="#8888cc";
+                  content=<><span style={{color:"#f59e0b"}}>GW{e.gw}</span><span style={{color:"var(--text-mid)"}}>{e.fixture}</span>{who}<span style={{color:"var(--text-dim3)"}}>{e.old||"–"}</span><span style={{color:"var(--text-dim)"}}>→</span><span style={{color:"#4ade80"}}>{e.new}</span>{by}</>;
+                }
+                return(
+                  <div key={e.id} style={{background:"var(--card)",border:`1px solid var(--border3)`,borderLeft:`3px solid ${badge}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>{content}</div>
+                    <span style={{color:"var(--text-dim)",fontSize:10}}>{new Date(e.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
                   </div>
-                  <span style={{color:"var(--text-dim)",fontSize:10}}>{new Date(e.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );
@@ -2099,13 +2128,11 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const issueSkip = async (playerId, fixtureId) => {
     const current = (group.dibsSkips || {})[fixtureId] || [];
     if (current.includes(playerId)) return;
-    await updateGroup(g => ({
-      ...g,
-      dibsSkips: {
-        ...(g.dibsSkips || {}),
-        [fixtureId]: [...((g.dibsSkips || {})[fixtureId] || []), playerId],
-      },
-    }));
+    const fixture = (group.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
+    await updateGroup(g => {
+      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"dibs-skip",for:playerId,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:group.currentGW};
+      return {...g,dibsSkips:{...(g.dibsSkips||{}),[fixtureId]:[...((g.dibsSkips||{})[fixtureId]||[]),playerId]},adminLog:[...(g.adminLog||[]),entry]};
+    });
     setSkipModal(null);
     setSkipConfirm(false);
   };
