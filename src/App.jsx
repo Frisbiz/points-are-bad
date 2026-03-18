@@ -1956,7 +1956,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
         })}
       </div>
       {isAdmin&&(()=>{
-        const log=[...(group.adminLog||[])].reverse().slice(0,50);
+        const log=[...(group.adminLog||[])].reverse().filter(e=>e.old!==e.new).slice(0,50);
         if(!log.length) return null;
         return (
           <div style={{marginTop:40}}>
