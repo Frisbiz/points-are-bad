@@ -463,7 +463,7 @@ function LandingPage({onContinue}) {
               Predict every goal.
             </h1>
             <p style={{fontSize:12,color:"var(--text-mid)",lineHeight:1.8,maxWidth:380,marginBottom:36,letterSpacing:0.3}}>
-              A score prediction game for friend groups. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
+              A score prediction game to play with your friends. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
             </p>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"12px 28px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
@@ -504,16 +504,18 @@ function LandingPage({onContinue}) {
                     </div>
                   )}
                 </div>
-                {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
-                {phase==="score"&&(
-                  <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
-                    <div style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.5,marginBottom:6}}>|2-3| + |1-1| = 1 + 0</div>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:20,fontWeight:500,color:"var(--text-bright)"}}>1 point</span>
-                      <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>LOWER IS BETTER</span>
+                <div style={{minHeight:62}}>
+                  {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
+                  {phase==="score"&&(
+                    <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
+                      <div style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.5,marginBottom:6}}>|2-3| + |1-1| = 1 + 0</div>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:20,fontWeight:500,color:"var(--text-bright)"}}>1 point</span>
+                        <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>LOWER IS BETTER</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -785,6 +787,13 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
   };
   const [profileOpen,setProfileOpen]=useState(false);
+  const [accountOpen,setAccountOpen]=useState(false);
+  const [pwCurrent,setPwCurrent]=useState("");
+  const [pwNew,setPwNew]=useState("");
+  const [pwConfirm,setPwConfirm]=useState("");
+  const [pwError,setPwError]=useState("");
+  const [pwSuccess,setPwSuccess]=useState(false);
+  const [pwLoading,setPwLoading]=useState(false);
   const profileRef=useRef(null);
   useEffect(()=>{
     if(!profileOpen)return;
@@ -792,6 +801,17 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
     document.addEventListener("mousedown",handler);
     return()=>document.removeEventListener("mousedown",handler);
   },[profileOpen]);
+  const changePassword = async () => {
+    if (!pwCurrent||!pwNew||!pwConfirm){setPwError("Fill in all fields.");return;}
+    if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
+    if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
+    setPwLoading(true);setPwError("");
+    const fresh = await sget(`user:${user.username}`);
+    if (!fresh||fresh.password!==pwCurrent){setPwError("Current password is incorrect.");setPwLoading(false);return;}
+    await sset(`user:${user.username}`,{...fresh,password:pwNew});
+    setPwSuccess(true);setPwLoading(false);
+    setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
+  };
   const [creating,setCreating]=useState(false);
   const [setupMode,setSetupMode]=useState(false);
   const [setupGW,setSetupGW]=useState("1");
@@ -903,12 +923,41 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
             {profileOpen&&(
               <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:120,boxShadow:"0 4px 16px #00000030"}}>
                 <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap"}}>{user.displayName}</div>
+                <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
                 <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
               </div>
             )}
           </div>
         </div>
       </header>
+      {accountOpen&&createPortal(
+  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
+      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:20}}>ACCOUNT</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
+          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-mid)"}}>{user.username}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
+          <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
+        </div>
+      </div>
+      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CHANGE PASSWORD</div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
+        <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
+        <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password" onKeyDown={e=>e.key==="Enter"&&changePassword()} />
+      </div>
+      {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
+      {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
+      <div style={{display:"flex",gap:10,marginTop:16}}>
+        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>{pwLoading?"...":"SAVE"}</Btn>
+        <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
       <div style={{maxWidth:640,margin:"0 auto",padding:"40px 24px"}}>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Your Groups</h1>
         <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1,marginBottom:36}}>JOIN OR CREATE A GROUP TO START PREDICTING</p>
