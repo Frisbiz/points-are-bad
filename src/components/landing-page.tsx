@@ -192,8 +192,8 @@ export default function LandingPage() {
           </h1>
 
           <p style={{ fontSize: 12, color: "var(--text-mid)", lineHeight: 1.8, maxWidth: 380, marginBottom: 36, letterSpacing: 0.3 }}>
-            A score prediction game for friend groups. Submit exact scorelines
-            for every Premier League fixture. Every goal you&apos;re wrong costs a point.
+            A score prediction game for friend groups. Pick exact scorelines
+            for every Premier League fixture each gameweek. Every goal off costs a point.
             Lowest total wins.
           </p>
 
@@ -206,6 +206,7 @@ export default function LandingPage() {
             }}>
               Create a group
             </Link>
+
             <Link href="/login" style={{
               background: "transparent", color: "var(--text-mid)",
               fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
@@ -243,7 +244,7 @@ export default function LandingPage() {
             The game
           </div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 28, color: "var(--text-bright)", letterSpacing: -1, marginBottom: 40 }}>
-            Three steps. No luck.
+            How it works.
           </h2>
         </FadeIn>
 
@@ -273,12 +274,12 @@ export default function LandingPage() {
               Points = goals off.
             </h2>
             <p style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.8, marginBottom: 12 }}>
-              For each fixture, add up how many goals off you were on each side.
-              Zero is a perfect pick. The fewer points you accumulate, the better.
+              For each fixture, count how many goals off you were on each side and add them up.
+              Zero is a perfect pick. Accumulate the least over the season.
             </p>
             <p style={{ fontSize: 11, color: "var(--text-dim2)", lineHeight: 1.8 }}>
-              Predict 2–1, actual 3–1: one goal off on home, zero on away = 1 point.
-              Predict 0–0, actual 4–3: four plus three = 7 points.
+              Predict 2-1, actual 3-1: 1 goal off on home, 0 on away = 1 point.
+              Predict 0-0, actual 4-3 = 7 points.
             </p>
           </FadeIn>
 
@@ -293,7 +294,7 @@ export default function LandingPage() {
                 <div>pA / aA = predicted / actual away goals</div>
               </div>
               <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, fontSize: 11, color: "var(--text-mid)" }}>
-                predict 2–1, actual 3–1 → |2–3| + |1–1| ={" "}
+                predict 2-1, actual 3-1: |2-3| + |1-1| ={" "}
                 <span style={{ color: "var(--text-bright)", fontWeight: 500 }}>1 pt</span>
               </div>
             </div>
@@ -306,7 +307,7 @@ export default function LandingPage() {
         <FadeIn>
           <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 8 }}>Features</div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 28, color: "var(--text-bright)", letterSpacing: -1, marginBottom: 40 }}>
-            Built for competitive friends.
+            The details.
           </h2>
         </FadeIn>
 
@@ -330,12 +331,12 @@ export default function LandingPage() {
       {/* ── CTA ──────────────────────────────────────── */}
       <FadeIn>
         <section style={{ borderTop: "1px solid var(--border)", paddingTop: 80, paddingBottom: 100, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 16 }}>Get started</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 16 }}>Play</div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "clamp(2rem, 4vw, 3rem)", color: "var(--text-bright)", letterSpacing: -2, lineHeight: 1.1, marginBottom: 16 }}>
-            Your group is one invite away.
+            Start a group.
           </h2>
           <p style={{ fontSize: 11, color: "var(--text-mid)", letterSpacing: 0.3, marginBottom: 36 }}>
-            Takes two minutes. You already know who you want to beat.
+            Free to use. Invite friends with a code. Picks open each gameweek.
           </p>
           <Link href="/signup" style={{
             background: "var(--btn-bg)", color: "var(--btn-text)",
@@ -344,11 +345,8 @@ export default function LandingPage() {
             textDecoration: "none", fontFamily: "'DM Mono', monospace",
             display: "inline-block",
           }}>
-            Create a group — it&apos;s free
+            Create a group
           </Link>
-          <div style={{ marginTop: 20, fontSize: 10, color: "var(--text-dim)", letterSpacing: 1 }}>
-            No credit card. No ads. Just points. (Which are bad.)
-          </div>
         </section>
       </FadeIn>
 

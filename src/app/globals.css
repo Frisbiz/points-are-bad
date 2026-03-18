@@ -36,3 +36,15 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade { animation: fadein 0.25s ease forwards; }
+
+@keyframes thumbdown {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-70px) scale(1.5); }
+}
+.thumbdown {
+  position: fixed;
+  pointer-events: none;
+  font-size: 26px;
+  animation: thumbdown 0.8s ease-out forwards;
+  z-index: 9999;
+}
