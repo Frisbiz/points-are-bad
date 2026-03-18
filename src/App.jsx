@@ -769,7 +769,7 @@ function ResetPasswordScreen({ token, onDone }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
+function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
   const [groups,setGroups]=useState([]);
   const [loading,setLoading]=useState(true);
   const [createName,setCreateName]=useState("");
@@ -784,6 +784,14 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
   };
+  const [profileOpen,setProfileOpen]=useState(false);
+  const profileRef=useRef(null);
+  useEffect(()=>{
+    if(!profileOpen)return;
+    const handler=(e)=>{if(profileRef.current&&!profileRef.current.contains(e.target))setProfileOpen(false);};
+    document.addEventListener("mousedown",handler);
+    return()=>document.removeEventListener("mousedown",handler);
+  },[profileOpen]);
   const [creating,setCreating]=useState(false);
   const [setupMode,setSetupMode]=useState(false);
   const [setupGW,setSetupGW]=useState("1");
@@ -887,7 +895,18 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span></div>
+          <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center"}}>
+            <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,padding:0,borderRadius:4}}>
+              <Avatar name={user.displayName} size={28}/>
+              <span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span>
+            </button>
+            {profileOpen&&(
+              <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:120,boxShadow:"0 4px 16px #00000030"}}>
+                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap"}}>{user.displayName}</div>
+                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       <div style={{maxWidth:640,margin:"0 auto",padding:"40px 24px"}}>
@@ -1098,7 +1117,7 @@ export default function App() {
       ):!user?(
         <AuthScreen onLogin={handleLogin} successMsg={resetDone?"Password updated - please sign in.":null}/>
       ):!group?(
-        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)}/>
+        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
