@@ -463,7 +463,7 @@ function LandingPage({onContinue}) {
               Predict every goal.
             </h1>
             <p style={{fontSize:12,color:"var(--text-mid)",lineHeight:1.8,maxWidth:380,marginBottom:36,letterSpacing:0.3}}>
-              A score prediction game for friend groups. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
+              A score prediction game to play with your friends. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
             </p>
             <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"12px 28px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
