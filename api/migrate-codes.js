@@ -3,7 +3,7 @@
 // DELETE THIS FILE after running.
 
 import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldPath } from "firebase-admin/firestore";
 
 if (!getApps().length) {
   initializeApp({
@@ -28,8 +28,8 @@ export default async function handler(req, res) {
   }
 
   const snap = await db.collection("data")
-    .where(db.FieldPath.documentId(), ">=", "group:")
-    .where(db.FieldPath.documentId(), "<", "group;")
+    .where(FieldPath.documentId(), ">=", "group:")
+    .where(FieldPath.documentId(), "<", "group;")
     .get();
 
   const groups = snap.docs
