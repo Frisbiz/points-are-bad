@@ -263,7 +263,7 @@ function computeDibsTurn(group, fixtureId) {
   return null;
 }
 
-function genCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
+function genCode() { const chars="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; return Array.from({length:6},()=>chars[Math.floor(Math.random()*chars.length)]).join(""); }
 const PALETTE = ["#60a5fa","#f472b6","#4ade80","#fb923c","#a78bfa","#facc15","#34d399","#f87171"];
 const CLUB_COLORS = {
   "Arsenal":"#EF0107","Aston Villa":"#95BFE5","Bournemouth":"#DA291C","Brentford":"#E30613",
@@ -354,6 +354,7 @@ const CSS = `
   .nb.active{color:var(--text-bright)!important;border-bottom-color:var(--text)!important;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
+  @keyframes ballspin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
   .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
   .bot-nav .nb{height:54px;border-top:none!important;}
@@ -888,7 +889,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
 
   const joinGroup = async () => {
     const code = joinCode.trim();
-    if (code.length!==4){setError("Enter a 4-digit code.");return;}
+    if (code.length!==6){setError("Enter a 6-character code.");return;}
     const id = await sget(`groupcode:${code}`);
     if (!id){setError("Group not found.");return;}
     const group = await sget(`group:${id}`);
@@ -1025,8 +1026,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
           </div>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>JOIN WITH CODE</div>
-            <Input value={joinCode} onChange={v=>{setJoinCode(v.replace(/\D/g,"").slice(0,4));setError("");}} placeholder="4-digit code" onKeyDown={e=>e.key==="Enter"&&joinGroup()} />
-            <Btn onClick={joinGroup} disabled={joinCode.length!==4} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>Join →</Btn>
+            <Input value={joinCode} onChange={v=>{setJoinCode(v.replace(/[^A-Za-z0-9]/g,"").toUpperCase().slice(0,6));setError("");}} placeholder="6-character code" onKeyDown={e=>e.key==="Enter"&&joinGroup()} />
+            <Btn onClick={joinGroup} disabled={joinCode.length!==6} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>Join →</Btn>
           </div>
         </div>
         {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
@@ -1138,9 +1139,8 @@ export default function App() {
         </div>
       )}
       {!boot?(
-        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",
-          justifyContent:"center",color:"var(--text-dim)",fontFamily:"monospace",fontSize:12}}>
-          loading...
+        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <svg style={{animation:"ballspin 1s linear infinite"}} width="32" height="32" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8L15.8043 10.7639M12 8L8.1958 10.7639M12 8V5M15.8043 10.7639L14.3512 15.2361M15.8043 10.7639L18.5 9.5M14.3512 15.2361H9.64889M14.3512 15.2361L16 17.5M9.64889 15.2361L8.1958 10.7639M9.64889 15.2361L8 17.5M8.1958 10.7639L5.5 9.5M5.5 9.5L2.04938 13M5.5 9.5L4.5 5.38544M18.5 9.5L21.9506 13M18.5 9.5L19.5 5.38544M12 5L8.62434 2.58409M12 5L15.3757 2.58409M8 17.5L3.33782 17M8 17.5L10.5 21.8883M16 17.5L20.6622 17M16 17.5L13.5 21.8883M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
         </div>
       ):bootError?(
         <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
@@ -2710,7 +2710,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,color:"var(--text-bright)",letterSpacing:10,lineHeight:1}}>{group.code}</div>
+          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:8,lineHeight:1}}>{group.code}</div>
           <div>
             <Btn onClick={copyCode} variant={copied?"success":"ghost"}>{copied?"Copied!":"Copy Code"}</Btn>
             <div style={{fontSize:11,color:"var(--text-dim)",marginTop:8,letterSpacing:0.3}}>Share with friends to join.</div>
