@@ -37,8 +37,9 @@ export default async function handler(req, res) {
     .map(d => ({ docId: d.id, groupId: d.data().value, code: d.id.replace("groupcode:", "") }))
     .filter(d => /^\d{4}$/.test(d.code));
 
+  const allCodes = snap.docs.map(d => d.id);
   if (toMigrate.length === 0) {
-    return res.status(200).json({ message: "No 4-digit codes found, nothing to do.", totalGroupcodeDocs: snap.size });
+    return res.status(200).json({ message: "No 4-digit codes found, nothing to do.", totalGroupcodeDocs: snap.size, allDocIds: allCodes });
   }
 
   const usedCodes = new Set();
