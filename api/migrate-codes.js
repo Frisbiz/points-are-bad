@@ -27,35 +27,44 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // Query groupcode: docs — the key suffix IS the code, so easy to filter for 4-digit ones
   const snap = await db.collection("data")
-    .where(FieldPath.documentId(), ">=", "group:")
-    .where(FieldPath.documentId(), "<", "group;")
+    .where(FieldPath.documentId(), ">=", "groupcode:")
+    .where(FieldPath.documentId(), "<", "groupcode;")
     .get();
 
-  const groups = snap.docs
-    .map(d => ({ docId: d.id, ...d.data().value }))
-    .filter(g => g.code && /^\d{4}$/.test(g.code));
+  const toMigrate = snap.docs
+    .map(d => ({ docId: d.id, groupId: d.data().value, code: d.id.replace("groupcode:", "") }))
+    .filter(d => /^\d{4}$/.test(d.code));
 
-  if (groups.length === 0) {
-    return res.status(200).json({ message: "No 4-digit codes found, nothing to do." });
+  if (toMigrate.length === 0) {
+    return res.status(200).json({ message: "No 4-digit codes found, nothing to do.", totalGroupcodeDocs: snap.size });
   }
 
   const usedCodes = new Set();
   const results = [];
 
-  for (const group of groups) {
+  for (const { code: oldCode, groupId } of toMigrate) {
+    // Fetch the group doc to get the name
+    const groupSnap = await db.collection("data").doc(`group:${groupId}`).get();
+    const group = groupSnap.exists ? groupSnap.data().value : null;
+
     let newCode;
     do { newCode = genCode(); } while (usedCodes.has(newCode));
     usedCodes.add(newCode);
 
-    const oldCode = group.code;
     const batch = db.batch();
-    batch.update(db.collection("data").doc(`group:${group.id}`), { "value.code": newCode, updatedAt: Date.now() });
-    batch.set(db.collection("data").doc(`groupcode:${newCode}`), { value: group.id, updatedAt: Date.now() });
+    // Update code field on the group doc
+    if (group) {
+      batch.update(db.collection("data").doc(`group:${groupId}`), { "value.code": newCode, updatedAt: Date.now() });
+    }
+    // Create new groupcode lookup
+    batch.set(db.collection("data").doc(`groupcode:${newCode}`), { value: groupId, updatedAt: Date.now() });
+    // Delete old groupcode lookup
     batch.delete(db.collection("data").doc(`groupcode:${oldCode}`));
     await batch.commit();
 
-    results.push({ group: group.name || group.id, oldCode, newCode });
+    results.push({ group: group?.name || groupId, oldCode, newCode });
   }
 
   return res.status(200).json({ migrated: results.length, results });
