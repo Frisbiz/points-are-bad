@@ -221,6 +221,8 @@ function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
   return {...globalDoc, updatedAt:Date.now(), gameweeks:[...updatedOthers,{gw:gwNum,fixtures:normal}]};
 }
 
+const MISSED_PICK_PTS = 4;
+
 function calcPts(pred, result) {
   if (!pred || !result) return null;
   const [ph, pa] = pred.split("-").map(Number);
@@ -381,6 +383,7 @@ function computeStats(group) {
         if (!f.result) return;
         const pts = calcPts(preds[username]?.[f.id], f.result);
         if (pts!==null){total+=pts;scored++;gwPts+=pts;if(pts===0)perfects++;}
+        else if(f.result){total+=MISSED_PICK_PTS;scored++;gwPts+=MISSED_PICK_PTS;}
       });
       return {gw:g.gw, season:g.season||activeSeason, points:gwPts};
     });
@@ -1866,6 +1869,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
+        const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?MISSED_PICK_PTS:null);
         const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
@@ -1928,7 +1932,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                 <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>PICK</span>
                 {pickBlock}
               </div>
-              <BadgeScore score={pts}/>
+              <BadgeScore score={effectivePts}/>
             </div>
           </div>
         );
@@ -1945,7 +1949,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{textAlign:"center"}}>{pickBlock}</div>
-            <div style={{textAlign:"center"}}><BadgeScore score={pts}/></div>
+            <div style={{textAlign:"center"}}><BadgeScore score={effectivePts}/></div>
           </div>
         );
       })}
@@ -1978,7 +1982,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
   const members = group.members||[];
   const preds = group.predictions||{};
   const scored = gwFixtures.filter(f=>f.result);
-  const weeklyTotals = members.map(u=>scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts??0);},0));
+  const weeklyTotals = members.map(u=>scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts!==null?pts:MISSED_PICK_PTS);},0));
   const hasAnyPicks = scored.some(f=>members.some(u=>preds[u]?.[f.id]));
   const sortedUnique = [...new Set(weeklyTotals)].sort((a,b)=>a-b);
   const weeklyColor = t=>{if(!hasAnyPicks)return "var(--text)";const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
@@ -2062,11 +2066,12 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
+                  const effectivePts=pts!==null?pts:(f.result&&!pred?MISSED_PICK_PTS:null);
                   const key=editKey(u,f.id);
                   const isEditingCell=editing[key]!==undefined;
                   if(theme==="excel"){
-                    const ptsBg=pts===null?"transparent":pts===0?"#d4edda":pts<=3?"transparent":pts===4?"#fef3c7":"#fee2e2";
-                    const ptsColor=pts===null?"#999":pts===0?"#16a34a":pts<=3?"#666":pts===4?"#ca8a04":"#dc2626";
+                    const ptsBg=effectivePts===null?"transparent":effectivePts===0?"#d4edda":effectivePts<=3?"transparent":effectivePts===4?"#fef3c7":"#fee2e2";
+                    const ptsColor=effectivePts===null?"#999":effectivePts===0?"#16a34a":effectivePts<=3?"#666":effectivePts===4?"#ca8a04":"#dc2626";
                     return [
                       <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"none",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
@@ -2080,7 +2085,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                         )}
                       </td>,
                       <td key={`${u}-pts`} style={{padding:"5px 5px",textAlign:"center",borderLeft:"none",background:`linear-gradient(to right,#e0e0e0 0px,#e0e0e0 1px,${ptsBg==="transparent"?(rowBg||"#fff"):ptsBg} 1px)`,minWidth:20}}>
-                        <span style={{fontSize:13,fontWeight:600,color:ptsColor}}>{pts!==null?pts:""}</span>
+                        <span style={{fontSize:13,fontWeight:600,color:ptsColor}}>{effectivePts!==null?effectivePts:""}</span>
                       </td>
                     ];
                   }
@@ -2105,7 +2110,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
                           <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
-                          <BadgeScore score={pts}/>
+                          <BadgeScore score={effectivePts}/>
                         </div>
                       )}
                     </td>
