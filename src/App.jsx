@@ -1912,11 +1912,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const scoreStr = f.result||f.liveScore;
         const scoreParts = scoreStr ? scoreStr.split("-") : null;
         const resultBlock = scoreParts?(
-          <div style={{position:"relative",display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
             <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"right",letterSpacing:0}}>{scoreParts[0]}</span>
             <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",padding:"0 3px"}}>{"–"}</span>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"left",letterSpacing:0}}>{scoreParts[1]}</span>
-            <span style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",display:"flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}>
+            <span style={{display:"flex",alignItems:"center",gap:4}}>
+              <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0}}>{scoreParts[1]}</span>
               {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
               {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
               {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,padding:0}}>✕</button>}
