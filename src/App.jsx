@@ -775,11 +775,11 @@ function ResetPasswordScreen({ token, onDone }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
+function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null }) {
   const [groups,setGroups]=useState([]);
   const [loading,setLoading]=useState(true);
   const [createName,setCreateName]=useState("");
-  const [joinCode,setJoinCode]=useState("");
+  const [joinCode,setJoinCode]=useState(initialJoinCode||"");
   const [error,setError]=useState("");
   const [thumbs,setThumbs]=useState([]);
   const spawnThumb = (e) => {
@@ -823,7 +823,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout }) {
   const [setupGWLoading,setSetupGWLoading]=useState(false);
   const [setupPickMode,setSetupPickMode]=useState("open");
 
-  useEffect(()=>{loadGroups();},[]);
+  useEffect(()=>{loadGroups().then(()=>{if(initialJoinCode)joinGroup();});},[]);
 
   useEffect(()=>{
     if (!setupMode) return;
@@ -1065,6 +1065,10 @@ export default function App() {
     const p=new URLSearchParams(window.location.search);
     return p.get("reset")||null;
   });
+  const [joinParam]=useState(()=>{
+    const p=new URLSearchParams(window.location.search);
+    return p.get("join")||null;
+  });
   const [resetDone,setResetDone]=useState(false);
   const showToast=useCallback((msg)=>{
     setToast(msg);
@@ -1169,7 +1173,7 @@ export default function App() {
       ):!user?(
         <AuthScreen onLogin={handleLogin} successMsg={resetDone?"Password updated - please sign in.":null}/>
       ):!group?(
-        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout}/>
+        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
@@ -2350,6 +2354,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
+  const [copiedLink,setCopiedLink]=useState(false);
+  const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
   const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
   const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
   const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:(g.apiKey||"").trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
@@ -2732,9 +2738,12 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
           <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:8,lineHeight:1}}>{group.code}</div>
-          <div>
-            <Btn onClick={copyCode} variant={copied?"success":"ghost"}>{copied?"Copied!":"Copy Code"}</Btn>
-            <div style={{fontSize:11,color:"var(--text-dim)",marginTop:8,letterSpacing:0.3}}>Share with friends to join.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",gap:8}}>
+              <Btn onClick={copyCode} variant={copied?"success":"ghost"} small>{copied?"Copied!":"Copy Code"}</Btn>
+              <Btn onClick={copyLink} variant={copiedLink?"success":"ghost"} small>{copiedLink?"Copied!":"Copy Link"}</Btn>
+            </div>
+            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:0.3}}>Share the link or code with friends to join.</div>
           </div>
         </div>
       </Section>
