@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
@@ -296,10 +296,10 @@ const Avatar = ({ name, size = 36, color }) => {
   return <div style={{width:size,height:size,borderRadius:"50%",background:bg,color:fg,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:size*0.38,flexShrink:0,fontFamily:"'DM Mono',monospace",letterSpacing:-1,userSelect:"none"}}>{ini}</div>;
 };
 
-const BadgeScore = ({ score }) => {
+const BadgeScore = ({ score, missed=false }) => {
   if (score===null||score===undefined) return <span style={{color:"var(--text-dim2)",fontSize:13}}>—</span>;
-  const c = score===0?"#22c55e":score<=2?"#f59e0b":"#ef4444";
-  return <span style={{background:c+"20",color:c,border:`1px solid ${c}40`,borderRadius:6,padding:"2px 9px",fontSize:12,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{score}</span>;
+  const c = missed?"#6b7280":score===0?"#22c55e":score<=2?"#f59e0b":"#ef4444";
+  return <span style={{background:c+"20",color:c,border:`1px solid ${c}40`,borderRadius:6,padding:"2px 9px",fontSize:12,fontWeight:700,fontFamily:"'DM Mono',monospace",fontStyle:missed?"italic":"normal"}}>{score}</span>;
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
@@ -1229,7 +1229,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
-  const stats = computeStats(group);
+  const stats = useMemo(()=>computeStats(group),[group]);
   const myRank = stats.findIndex(s => s.username === user.username) + 1;
   const activeSeason = group.season || 2025;
   const completedGWs = (group.gameweeks || [])
@@ -1350,7 +1350,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
 /* ── LEAGUE ──────────────────────────────────────── */
 function LeagueTab({group,user,names}) {
   const mob = useMobile();
-  const stats = computeStats(group);
+  const stats = useMemo(()=>computeStats(group),[group]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
@@ -1869,6 +1869,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const pts = calcPts(myPreds[f.id],f.result);
         const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?MISSED_PICK_PTS:null);
         const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
+        const lockReason = !locked?null:gwAdminLocked?"admin locked":picksLocked?"picks locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off";
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
@@ -1896,7 +1897,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = locked?(
-          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
+          <span style={{display:"flex",alignItems:"center",gap:6}}>
+            <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
+            {lockReason&&<span style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:0.5,textTransform:"uppercase"}}>{lockReason}</span>}
+          </span>
         ) : waitingFor ? (
           <span style={{color:"var(--text-dim2)",fontSize:11,fontStyle:"italic"}}>
             waiting for {names[waitingFor]||waitingFor}
@@ -1930,7 +1934,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                 <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>PICK</span>
                 {pickBlock}
               </div>
-              <BadgeScore score={effectivePts}/>
+              <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
             </div>
           </div>
         );
@@ -1947,7 +1951,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{textAlign:"center"}}>{pickBlock}</div>
-            <div style={{textAlign:"center"}}><BadgeScore score={effectivePts}/></div>
+            <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
           </div>
         );
       })}
@@ -2115,7 +2119,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
                           <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred||"–"}</span>
-                          <BadgeScore score={effectivePts}/>
+                          <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
                         </div>
                       )}
                     </td>
@@ -2142,7 +2146,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 
 /* ── TRENDS ──────────────────────────────────────── */
 function TrendsTab({group,names}) {
-  const stats = computeStats(group);
+  const stats = useMemo(()=>computeStats(group),[group]);
   const members = group.members||[];
   const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
   const activeSeason = group.season || 2025;
@@ -2203,6 +2207,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const admins=group.admins||[];
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
+  const [logCount,setLogCount]=useState(20);
   const saveNick=async(username)=>{
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
@@ -2262,7 +2267,8 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
         })}
       </div>
       {isAdmin&&(()=>{
-        const log=[...(group.adminLog||[])].reverse().filter(e=>e.old!==e.new).slice(0,50);
+        const fullLog=[...(group.adminLog||[])].reverse().filter(e=>e.old!==e.new);
+        const log=fullLog.slice(0,logCount);
         if(!log.length) return null;
         return (
           <div style={{marginTop:40}}>
@@ -2308,6 +2314,11 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                 );
               })}
             </div>
+            {fullLog.length>logCount&&(
+              <div style={{textAlign:"center",marginTop:12}}>
+                <Btn variant="ghost" small onClick={()=>setLogCount(c=>c+20)}>Show more ({fullLog.length-logCount} remaining)</Btn>
+              </div>
+            )}
           </div>
         );
       })()}
