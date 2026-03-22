@@ -1911,7 +1911,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const isLive = f.status==="IN_PLAY"||f.status==="PAUSED";
         const resultBlock = (f.result||f.liveScore)?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:isLive?"#f59e0b":"var(--text-bright)",letterSpacing:3}}>{f.result||f.liveScore}</span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result||f.liveScore}</span>
             {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
             {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
             {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
