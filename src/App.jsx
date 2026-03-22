@@ -2158,11 +2158,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                             onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
                             style={{width:40,background:"#fff",border:"1px solid #8888cc",borderRadius:3,color:"#333",padding:"2px 4px",fontFamily:"inherit",fontSize:13,textAlign:"center",outline:"none"}}/>
                         ):(
-                          {pred
+                          pred
                             ? <span style={{fontSize:13,fontWeight:600,color:"#222"}}>{pred}</span>
                             : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
                               ? <CloseCircle size={14} color="#ef4444"/>
-                              : <span style={{fontSize:13,fontWeight:600,color:"#999"}}>–</span>}
+                              : <span style={{fontSize:13,fontWeight:600,color:"#999"}}>–</span>
                         )}
                       </td>,
                       <td key={`${u}-pts`} style={{padding:"5px 5px",textAlign:"center",borderLeft:"none",background:`linear-gradient(to right,#e0e0e0 0px,#e0e0e0 1px,${ptsBg==="transparent"?(rowBg||"#fff"):ptsBg} 1px)`,minWidth:20}}>
