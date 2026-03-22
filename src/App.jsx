@@ -96,6 +96,13 @@ async function fetchMatchweek(apiKey, matchday, season = 2025) {
   return data.matches || [];
 }
 
+async function fetchLiveMatches() {
+  const res = await fetch(`/api/fixtures?live=true`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.matches || [];
+}
+
 function parseMatchesToFixtures(matches, matchday) {
   return matches.map((m, i) => {
     const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
@@ -1556,6 +1563,28 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     setFetching(true); setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
     try {
       const seas = group.season||2025;
+      const liveFixtures = gwFixtures.filter(f=>f.status==="IN_PLAY"||f.status==="PAUSED");
+      if (liveFixtures.length>0) {
+        setFetchMsg(`Fetching live scores for ${liveFixtures.length} match${liveFixtures.length>1?"es":""}...`);
+        const liveMatches = await fetchLiveMatches();
+        if (liveMatches.length>0) {
+          const liveByApiId = Object.fromEntries(liveMatches.map(m=>[String(m.id),m]));
+          const liveByTeams = Object.fromEntries(liveMatches.map(m=>[`${normName(m.homeTeam?.name||m.homeTeam?.shortName)}|${normName(m.awayTeam?.name||m.awayTeam?.shortName)}`,m]));
+          await updateGroup(g=>{
+            return {...g, gameweeks:g.gameweeks.map(gw=>{
+              if(gw.gw!==currentGW||(gw.season||seas)!==seas) return gw;
+              return {...gw, fixtures:gw.fixtures.map(f=>{
+                const lm = (f.apiId&&liveByApiId[String(f.apiId)]) || liveByTeams[`${f.home}|${f.away}`];
+                if(!lm) return f;
+                const score = lm.score?.fullTime;
+                const liveScore = (lm.status==="IN_PLAY"||lm.status==="PAUSED") && score?.home!=null && score?.away!=null ? `${score.home}-${score.away}` : f.result;
+                return {...f, status:lm.status, result:lm.status==="FINISHED"?`${score?.home}-${score?.away}`:f.result, _liveScore:liveScore};
+              })};
+            })};
+          });
+        }
+        setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
+      }
       const matches = await fetchMatchweek(group.apiKey, currentGW, seas);
       if (!matches.length) { setFetchMsg("No matches found for this gameweek."); setFetching(false); return; }
       const apiFixtures = parseMatchesToFixtures(matches, currentGW);

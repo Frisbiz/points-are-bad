@@ -1,7 +1,9 @@
 export default async function handler(req, res) {
-  const { matchday, season } = req.query;
-  let url = `https://api.football-data.org/v4/competitions/PL/matches?season=${season}`;
-  if (matchday) url += `&matchday=${matchday}`;
+  const { matchday, season, live } = req.query;
+  let url = live === "true"
+    ? `https://api.football-data.org/v4/competitions/PL/matches?status=LIVE`
+    : `https://api.football-data.org/v4/competitions/PL/matches?season=${season}`;
+  if (!live && matchday) url += `&matchday=${matchday}`;
 
   const response = await fetch(url, {
     headers: { "X-Auth-Token": process.env.VITE_FD_API_KEY }
