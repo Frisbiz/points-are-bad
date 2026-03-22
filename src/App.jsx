@@ -1453,9 +1453,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   });
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
-  const picksLockedKey = `picks-locked:${group.id}:${user.username}:${activeSeason}:gw${currentGW}`;
-  const [picksLocked, setPicksLocked] = useState(false);
-  useEffect(()=>{setPicksLocked(!!lget(picksLockedKey));},[currentGW]);
+  const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>!!f.result);
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
@@ -1955,7 +1953,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       })}
       {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(group.members||[]).length>1&&(
         <div style={{marginTop:16,marginBottom:8}}>
-          <Btn variant="success" style={{width:"100%"}} onClick={()=>{lset(picksLockedKey,true);setPicksLocked(true);}}>
+          <Btn variant="success" style={{width:"100%"}} onClick={async()=>{
+            await updateGroup(g=>{
+              const pl=g.picksLocked||{};
+              const ul=pl[user.username]||{};
+              const sl=ul[activeSeason]||{};
+              return {...g,picksLocked:{...pl,[user.username]:{...ul,[activeSeason]:{...sl,[currentGW]:true}}}};
+            });
+          }}>
             LOCK IN PICKS
           </Btn>
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
