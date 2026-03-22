@@ -1941,7 +1941,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const pickBlock = locked?(
           <span style={{display:"flex",alignItems:"center",gap:6}}>
             <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
-            {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={11}/></span>}
+            {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
           </span>
         ) : waitingFor ? (
           <span style={{color:"var(--text-dim2)",fontSize:11,fontStyle:"italic"}}>
