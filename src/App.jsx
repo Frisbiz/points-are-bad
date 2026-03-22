@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
+import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync, CloseCircle } from "griddy-icons";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key) {
@@ -1962,7 +1962,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = locked?(
           <span style={{display:"flex",alignItems:"center",gap:6}}>
-            <span style={{color:myPreds[f.id]?"#8888cc":(f.result||f.status==="IN_PLAY"||f.status==="PAUSED")&&!myPreds[f.id]?"#ef4444":"var(--text-dim)",fontSize:12,fontWeight:(f.result||f.status==="IN_PLAY"||f.status==="PAUSED")&&!myPreds[f.id]?700:undefined}}>{myPreds[f.id]||((f.result||f.status==="IN_PLAY"||f.status==="PAUSED")&&!myPreds[f.id]?"×":"–")}</span>
+            {myPreds[f.id]
+              ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
+              : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
+                ? <CloseCircle size={15} color="#ef4444"/>
+                : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
             {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
           </span>
         ) : waitingFor ? (
@@ -2154,7 +2158,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                             onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
                             style={{width:40,background:"#fff",border:"1px solid #8888cc",borderRadius:3,color:"#333",padding:"2px 4px",fontFamily:"inherit",fontSize:13,textAlign:"center",outline:"none"}}/>
                         ):(
-                          <span style={{fontSize:13,fontWeight:600,color:!pred&&(f.result||f.status==="IN_PLAY"||f.status==="PAUSED")?"#ef4444":"#222"}}>{pred||((f.result||f.status==="IN_PLAY"||f.status==="PAUSED")?"×":"–")}</span>
+                          {pred
+                            ? <span style={{fontSize:13,fontWeight:600,color:"#222"}}>{pred}</span>
+                            : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
+                              ? <CloseCircle size={14} color="#ef4444"/>
+                              : <span style={{fontSize:13,fontWeight:600,color:"#999"}}>–</span>}
                         )}
                       </td>,
                       <td key={`${u}-pts`} style={{padding:"5px 5px",textAlign:"center",borderLeft:"none",background:`linear-gradient(to right,#e0e0e0 0px,#e0e0e0 1px,${ptsBg==="transparent"?(rowBg||"#fff"):ptsBg} 1px)`,minWidth:20}}>
@@ -2182,7 +2190,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          <span style={{color:!pred&&(f.result||f.status==="IN_PLAY"||f.status==="PAUSED")?"#ef4444":"var(--text-dim3)",fontSize:11,fontWeight:!pred&&(f.result||f.status==="IN_PLAY"||f.status==="PAUSED")?700:undefined}}>{pred||((f.result||f.status==="IN_PLAY"||f.status==="PAUSED")?"×":"–")}</span>
+                          {pred
+                            ? <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred}</span>
+                            : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
+                              ? <CloseCircle size={13} color="#ef4444"/>
+                              : <span style={{color:"var(--text-dim3)",fontSize:11}}>–</span>}
                           <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
                         </div>
                       )}
