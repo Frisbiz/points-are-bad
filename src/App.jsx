@@ -1965,7 +1965,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             {myPreds[f.id]
               ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
               : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
-                ? <span style={{color:"#ef4444",fontWeight:700,fontSize:12}}>×</span>
+                ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                 : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
             {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
           </span>
@@ -2161,7 +2161,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           pred
                             ? <span style={{fontSize:13,fontWeight:600,color:"#222"}}>{pred}</span>
                             : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
-                              ? <span style={{fontSize:13,fontWeight:700,color:"#ef4444"}}>×</span>
+                              ? <span style={{fontSize:18,fontWeight:700,color:"#ef4444"}}>×</span>
                               : <span style={{fontSize:13,fontWeight:600,color:"#999"}}>–</span>
                         )}
                       </td>,
@@ -2193,7 +2193,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           {pred
                             ? <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred}</span>
                             : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
-                              ? <span style={{color:"#ef4444",fontWeight:700,fontSize:11}}>×</span>
+                              ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                               : <span style={{color:"var(--text-dim3)",fontSize:11}}>–</span>}
                           <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
                         </div>
