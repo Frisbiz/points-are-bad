@@ -1398,7 +1398,7 @@ function LeagueTab({group,user,names}) {
 }
 
 /* ── FIXTURES ────────────────────────────────────── */
-function NextMatchCountdown({ group, unpickedCount = 0 }) {
+function NextMatchCountdown({ group, myPreds = {} }) {
   const [now, setNow] = useState(new Date());
   const mob = useMobile();
   useEffect(() => {
@@ -1414,8 +1414,9 @@ function NextMatchCountdown({ group, unpickedCount = 0 }) {
   if (!next) return null;
 
   const diff = new Date(next.date) - now;
-  const urgent = unpickedCount > 0 && diff < 3 * 3600000;
-  const warning = unpickedCount > 0 && diff < 24 * 3600000;
+  const hasPick = !!myPreds[next.id];
+  const urgent = !hasPick && diff < 3 * 3600000;
+  const warning = !hasPick && diff < 24 * 3600000;
   const label = warning ? "Picks due" : "Next kick-off";
   const borderColor = urgent ? "#ef444435" : warning ? "#f59e0b35" : "var(--border3)";
   const bgColor = urgent ? "#ef444408" : warning ? "#f59e0b08" : "var(--card)";
@@ -1904,7 +1905,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         <Flash size={12} color="#f59e0b" style={{flexShrink:0}}/> ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
-      <NextMatchCountdown group={group} unpickedCount={unpickedUnlocked.length} />
+      <NextMatchCountdown group={group} myPreds={myPreds} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
