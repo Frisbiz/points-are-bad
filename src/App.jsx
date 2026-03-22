@@ -2156,7 +2156,7 @@ function TrendsTab({group,names}) {
   const cumLine=completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))).reduce((a,e)=>a+e.points,0);});return r;});
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
-  const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result);if(pp===null)return;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
+  const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
   const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
