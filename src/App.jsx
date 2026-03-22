@@ -1429,7 +1429,11 @@ function NextMatchCountdown({ group, unpickedCount = 0 }) {
   return (
     <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 18px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
       <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase"}}>{label}</div>
-      <div style={{fontSize:13,color:"var(--text-mid)"}}>{next.home} <span style={{color:"var(--text-dim)"}}>vs</span> {next.away}</div>
+      <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--text-mid)"}}>
+        <span style={{flex:1,textAlign:"right"}}>{next.home}</span>
+        <span style={{color:"var(--text-dim)",flexShrink:0}}>vs</span>
+        <span style={{flex:1,textAlign:"left"}}>{next.away}</span>
+      </div>
       <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:timerColor,letterSpacing:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined}}>
         {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
         {pad(hours)}:{pad(mins)}:{pad(secs)}
