@@ -1909,16 +1909,20 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const isLive = f.status==="IN_PLAY"||f.status==="PAUSED";
-        const resultBlock = (f.result||f.liveScore)?(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{position:"relative",fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>
-              {f.result||f.liveScore}
+        const scoreStr = f.result||f.liveScore;
+        const scoreParts = scoreStr ? scoreStr.split("-") : null;
+        const resultBlock = scoreParts?(
+          <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"right",letterSpacing:0}}>{scoreParts[0]}</span>
+            <span style={{position:"relative",fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",padding:"0 3px"}}>
+              {"-"}
               <span style={{position:"absolute",left:"100%",top:"50%",transform:"translateY(-50%)",paddingLeft:5,display:"flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}>
                 {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
                 {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
                 {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,padding:0}}>✕</button>}
               </span>
             </span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"left",letterSpacing:0}}>{scoreParts[1]}</span>
           </div>
         ):f.status==="POSTPONED"?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
