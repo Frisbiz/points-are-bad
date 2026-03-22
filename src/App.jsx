@@ -1910,11 +1910,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const isLive = f.status==="IN_PLAY"||f.status==="PAUSED";
         const resultBlock = (f.result||f.liveScore)?(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+          <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
             <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result||f.liveScore}</span>
-            {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
-            {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
-            {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
+            <span style={{position:"absolute",left:"100%",paddingLeft:5,display:"flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}>
+              {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
+              {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
+              {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,padding:0}}>✕</button>}
+            </span>
           </div>
         ):f.status==="POSTPONED"?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
