@@ -114,7 +114,9 @@ function parseMatchesToFixtures(matches, matchday) {
       if (h !== null && a !== null) result = `${h}-${a}`;
     }
     const date = m.utcDate ? new Date(m.utcDate) : null;
-    return { id: `gw${matchday}-f${m.id || i}`, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null };
+    const scoreObj = m.score?.fullTime;
+    const liveScore = (status==="IN_PLAY"||status==="PAUSED") && scoreObj?.home!=null && scoreObj?.away!=null ? `${scoreObj.home}-${scoreObj.away}` : null;
+    return { id: `gw${matchday}-f${m.id || i}`, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
   });
 }
 
@@ -1577,8 +1579,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                 const lm = (f.apiId&&liveByApiId[String(f.apiId)]) || liveByTeams[`${f.home}|${f.away}`];
                 if(!lm) return f;
                 const score = lm.score?.fullTime;
-                const liveScore = (lm.status==="IN_PLAY"||lm.status==="PAUSED") && score?.home!=null && score?.away!=null ? `${score.home}-${score.away}` : f.result;
-                return {...f, status:lm.status, result:lm.status==="FINISHED"?`${score?.home}-${score?.away}`:f.result, _liveScore:liveScore};
+                const liveScore = score?.home!=null && score?.away!=null ? `${score.home}-${score.away}` : null;
+                return {...f, status:lm.status, result:lm.status==="FINISHED"?liveScore:f.result, liveScore:lm.status==="FINISHED"?null:liveScore};
               })};
             })};
           });
@@ -1906,11 +1908,12 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
-        const resultBlock = f.result?(
+        const isLive = f.status==="IN_PLAY"||f.status==="PAUSED";
+        const resultBlock = (f.result||f.liveScore)?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:3}}>{f.result}</span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:700,color:isLive?"#f59e0b":"var(--text-bright)",letterSpacing:3}}>{f.result||f.liveScore}</span>
             {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
-            {(f.status==="IN_PLAY"||f.status==="PAUSED")&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
+            {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
             {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10}}>✕</button>}
           </div>
         ):f.status==="POSTPONED"?(
@@ -2104,7 +2107,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               return (
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
                 <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>{f.home} vs {f.away}</td>
-                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{f.result||f.status==="POSTPONED"?f.result||<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>:null}</td>
+                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{f.result?f.result:f.liveScore?<span style={{color:"#f59e0b"}}>{f.liveScore}</span>:f.status==="POSTPONED"?<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>:null}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
