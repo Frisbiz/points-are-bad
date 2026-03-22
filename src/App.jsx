@@ -1400,6 +1400,7 @@ function LeagueTab({group,user,names}) {
 /* ── FIXTURES ────────────────────────────────────── */
 function NextMatchCountdown({ group, unpickedCount = 0 }) {
   const [now, setNow] = useState(new Date());
+  const mob = useMobile();
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
@@ -1426,17 +1427,35 @@ function NextMatchCountdown({ group, unpickedCount = 0 }) {
   const secs = Math.floor((diff % 60000) / 1000);
   const pad = n => String(n).padStart(2, "0");
 
+  const timerEl = (
+    <div style={{fontFamily:"'DM Mono',monospace",fontSize:mob?15:16,color:timerColor,letterSpacing:mob?2:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined}}>
+      {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
+      {pad(hours)}:{pad(mins)}:{pad(secs)}
+    </div>
+  );
+
+  if (mob) return (
+    <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+        <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase"}}>{label}</div>
+        {timerEl}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"var(--text-mid)"}}>
+        <span style={{flex:1,textAlign:"right",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+        <span style={{color:"var(--text-dim)",flexShrink:0}}>vs</span>
+        <span style={{flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18,display:"grid",gridTemplateColumns:"72px 1fr 40px 1fr 105px auto",gap:"10px 3px",alignItems:"center"}}>
       <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
       <div style={{textAlign:"right",fontSize:13,color:"var(--text-mid)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</div>
-      <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)",}}>vs</div>
+      <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)"}}>vs</div>
       <div style={{fontSize:13,color:"var(--text-mid)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</div>
       <div/>
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:16,color:timerColor,letterSpacing:3,textAlign:"center",animation:urgent?"pulse 1s ease-in-out infinite":undefined}}>
-        {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
-        {pad(hours)}:{pad(mins)}:{pad(secs)}
-      </div>
+      {timerEl}
     </div>
   );
 }
