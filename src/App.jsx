@@ -1895,7 +1895,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
         <div>Away</div>
-        <div style={{marginLeft:-10}}>Your Pick</div>
+        <div style={{marginLeft:-20}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
 
