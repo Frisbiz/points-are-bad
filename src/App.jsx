@@ -1963,12 +1963,12 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = locked?(
           <span style={{display:"flex",alignItems:"center",gap:6}}>
+            {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
             {myPreds[f.id]
               ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
               : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
                 ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                 : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
-            {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
           </span>
         ) : waitingFor ? (
           <span style={{color:"var(--text-dim2)",fontSize:11,fontStyle:"italic"}}>
