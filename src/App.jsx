@@ -1918,7 +1918,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
         <div>Away</div>
-        <div>Your Pick</div>
+        <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
 
@@ -2019,7 +2019,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"var(--text-dim)",flexShrink:0}}/>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
-            <div style={{display:"flex",alignItems:"center"}}>{pickBlock}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
           </div>
         );
