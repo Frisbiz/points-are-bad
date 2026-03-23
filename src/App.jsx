@@ -4,9 +4,12 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
-async function sget(key) {
+async function sget(key, timeoutMs = 8000) {
   try {
-    const res = await fetch("/api/db?key=" + encodeURIComponent(key));
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch("/api/db?key=" + encodeURIComponent(key), { signal: controller.signal });
+    clearTimeout(timer);
     if (!res.ok) return null;
     const data = await res.json();
     return data.value;
