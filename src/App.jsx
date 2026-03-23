@@ -1450,13 +1450,12 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   );
 
   return (
-    <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18,display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px auto",gap:10,alignItems:"center"}}>
+    <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18,display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,alignItems:"center"}}>
       <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
       <div style={{textAlign:"right",fontSize:13,color:"var(--text-mid)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</div>
       <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)"}}>vs</div>
       <div style={{fontSize:13,color:"var(--text-mid)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</div>
-      <div/>
-      {timerEl}
+      <div style={{gridColumn:"5/7"}}>{timerEl}</div>
     </div>
   );
 }
