@@ -2234,7 +2234,7 @@ function TrendsTab({group,names}) {
   const hasData = stats.some(p=>p.scored>0);
   const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
-  const completedGws = gws.filter(g=>g.fixtures.length>0&&g.fixtures.every(f=>f.result));
+  const completedGws = gws.filter(g=>g.fixtures.length>0&&g.fixtures.every(f=>f.result||f.status==="POSTPONED"));
   const gwLine=completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw&&e.season===(g.season||activeSeason))?.points??0;});return r;});
   const cumLine=completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))).reduce((a,e)=>a+e.points,0);});return r;});
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
