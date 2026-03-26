@@ -266,10 +266,10 @@ const BadgeScore = ({ score }) => {
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
-  const base = {fontFamily:"'DM Mono',monospace",cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:8,fontWeight:500,letterSpacing:0.5,transition:"all 0.15s",opacity:disabled?0.4:1,padding:small?"6px 14px":"10px 22px",fontSize:small?12:13};
+  const base = {fontFamily:"'DM Mono',monospace",cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:2,fontWeight:700,letterSpacing:2,textTransform:"uppercase",transition:"all 0.15s",opacity:disabled?0.4:1,padding:small?"5px 12px":"9px 20px",fontSize:small?10:11};
   const V = {
     default:{background:"var(--btn-bg)",color:"var(--btn-text)"},
-    ghost:{background:"transparent",border:"1px solid var(--border)",color:"var(--text-mid)"},
+    ghost:{background:"transparent",border:"1px solid var(--border2)",color:"var(--text-mid)"},
     danger:{background:"#ef444418",border:"1px solid #ef444435",color:"#ef4444"},
     success:{background:"#22c55e18",border:"1px solid #22c55e35",color:"#22c55e"},
     muted:{background:"var(--border)",border:"1px solid var(--border)",color:"var(--text-dim2)"},
@@ -280,12 +280,12 @@ const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}})
 
 const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus}) => (
   <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus}
-    style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
+    style={{background:"var(--input-bg)",border:"1px solid var(--border2)",borderRadius:2,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
 );
 
 const Section = ({title,children}) => (
   <div style={{marginBottom:32}}>
-    <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
+    <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
     {children}
   </div>
 );
@@ -301,24 +301,26 @@ function useMobile() {
 }
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');
-  :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#555566;--text-dim2:#666;--text-dim3:#555;--text-mid:#999;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;}
-  [data-theme="light"]{--bg:#f4f1e8;--surface:#fff;--card:#eeeae0;--card-hi:#e8e5db;--card-hover:#e5e2d8;--input-bg:#fff;--border:#dddad0;--border2:#e0ddd4;--border3:#e4e1d8;--text:#1a1814;--text-dim:#888;--text-dim2:#666;--text-dim3:#777;--text-mid:#444;--text-bright:#0f0d0a;--text-inv:#f4f1e8;--scrollbar:#ccc;--btn-bg:#111;--btn-text:#f4f1e8;}
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap');
+  :root{--bg:#050505;--surface:#111111;--card:#0d0d0d;--card-hi:#161616;--card-hover:#1a1a1a;--input-bg:#0a0a0a;--border:#1f1f1f;--border2:#252525;--border3:#141414;--text:#ffffff;--text-dim:#555555;--text-dim2:#666666;--text-dim3:#555555;--text-mid:#999999;--text-bright:#ffffff;--text-inv:#000000;--scrollbar:#222222;--btn-bg:#00ff00;--btn-text:#000000;--neon:#00ff00;}
+  [data-theme="light"]{--bg:#f4f1e8;--surface:#fff;--card:#eeeae0;--card-hi:#e8e5db;--card-hover:#e5e2d8;--input-bg:#fff;--border:#dddad0;--border2:#e0ddd4;--border3:#e4e1d8;--text:#1a1814;--text-dim:#888;--text-dim2:#666;--text-dim3:#777;--text-mid:#444;--text-bright:#0f0d0a;--text-inv:#f4f1e8;--scrollbar:#ccc;--btn-bg:#111;--btn-text:#f4f1e8;--neon:#16a34a;}
   html,body{background:var(--bg);}
   *{box-sizing:border-box;margin:0;padding:0;}
+  ::selection{background:var(--neon);color:#000;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
   .fade{animation:fadein 0.25s ease forwards;}
   .frow:hover{background:var(--card-hover)!important;}
   .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all 0.18s;}
   .nb:hover{color:var(--text-mid)!important;}
-  .nb.active{color:var(--text-bright)!important;border-bottom-color:var(--text)!important;}
+  .nb.active{color:var(--neon)!important;border-bottom-color:var(--neon)!important;}
+  .hdr-blur{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
-  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
+  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:rgba(5,5,5,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
   .bot-nav .nb{height:54px;border-top:none!important;}
-  .bot-nav .nb.active{border-bottom-color:var(--text)!important;}
+  .bot-nav .nb.active{border-bottom-color:var(--neon)!important;color:var(--neon)!important;}
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
 `;
@@ -416,26 +418,26 @@ function AuthScreen({ onLogin, successMsg }) {
       <style>{CSS}</style>
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:48}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"var(--text-bright)",letterSpacing:-3,lineHeight:1}}>POINTS</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:7,marginTop:10}}>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:56,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-3,lineHeight:0.9}}>POINTS</div>
+          <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:8,marginTop:14,textTransform:"uppercase"}}>are <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
-        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
+        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:4,padding:32}}>
           {forgotMode ? (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{fontSize:12,color:"var(--text-dim)",letterSpacing:1}}>Enter your email and we'll send a reset link.</div>
+              <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase"}}>Enter your email and we'll send a reset link.</div>
               <Input value={forgotEmail} onChange={setForgotEmail} placeholder="Email" type="email" autoFocus onKeyDown={e=>e.key==="Enter"&&sendReset()} />
               {forgotMsg&&<div style={{fontSize:12,color:"#22c55e"}}>{forgotMsg}</div>}
-              <Btn onClick={sendReset} disabled={forgotLoading||!forgotEmail.trim()} style={{width:"100%",padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
-                {forgotLoading?"...":"SEND LINK"}
+              <Btn onClick={sendReset} disabled={forgotLoading||!forgotEmail.trim()} style={{width:"100%",padding:"12px 0",display:"block",textAlign:"center"}}>
+                {forgotLoading?"...":"Send Link"}
               </Btn>
-              <button onClick={()=>{setForgotMode(false);setForgotMsg("");setForgotEmail("");}} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back to sign in</button>
+              <button onClick={()=>{setForgotMode(false);setForgotMsg("");setForgotEmail("");}} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:10,letterSpacing:2,fontFamily:"inherit",padding:0,textTransform:"uppercase"}}>← Back to sign in</button>
             </div>
           ) : (
             <>
-              <div style={{display:"flex",background:"var(--bg)",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
+              <div style={{display:"flex",background:"var(--bg)",borderRadius:2,padding:3,marginBottom:28,gap:3}}>
                 {["login","register"].map(m=>(
-                  <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
+                  <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:2,padding:"8px 0",fontSize:10,letterSpacing:3,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
                     {m==="login"?"Sign In":"Register"}
                   </button>
                 ))}
@@ -448,16 +450,16 @@ function AuthScreen({ onLogin, successMsg }) {
               </div>
               {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
               {successMsg&&<div style={{color:"#22c55e",fontSize:12,marginTop:12}}>{successMsg}</div>}
-              <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
-                {loading?"...":mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
+              <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center"}}>
+                {loading?"...":mode==="login"?"Sign In":"Create Account"}
               </Btn>
               {mode==="login"&&<div style={{textAlign:"center",marginTop:12}}>
-                <button onClick={()=>setForgotMode(true)} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>Forgot password?</button>
+                <button onClick={()=>setForgotMode(true)} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:10,letterSpacing:2,fontFamily:"inherit",padding:0,textTransform:"uppercase"}}>Forgot password?</button>
               </div>}
             </>
           )}
         </div>
-        <div style={{textAlign:"center",marginTop:20,color:"var(--border2)",fontSize:11,letterSpacing:1}}>Premier League Prediction Game</div>
+        <div style={{textAlign:"center",marginTop:20,color:"var(--text-dim3)",fontSize:10,letterSpacing:3,textTransform:"uppercase"}}>Premier League Prediction Game</div>
       </div>
     </div>
   );
@@ -495,11 +497,11 @@ function ResetPasswordScreen({ token, onDone }) {
       <style>{CSS}</style>
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:48}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"var(--text-bright)",letterSpacing:-3,lineHeight:1}}>POINTS</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:7,marginTop:10}}>ARE BAD</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:56,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-3,lineHeight:0.9}}>POINTS</div>
+          <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:8,marginTop:14,textTransform:"uppercase"}}>are bad</div>
         </div>
-        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
-          <div style={{fontSize:12,color:"var(--text-dim)",letterSpacing:2,marginBottom:20}}>SET NEW PASSWORD</div>
+        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:4,padding:32}}>
+          <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:20,textTransform:"uppercase"}}>Set New Password</div>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <Input value={newPassword} onChange={setNewPassword} placeholder="New password" type="password" autoFocus onKeyDown={e=>e.key==="Enter"&&handle()} />
             <Input value={confirm} onChange={setConfirm} placeholder="Confirm password" type="password" onKeyDown={e=>e.key==="Enter"&&handle()} />
@@ -623,34 +625,37 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'DM Mono',monospace",color:"var(--text)"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:20,color:"var(--text-bright)"}}>POINTS <span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:10,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
+      <header className="hdr-blur" style={{borderBottom:"1px solid var(--border)",padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60,position:"sticky",top:0,background:"rgba(5,5,5,0.85)",zIndex:50}}>
+        <div>
+          <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontStyle:"italic",fontSize:20,color:"var(--text-bright)"}}>POINTS</span>
+          <span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:4,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none",marginLeft:10,textTransform:"uppercase"}}> are bad</span>
+        </div>
         {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-        <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar name={user.displayName} size={28}/><span style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:0.5}}>{user.displayName}</span></div>
       </header>
       <div style={{maxWidth:640,margin:"0 auto",padding:"40px 24px"}}>
-        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Your Groups</h1>
-        <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1,marginBottom:36}}>JOIN OR CREATE A GROUP TO START PREDICTING</p>
-        {loading?<div style={{color:"var(--text-dim)",padding:"40px 0",textAlign:"center"}}>Loading...</div>:groups.length>0?(
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:36}}>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Your Groups</h1>
+        <p style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,marginBottom:36,textTransform:"uppercase"}}>Join or create a group to start predicting</p>
+        {loading?<div style={{color:"var(--text-dim)",padding:"40px 0",textAlign:"center",fontSize:11,letterSpacing:2}}>Loading...</div>:groups.length>0?(
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:36}}>
             {groups.map(g=>(
-              <button key={g.id} onClick={()=>onEnterGroup(g)} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:"16px 20px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color 0.2s"}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--text-dim)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
+              <button key={g.id} onClick={()=>onEnterGroup(g)} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:4,padding:"16px 20px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"border-color 0.2s"}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--neon)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
-                  <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
-                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{g.currentGW} · {"⚡ API"}</div>
+                  <div style={{fontSize:15,color:"var(--text-bright)",marginBottom:4,fontFamily:"'Playfair Display',serif",fontWeight:700}}>{g.name}</div>
+                  <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase"}}>{g.members.length} member{g.members.length!==1?"s":""} · GW{g.currentGW} · ⚡ API</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  {g.creatorUsername===user.username&&<span style={{fontSize:10,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"2px 8px"}}>CREATOR</span>}
+                  {g.creatorUsername===user.username&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:2,padding:"2px 8px",textTransform:"uppercase"}}>Creator</span>}
                   <span style={{color:"var(--text-dim)",fontSize:18}}>›</span>
                 </div>
               </button>
             ))}
           </div>
-        ):<div style={{color:"var(--text-dim)",fontSize:13,padding:"20px 0 36px"}}>No groups yet.</div>}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16}}>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
-            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CREATE GROUP</div>
+        ):<div style={{color:"var(--text-dim)",fontSize:12,padding:"20px 0 36px"}}>No groups yet.</div>}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12}}>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:4,padding:20}}>
+            <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:14,textTransform:"uppercase"}}>Create Group</div>
             {!setupMode?(
               <>
                 <Input value={createName} onChange={setCreateName} placeholder="Group name..." onKeyDown={e=>e.key==="Enter"&&createName.trim()&&setSetupMode(true)} />
@@ -658,16 +663,16 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
               </>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                <div style={{fontSize:13,color:"var(--text-bright)",fontFamily:"'Playfair Display',serif",fontWeight:700,marginBottom:2}}>{createName}</div>
+                <div style={{fontSize:13,color:"var(--text-bright)",fontFamily:"'Playfair Display',serif",fontWeight:700,fontStyle:"italic",marginBottom:2}}>{createName}</div>
                 <div>
-                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
+                  <div style={{fontSize:9,color:"var(--text-dim2)",letterSpacing:3,marginBottom:8,textTransform:"uppercase"}}>Starting GW{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
                   <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
                 </div>
                 <div>
-                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>1-1 LIMIT PER WEEK</div>
+                  <div style={{fontSize:9,color:"var(--text-dim2)",letterSpacing:3,marginBottom:8,textTransform:"uppercase"}}>1-1 limit per week</div>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                     {[["unlimited","Unlimited"],["2","2"],["1","1"],["none","None"]].map(([val,label])=>(
-                      <button key={val} onClick={()=>setSetupLimit(val)} style={{background:setupLimit===val?"var(--btn-bg)":"var(--card)",color:setupLimit===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
+                      <button key={val} onClick={()=>setSetupLimit(val)} style={{background:setupLimit===val?"var(--btn-bg)":"var(--card)",color:setupLimit===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:2,padding:"5px 10px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:2,textTransform:"uppercase",transition:"all 0.15s"}}>{label}</button>
                     ))}
                   </div>
                 </div>
@@ -678,8 +683,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser }) {
               </div>
             )}
           </div>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:12,padding:20}}>
-            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>JOIN WITH CODE</div>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:4,padding:20}}>
+            <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:14,textTransform:"uppercase"}}>Join with Code</div>
             <Input value={joinCode} onChange={v=>{setJoinCode(v.replace(/\D/g,"").slice(0,4));setError("");}} placeholder="4-digit code" onKeyDown={e=>e.key==="Enter"&&joinGroup()} />
             <Btn onClick={joinGroup} disabled={joinCode.length!==4} style={{width:"100%",marginTop:10,padding:"9px 0",display:"block",textAlign:"center"}}>Join →</Btn>
           </div>
@@ -898,19 +903,19 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:"1px solid var(--border)",padding:"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
+      <header className="hdr-blur" style={{borderBottom:"1px solid var(--border)",padding:"0 20px",position:"sticky",top:0,background:"rgba(5,5,5,0.85)",zIndex:50}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",height:60,gap:0}}>
           <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:"1px solid var(--border)",marginRight:20,padding:"0 16px 0 0",height:"100%"}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span>
-            <span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontStyle:"italic",fontSize:18,color:"var(--text-bright)"}}>POINTS</span>
+            <span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none",textTransform:"uppercase"}}>are bad</span>
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0}}>⚡ LIVE API</div>
-          <button onClick={toggleDark} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"3px 8px",fontFamily:"inherit",marginRight:10,flexShrink:0,lineHeight:1}}>{dark?"☀":"☾"}</button>
+          <div className="mob-hide" style={{flex:1,fontSize:11,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
+          <div className="mob-hide" style={{fontSize:9,color:"var(--neon)",letterSpacing:2,marginRight:12,background:"rgba(0,255,0,0.08)",border:"1px solid rgba(0,255,0,0.2)",borderRadius:2,padding:"3px 8px",flexShrink:0,textTransform:"uppercase"}}>⚡ Live API</div>
+          <button onClick={toggleDark} style={{background:"none",border:"1px solid var(--border)",borderRadius:2,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"3px 8px",fontFamily:"inherit",marginRight:10,flexShrink:0,lineHeight:1}}>{dark?"☀":"☾"}</button>
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {NAV.map(t=>(
-              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
+              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--neon)":"var(--text-dim)",fontSize:9,letterSpacing:3,padding:"22px 14px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
           </nav>
           <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:20,borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
@@ -923,7 +928,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               )}
             </button>
             {profileOpen&&(
-              <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:100,boxShadow:"0 4px 16px #00000030"}}>
+              <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border2)",borderRadius:4,padding:6,zIndex:100,minWidth:100,boxShadow:"0 8px 24px rgba(0,0,0,0.6)"}}>
                 <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>{user.displayName}</div>
                 <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"block",marginBottom:2}}>ACCOUNT</button>
                 <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"block"}}>LOG OUT</button>
@@ -933,9 +938,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         </div>
       </header>
       {accountOpen&&createPortal(
-  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
-      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:20}}>ACCOUNT</div>
+  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:4,padding:32,width:"100%",maxWidth:400}}>
+      <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:20,textTransform:"uppercase"}}>Account</div>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
           <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-mid)"}}>{user.username}</span>
@@ -944,7 +949,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
         </div>
       </div>
-      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CHANGE PASSWORD</div>
+      <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:14,textTransform:"uppercase"}}>Change Password</div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
         <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
@@ -967,14 +972,14 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
-          <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
+          <div style={{background:"rgba(0,255,0,0.05)",border:"1px solid rgba(0,255,0,0.15)",borderRadius:4,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div style={{fontSize:11,color:"var(--neon)",letterSpacing:1,flex:1,minWidth:0}}>
               <span style={{opacity:0.6,marginRight:10}}>GW{recapContent.gwNum} RECAP</span>
               {recapContent.winners.length > 0 && <span style={{marginRight:8}}>{recapContent.winners.map(w => names[w.username] || w.username).join(" & ")} won the week <span style={{opacity:0.7}}>({recapContent.minPts} pts)</span></span>}
               {recapContent.totalGoals > 0 && <span style={{opacity:0.7}}>· {recapContent.totalGoals} goals total</span>}
             </div>
             <button onClick={() => { lset(recapKey, true); setRecapDismissed(true); }}
-              style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
+              style={{background:"none",border:"none",color:"var(--neon)",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
           </div>
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
@@ -996,14 +1001,14 @@ function LeagueTab({group,user,names}) {
     <div>
       <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32}}>
         <div>
-          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:mob?28:38,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
-          <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:mob?28:38,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
+          <p style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,marginTop:4,textTransform:"uppercase"}}>{totalResults} results counted · lower is better</p>
         </div>
       </div>
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>(
-            <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
+            <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:4,border:`1px solid ${p.username===user.username?"rgba(0,255,0,0.2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
                   {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
@@ -1011,11 +1016,11 @@ function LeagueTab({group,user,names}) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
-                <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                <div style={{fontSize:mob?12:14,color:p.username===user.username?"var(--neon)":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:9,color:"var(--text-dim)",marginLeft:6,letterSpacing:1}}>you</span>}</div>
               </div>
-              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
-              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
-              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
+              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,marginBottom:3,textTransform:"uppercase"}}>Perfect</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
+              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,marginBottom:3,textTransform:"uppercase"}}>Avg</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
+              <div style={{textAlign:"right"}}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,marginBottom:3,textTransform:"uppercase"}}>Pts</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,fontStyle:"italic",color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
             </div>
           ))}
         </div>
@@ -1339,8 +1344,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
     <div>
       {showWizard&&wizardFixture&&createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
-            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>GW{currentGW} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:4,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
+            <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:24,textTransform:"uppercase"}}>GW{currentGW} · {wizardQueue.length-wizardStep} match{wizardQueue.length-wizardStep!==1?"es":""} to pick</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
               <div style={{textAlign:"right",flex:1}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
@@ -1377,24 +1382,24 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
         document.body
       )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
-        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
-            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
+            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:2,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
             <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:396,overflowX:"auto",flex:1}}>
               {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>{
                 const adminHidden = !isAdmin && (group.hiddenGWs||[]).includes(g.gw);
                 return (
                   <button key={g.gw} onClick={()=>setGW(g.gw)} style={{
-                    background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
-                    color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
-                    border:"1px solid var(--border)",
-                    borderRadius:6,
+                    background:currentGW===g.gw?"var(--neon)":"var(--card)",
+                    color:currentGW===g.gw?"#000":"var(--text-dim2)",
+                    border:`1px solid ${currentGW===g.gw?"var(--neon)":"var(--border)"}`,
+                    borderRadius:2,
                     padding:"5px 0",
-                    fontSize:11,
+                    fontSize:10,
                     cursor:"pointer",
                     fontFamily:"inherit",
-                    letterSpacing:1,
+                    letterSpacing:2,
                     flexShrink:0,
                     minWidth:54,
                     textAlign:"center",
@@ -1405,7 +1410,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
                 );
               })}
             </div>
-            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
+            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:2,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
           {isAdmin&&deleteGWStep===0&&removeGWStep===0&&<Btn variant="danger" small onClick={()=>setDeleteGWStep(1)}>Clear GW</Btn>}
           {isAdmin&&deleteGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -1447,7 +1452,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
         </div>
       )}
 
-      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
+      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:9,color:"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
@@ -1479,14 +1484,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
           <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const pickBlock = locked?(
-          <span style={{color:myPreds[f.id]?"#8888cc":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
+          <span style={{color:myPreds[f.id]?"var(--neon)":"var(--text-dim)",fontSize:12}}>{myPreds[f.id]||"–"}</span>
         ):(
           <>
             <input value={myPred} placeholder="1-1"
               onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
               onBlur={e=>savePred(f.id,e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
-              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
+              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:2,textAlign:"center",border:`1px solid ${myPreds[f.id]?"rgba(0,255,0,0.4)":"var(--border2)"}`,color:"var(--neon)",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
             {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
           </>
         );
@@ -1540,7 +1545,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names}) {
       )}
       {(picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks&&<AllPicksTable group={group} gwFixtures={gwFixtures} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW}/>}
       {gwFixtures.some(f=>f.result)&&(group.members||[]).length>1&&!canViewAllPicks&&(
-        <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
+        <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:4,padding:"36px",textAlign:"center"}}>
           <div style={{fontSize:28,marginBottom:12}}>🔒</div>
           <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>Submit your picks to unlock all picks</div>
           <div style={{fontSize:11,color:"var(--text-dim)"}}>{unpickedUnlocked.length} fixture{unpickedUnlocked.length!==1?"s":""} remaining</div>
@@ -1579,13 +1584,13 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 
   return (
     <div style={{marginTop:40}}>
-      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
-      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
+      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontStyle:"italic",color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
+      {isAdmin&&<div style={{fontSize:9,color:"var(--neon)",letterSpacing:3,marginBottom:14,textTransform:"uppercase"}}>Admin · click any pick to edit</div>}
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <thead><tr style={{borderBottom:"1px solid var(--border)"}}>
-            <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
-            <th style={{padding:"8px 12px",textAlign:"center",color:"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
+            <th style={{padding:"8px 12px",textAlign:"left",color:"var(--text-dim)",letterSpacing:3,fontWeight:400,fontSize:9,textTransform:"uppercase"}}>Fixture</th>
+            <th style={{padding:"8px 12px",textAlign:"center",color:"var(--text-dim)",letterSpacing:3,fontWeight:400,fontSize:9,textTransform:"uppercase"}}>Result</th>
             {members.map((u,ui)=>{const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];return <th key={u} style={{padding:"8px 12px",textAlign:"center",color:isWinner?"#fbbf24":"var(--text-mid)",fontWeight:isWinner?700:400,textShadow:isWinner?"0 0 10px #fbbf2488":"none"}}>{isWinner&&<span style={{marginRight:5,fontSize:14,textShadow:"0 0 8px #fbbf24cc"}}>★</span>}{names[u]||u}</th>;})}
           </tr></thead>
           <tbody>
@@ -1605,7 +1610,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                           onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
                           onBlur={()=>savePred(u,f.id)}
                           onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
-                          style={{width:52,background:"var(--input-bg)",border:"1px solid #8888cc55",borderRadius:6,color:"#8888cc",padding:"4px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
+                          style={{width:52,background:"var(--input-bg)",border:"1px solid rgba(0,255,0,0.3)",borderRadius:2,color:"var(--neon)",padding:"4px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
                       ):(
                         <div onClick={()=>isAdmin&&startEdit(u,f.id)}
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
@@ -1622,7 +1627,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
             ))}
           </tbody>
           {scored.length>0&&<tfoot><tr style={{borderTop:"2px solid var(--border)"}}>
-            <td style={{padding:"10px 12px",color:"var(--text-dim)",letterSpacing:2,fontSize:10}}>TOTAL</td>
+            <td style={{padding:"10px 12px",color:"var(--text-dim)",letterSpacing:3,fontSize:9,textTransform:"uppercase"}}>Total</td>
             <td/>
             {members.map((u,ui)=>{
               const total=weeklyTotals[ui];
@@ -1652,13 +1657,13 @@ function TrendsTab({group,names}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result);if(pp===null)return;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
+  const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:4,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontStyle:"italic",color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
+  if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:9,letterSpacing:3,textTransform:"uppercase"}}>Sync results to see trends</div></div>;
   return (
     <div>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:28}}>Trends</h1>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:20}}>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-1,marginBottom:28}}>Trends</h1>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:8,marginBottom:20}}>
         {ds.map((p)=>(
           <div
             key={p.username}
@@ -1666,7 +1671,7 @@ function TrendsTab({group,names}) {
             style={{
               background:"var(--surface)",
               border:`1px solid ${selectedPlayer===p.username ? memberColor(p.username) : "var(--border)"}`,
-              borderRadius:10,
+              borderRadius:4,
               padding:"16px 18px",
               cursor:"pointer",
               opacity: selectedPlayer && selectedPlayer!==p.username ? 0.4 : 1,
@@ -1675,8 +1680,8 @@ function TrendsTab({group,names}) {
           >
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Avatar name={p.dn} size={26} color={memberColor(p.username)}/><span style={{fontSize:12,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dn}</span></div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[["TOTAL",p.total,memberColor(p.username)],["AVG",p.avg,"var(--text-mid)"],["PERFECT",p.perfects,"#22c55e"],["PLAYED",p.scored,"var(--text-dim3)"]].map(([l,v,c])=>(
-                <div key={l}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:2}}>{l}</div><div style={{fontSize:l==="TOTAL"?20:16,fontWeight:700,color:c,fontFamily:l==="TOTAL"?"'Playfair Display',serif":"inherit"}}>{v}</div></div>
+              {[["Total",p.total,memberColor(p.username)],["Avg",p.avg,"var(--text-mid)"],["Perfect",p.perfects,"#22c55e"],["Played",p.scored,"var(--text-dim3)"]].map(([l,v,c])=>(
+                <div key={l}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,marginBottom:2,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:l==="Total"?20:16,fontWeight:700,color:c,fontFamily:l==="Total"?"'Playfair Display',serif":"inherit",fontStyle:l==="Total"?"italic":"normal"}}>{v}</div></div>
               ))}
             </div>
           </div>
@@ -1712,15 +1717,15 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   };
   return (
     <div style={{maxWidth:560}}>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Members</h1>
-      <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginBottom:32}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Members</h1>
+      <p style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,marginBottom:32,textTransform:"uppercase"}}>{members.length} player{members.length!==1?"s":""}</p>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {members.map(username=>{
           const mIsAdmin=admins.includes(username);
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
           return (
-            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
+            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"rgba(0,255,0,0.2)":"var(--border3)"}`,borderRadius:4,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
                 <Avatar name={names[username]||username} color={PALETTE[members.indexOf(username)%PALETTE.length]}/>
                 <div style={{flex:1,minWidth:0}}>
@@ -1732,7 +1737,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                     </div>
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:14,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
+                      <span style={{fontSize:14,color:isMe?"var(--neon)":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:9,color:"var(--text-dim)",marginLeft:8,letterSpacing:1}}>you</span>}</span>
                       {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",fontSize:11,padding:"0 2px",fontFamily:"inherit",lineHeight:1}}>✎</button>}
                     </div>
                   )}
@@ -1757,15 +1762,15 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
         if(!log.length) return null;
         return (
           <div style={{marginTop:40}}>
-            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontStyle:"italic",color:"var(--text-bright)",marginBottom:16,letterSpacing:-0.5}}>Admin Edit Log</h2>
             <div style={{display:"flex",flexDirection:"column",gap:4}}>
               {log.map(e=>(
-                <div key={e.id} style={{background:"var(--card)",border:`1px solid ${e.action==="kick"?"#ef444430":"var(--border3)"}`,borderRadius:8,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div key={e.id} style={{background:"var(--card)",border:`1px solid ${e.action==="kick"?"#ef444430":"var(--border3)"}`,borderRadius:4,padding:"10px 16px",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
                   <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                     {e.action==="kick"?(
                       <>
                         <span style={{color:"#ef4444"}}>KICK</span>
-                        <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
+                        <span style={{color:"var(--neon)"}}>{names[e.for]||e.for}</span>
                         <span style={{color:"var(--text-dim)"}}>removed by {names[e.by]||e.by}</span>
                       </>
                     ):(
@@ -1773,7 +1778,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                         <span style={{color:"#f59e0b"}}>GW{e.gw}</span>
                         <span style={{color:"var(--text-mid)"}}>{e.fixture}</span>
                         <span style={{color:"var(--text-dim)"}}>·</span>
-                        <span style={{color:"#8888cc"}}>{names[e.for]||e.for}</span>
+                        <span style={{color:"var(--neon)"}}>{names[e.for]||e.for}</span>
                         <span style={{color:"var(--text-dim3)"}}>{e.old||"–"}</span>
                         <span style={{color:"var(--text-dim)"}}>→</span>
                         <span style={{color:"#4ade80"}}>{e.new}</span>
@@ -1963,7 +1968,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
   return (
     <div style={{maxWidth:520}}>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,fontStyle:"italic",color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
 
       {isAdmin&&(
         <Section title="Seasons">
@@ -1977,7 +1982,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
                     const gwCount=(group.gameweeks||[]).filter(g=>(g.season||activeSeason)===s).length;
                     const isActive=s===activeSeason;
                     return (
-                      <div key={s} style={{background:isActive?"var(--card-hi)":"var(--card)",border:`1px solid ${isActive?"#3a3a6a":"var(--border)"}`,borderRadius:8,padding:"8px 14px",fontSize:11,display:"flex",alignItems:"center",gap:8}}>
+                      <div key={s} style={{background:isActive?"var(--card-hi)":"var(--card)",border:`1px solid ${isActive?"rgba(0,255,0,0.3)":"var(--border)"}`,borderRadius:4,padding:"8px 14px",fontSize:11,display:"flex",alignItems:"center",gap:8}}>
                         <span style={{color:isActive?"var(--text-bright)":"var(--text-mid)",fontWeight:isActive?700:400}}>{s}</span>
                         <span style={{color:"var(--text-dim)"}}>{gwCount} GW{gwCount!==1?"s":""}</span>
                         {isActive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:3,padding:"1px 5px"}}>ACTIVE</span>}
@@ -2012,7 +2017,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     {[["all","All Seasons"],["current","Current Season Only"]].map(([val,label])=>{
                       const active=(group.scoreScope||"all")===val;
-                      return <button key={val} onClick={()=>saveScope(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+                      return <button key={val} onClick={()=>saveScope(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:2,padding:"5px 14px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:2,textTransform:"uppercase",transition:"all 0.15s"}}>{label}</button>;
                     })}
                   </div>
                 </div>
@@ -2037,15 +2042,15 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
                     const isHid=h.includes(g.gw);
                     return {...grp,hiddenGWs:isHid?h.filter(n=>n!==g.gw):[...h,g.gw]};
                   })} style={{
-                    background:hidden?"var(--card)":"var(--btn-bg)",
-                    color:hidden?"var(--text-dim2)":"var(--btn-text)",
-                    border:"1px solid var(--border)",
-                    borderRadius:6,
+                    background:hidden?"var(--card)":"var(--neon)",
+                    color:hidden?"var(--text-dim2)":"#000",
+                    border:`1px solid ${hidden?"var(--border)":"var(--neon)"}`,
+                    borderRadius:2,
                     padding:"5px 0",
-                    fontSize:11,
+                    fontSize:10,
                     cursor:"pointer",
                     fontFamily:"inherit",
-                    letterSpacing:1,
+                    letterSpacing:2,
                     flexShrink:0,
                     minWidth:54,
                     textAlign:"center",
@@ -2064,7 +2069,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {[["unlimited","Unlimited"],["2","2 / week"],["1","1 / week"],["none","None"]].map(([val,label])=>{
               const active=(group.draw11Limit||"unlimited")===val;
-              return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+              return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:2,padding:"5px 14px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:2,textTransform:"uppercase",transition:"all 0.15s"}}>{label}</button>;
             })}
           </div>
           {limitSaved&&<div style={{fontSize:11,color:"#22c55e",marginTop:8}}>Saved</div>}
@@ -2086,7 +2091,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
               const displayName=`${bk.createdBy[0].toUpperCase()}${bk.createdBy.slice(1)}`;
               const isRestoring=restoringId===bk.id;
               return (
-                <div key={bk.id} style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                <div key={bk.id} style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:4,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                     <div>
                       <span style={{fontSize:12,color:"var(--text-mid)"}}>{dateStr}</span>
@@ -2113,7 +2118,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,color:"var(--text-bright)",letterSpacing:10,lineHeight:1}}>{group.code}</div>
+          <div style={{background:"var(--input-bg)",border:"1px solid var(--border2)",borderRadius:4,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:900,fontStyle:"italic",color:"var(--neon)",letterSpacing:10,lineHeight:1}}>{group.code}</div>
           <div>
             <Btn onClick={copyCode} variant={copied?"success":"ghost"}>{copied?"Copied!":"Copy Code"}</Btn>
             <div style={{fontSize:11,color:"var(--text-dim)",marginTop:8,letterSpacing:0.3}}>Share with friends to join.</div>
@@ -2122,10 +2127,10 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       </Section>
 
       <Section title="⚡ Live Data: football-data.org">
-        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"18px 20px"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:4,padding:"18px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
-            <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"var(--neon)",boxShadow:"0 0 6px var(--neon)"}}/>
+            <span style={{color:"var(--neon)",fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase"}}>API Connected Globally</span>
           </div>
           <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
             Live Premier League data is active for all groups automatically.<br/>
@@ -2133,7 +2138,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
           </div>
           {isAdmin&&(
             <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
-              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
+              <div style={{fontSize:9,color:"var(--neon)",letterSpacing:4,marginBottom:8,textTransform:"uppercase"}}>Season Year</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <Input value={season} onChange={setSeason} placeholder="2025" style={{width:90}}/>
                 <Btn onClick={saveApiKey} variant={apiSaved?"success":"default"} small>{apiSaved?"Saved! ✓":"Save"}</Btn>
@@ -2153,19 +2158,19 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       )}
 
       <Section title="Info">
-        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:4,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
           {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","⚡ Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
               <span style={{color:"var(--text-dim)"}}>{l}</span>
-              <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
+              <span style={{color:l==="API Status"?"var(--neon)":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
             </div>
           ))}
         </div>
       </Section>
 
       <Section title="Scoring Rules">
-        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
-          <div style={{color:"var(--text-mid)",marginBottom:8,fontFamily:"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
+        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:4,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+          <div style={{color:"var(--text-bright)",marginBottom:8,fontFamily:"'Playfair Display',serif",fontSize:14,fontStyle:"italic"}}>Keep your points low.</div>
           <div>Each goal your prediction is off = 1 point.</div>
           <div style={{marginTop:6}}><span style={{color:"var(--text-dim)"}}>Predict 1-1, actual 2-3 → 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts ❌</strong></div>
           <div><span style={{color:"var(--text-dim)"}}>Predict 2-1, actual 2-1 → 0+0 = </span><strong style={{color:"#22c55e"}}>0 pts ⭐</strong></div>
@@ -2176,8 +2181,8 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave}) {
       {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
       {deleteModalOpen&&createPortal(
         <div onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
-            <div style={{fontSize:10,color:"#ef4444",letterSpacing:3,marginBottom:12}}>DELETE GROUP</div>
+          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:4,padding:32,width:"100%",maxWidth:400}}>
+            <div style={{fontSize:9,color:"#ef4444",letterSpacing:4,marginBottom:12,textTransform:"uppercase"}}>Delete Group</div>
             <div style={{fontSize:13,color:"var(--text)",marginBottom:6}}>This permanently deletes <strong>{group.name}</strong> and all its data.</div>
             <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20}}>Enter your password to confirm.</div>
             <Input value={deletePw} onChange={setDeletePw} placeholder="Your password" type="password" onKeyDown={e=>e.key==="Enter"&&deleteGroup()} />
