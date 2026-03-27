@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-// ─── DB HELPERS ──────────────────────────────────────────────────────────────
+// ─── DB HELPERS ───────────────────────────────────────────────────────────────
 async function sget(key) {
   try {
     const res = await fetch("/api/db?key=" + encodeURIComponent(key));
