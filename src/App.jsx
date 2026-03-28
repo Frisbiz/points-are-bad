@@ -306,7 +306,7 @@ function useMobile() {
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap');
-  :root{--bg:#050505;--surface:#111111;--card:#0d0d0d;--card-hi:#161616;--card-hover:#141414;--input-bg:#0a0a0a;--border:#1c1c1c;--border2:#222222;--border3:#111111;--text:#ffffff;--text-dim:#444444;--text-dim2:#555555;--text-dim3:#444444;--text-mid:#aaaaaa;--text-bright:#ffffff;--text-inv:#000000;--scrollbar:#222222;--btn-bg:#00ff00;--btn-text:#000000;--neon:#00ff00;}
+  :root{--bg:#050505;--surface:#111111;--card:#0f0f0f;--card-hi:#161616;--card-hover:#161616;--input-bg:#0a0a0a;--border:#1f1f1f;--border2:#242424;--border3:#1a1a1a;--text:#ffffff;--text-dim:#666666;--text-dim2:#555555;--text-dim3:#444444;--text-mid:#888888;--text-bright:#ffffff;--text-inv:#000000;--scrollbar:#222;--btn-bg:#00ff00;--btn-text:#000;--neon:#00ff00;--font-display:'Playfair Display',serif;}
   [data-theme="light"]{--bg:#f5f5f0;--surface:#ffffff;--card:#eeeeea;--card-hi:#e8e8e4;--card-hover:#e4e4e0;--input-bg:#ffffff;--border:#ddddda;--border2:#e0e0dc;--border3:#e5e5e2;--text:#1a1a1a;--text-dim:#888888;--text-dim2:#666666;--text-dim3:#777777;--text-mid:#444444;--text-bright:#0f0f0f;--text-inv:#f5f5f0;--scrollbar:#cccccc;--btn-bg:#111111;--btn-text:#f5f5f0;--neon:#008800;}
   html,body{background:var(--bg);}
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -1028,7 +1028,7 @@ function LeagueTab({group,user,names}) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
-                <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                <div style={{fontSize:mob?12:14,color:p.username===user.username?"var(--neon)":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div className="meta" style={{marginBottom:3}}>Perfect</div><div style={{color:"var(--neon)",fontWeight:700,fontSize:15}}>{p.perfects}</div></div>}
               {!mob&&<div style={{textAlign:"center"}}><div className="meta" style={{marginBottom:3}}>Avg</div><div style={{color:"var(--text-mid)",fontSize:15}}>{p.avg}</div></div>}
