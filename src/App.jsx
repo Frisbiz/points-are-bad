@@ -1403,6 +1403,7 @@ function LeagueTab({group,user,names}) {
 /* ── FIXTURES ────────────────────────────────────── */
 function NextMatchCountdown({ group, myPreds = {} }) {
   const [now, setNow] = useState(new Date());
+  const [expanded, setExpanded] = useState(false);
   const mob = useMobile();
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -1432,9 +1433,15 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   const pad = n => String(n).padStart(2, "0");
 
   const timerEl = (
-    <div style={{fontFamily:"'DM Mono',monospace",fontSize:mob?15:16,color:timerColor,letterSpacing:mob?2:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined}}>
-      {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
-      {pad(hours)}:{pad(mins)}:{pad(secs)}
+    <div onClick={() => setExpanded(e => !e)} style={{fontFamily:"'DM Mono',monospace",fontSize:mob?15:16,color:timerColor,letterSpacing:mob?2:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined,cursor:"pointer",userSelect:"none"}}>
+      {expanded ? (
+        <>{Math.floor(diff / 3600000)}<span style={{fontSize:"0.75em",letterSpacing:1}}>h </span>{pad(mins)}<span style={{fontSize:"0.75em",letterSpacing:1}}>m </span>{pad(secs)}<span style={{fontSize:"0.75em",letterSpacing:1}}>s</span></>
+      ) : (
+        <>
+          {days > 0 && <span style={{color:"var(--text-mid)"}}>{days}d </span>}
+          {pad(hours)}:{pad(mins)}:{pad(secs)}
+        </>
+      )}
     </div>
   );
 
