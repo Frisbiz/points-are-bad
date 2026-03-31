@@ -2252,6 +2252,152 @@ function TrendsTab({group,names}) {
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
   const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const inScopeFixtureIds = useMemo(() => {
+    const ids = new Set();
+    filteredGWs.forEach(g => (g.fixtures||[]).forEach(f => ids.add(f.id)));
+    return ids;
+  }, [filteredGWs]);
+  const gwHeatmapData = useMemo(() => {
+    const result = {};
+    ds.forEach(p => {
+      result[p.username] = {};
+      completedGws.forEach(g => {
+        const gwKey = `${g.gw}-${g.season||activeSeason}`;
+        let gwPts = 0, hasMiss = false, allPostponed = true;
+        (g.fixtures||[]).forEach(f => {
+          if (f.status === "POSTPONED") return;
+          allPostponed = false;
+          if (!f.result) return;
+          const pred = preds[p.username]?.[f.id];
+          if (!pred) { hasMiss = true; gwPts += MISSED_PICK_PTS; }
+          else gwPts += calcPts(pred, f.result) ?? 0;
+        });
+        if (allPostponed) result[p.username][gwKey] = "postponed";
+        else result[p.username][gwKey] = { pts: gwPts, missed: hasMiss };
+      });
+    });
+    return result;
+  }, [ds, completedGws, preds, activeSeason]);
+  const rankData = useMemo(() => {
+    return completedGws.map((g, gi) => {
+      const gwsUpTo = completedGws.slice(0, gi + 1);
+      const cumulative = ds.map(p => {
+        let pts = 0, perfs = 0;
+        gwsUpTo.forEach(cg => {
+          (cg.fixtures||[]).forEach(f => {
+            if (f.status === "POSTPONED" || !f.result) return;
+            const pred = preds[p.username]?.[f.id];
+            const fp = pred ? (calcPts(pred, f.result) ?? 0) : MISSED_PICK_PTS;
+            pts += fp;
+            if (pred && fp === 0) perfs++;
+          });
+        });
+        return { username: p.username, dn: p.dn, pts, perfs };
+      });
+      const sorted = [...cumulative].sort((a, b) =>
+        a.pts !== b.pts ? a.pts - b.pts :
+        b.perfs !== a.perfs ? b.perfs - a.perfs :
+        a.username.localeCompare(b.username)
+      );
+      const entry = { name: `GW${g.gw}` };
+      sorted.forEach((p, i) => { entry[p.dn] = i + 1; entry[`${p.dn}_pts`] = p.pts; });
+      return entry;
+    });
+  }, [completedGws, ds, preds, activeSeason]);
+  const breakdownData = useMemo(() => {
+    return ds.map(p => {
+      let perfect = 0, close = 0, bad = 0, missed = 0;
+      filteredGWs.forEach(g => (g.fixtures||[]).forEach(f => {
+        if (!f.result || f.status === "POSTPONED") return;
+        const pred = preds[p.username]?.[f.id];
+        if (!pred) { missed++; return; }
+        const fp = calcPts(pred, f.result) ?? 0;
+        if (fp === 0) perfect++;
+        else if (fp <= 2) close++;
+        else bad++;
+      }));
+      return { name: p.dn, Perfect: perfect, Close: close, Bad: bad, Missed: missed };
+    });
+  }, [ds, filteredGWs, preds]);
+  const radarData = useMemo(() => {
+    const raw = ds.map(p => {
+      let rawScored = 0, rawMissed = 0, rawPicked = 0, rawPerfects = 0, rawTotal = 0, boldTotal = 0;
+      const gwPts = [];
+      completedGws.forEach(g => {
+        let gwSum = 0;
+        (g.fixtures||[]).forEach(f => {
+          if (!f.result || f.status === "POSTPONED") return;
+          rawScored++;
+          const pred = preds[p.username]?.[f.id];
+          if (!pred) { rawMissed++; gwSum += MISSED_PICK_PTS; return; }
+          const fp = calcPts(pred, f.result) ?? 0;
+          rawPicked++; rawTotal += fp; gwSum += fp;
+          if (fp === 0) rawPerfects++;
+          const [h, a] = pred.split("-").map(Number);
+          if (!isNaN(h) && !isNaN(a)) boldTotal += h + a;
+        });
+        gwPts.push(gwSum);
+      });
+      const rawAvg = rawPicked > 0 ? rawTotal / rawPicked : 0;
+      const boldness = rawPicked > 0 ? boldTotal / rawPicked : 0;
+      const mean = gwPts.length > 0 ? gwPts.reduce((a,b)=>a+b,0)/gwPts.length : 0;
+      const stddev = gwPts.length > 1 ? Math.sqrt(gwPts.reduce((s,v)=>s+(v-mean)**2,0)/gwPts.length) : 0;
+      return { username: p.username, dn: p.dn, rawScored, rawMissed, rawPicked, rawPerfects, rawAvg, boldness, stddev };
+    });
+    if (raw.length === 0) return [];
+    const maxAvg = Math.max(...raw.map(r => r.rawAvg), 0.001);
+    const maxStddev = Math.max(...raw.map(r => r.stddev), 0.001);
+    const maxBold = Math.max(...raw.map(r => r.boldness), 0.001);
+    const axes = ["Accuracy","Consistency","Perfect Rate","Boldness","Reliability"];
+    const normalized = raw.map(r => {
+      const scores = {
+        "Accuracy":     Math.round(100 - (r.rawAvg / maxAvg) * 100),
+        "Consistency":  Math.round(100 - (r.stddev / maxStddev) * 100),
+        "Perfect Rate": r.rawScored > 0 ? Math.round((r.rawPerfects / r.rawScored) * 100) : 0,
+        "Boldness":     Math.round((r.boldness / maxBold) * 100),
+        "Reliability":  r.rawScored > 0 ? Math.round((1 - r.rawMissed / r.rawScored) * 100) : 100,
+      };
+      if (raw.length === 1) Object.keys(scores).forEach(k => scores[k] = 100);
+      return { username: r.username, dn: r.dn, scores };
+    });
+    return axes.map(axis => {
+      const entry = { subject: axis };
+      normalized.forEach(p => { entry[p.dn] = p.scores[axis]; });
+      return entry;
+    });
+  }, [ds, completedGws, preds, activeSeason]);
+  const swingData = useMemo(() => {
+    return completedGws.map(g => {
+      const scores = ds.map(p => {
+        let total = 0;
+        (g.fixtures||[]).forEach(f => {
+          if (!f.result || f.status === "POSTPONED") return;
+          const pred = preds[p.username]?.[f.id];
+          total += pred ? (calcPts(pred, f.result) ?? 0) : MISSED_PICK_PTS;
+        });
+        return { dn: p.dn, username: p.username, total };
+      });
+      const vals = scores.map(s => s.total);
+      const entry = { name: `GW${g.gw}`, min: Math.min(...vals), max: Math.max(...vals), avg: +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) };
+      scores.forEach(s => { entry[s.dn] = s.total; });
+      return entry;
+    });
+  }, [completedGws, ds, preds]);
+  const scoreGridData = useMemo(() => {
+    const grid = {};
+    for (let h = 0; h <= 5; h++) for (let a = 0; a <= 5; a++) grid[`${h}-${a}`] = 0;
+    const targets = selectedPlayer ? [selectedPlayer] : members;
+    targets.forEach(username => {
+      filteredGWs.forEach(g => (g.fixtures||[]).forEach(f => {
+        if (!inScopeFixtureIds.has(f.id)) return;
+        const pred = preds[username]?.[f.id];
+        if (!pred) return;
+        const [h, a] = pred.split("-").map(Number);
+        if (!isNaN(h) && !isNaN(a) && h <= 5 && a <= 5) grid[`${h}-${a}`] = (grid[`${h}-${a}`] || 0) + 1;
+      }));
+    });
+    return grid;
+  }, [selectedPlayer, members, filteredGWs, preds, inScopeFixtureIds]);
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <div>
