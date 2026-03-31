@@ -1070,6 +1070,41 @@ const RADAR_TIPS = {
   Boldness: "Avg total goals you predict per fixture. Higher = more ambitious. Group avg = 50.",
   "Winner Rate": "% of picks where you correctly called the result (home win / draw / away win), regardless of exact score. Group avg = 50.",
 };
+const BREAKDOWN_TIPS = {
+  Perfect: "Exact scoreline (0 pts). Best possible outcome.",
+  Close:   "Off by 1-2 pts total, e.g. predicted 2-1 and result was 1-1.",
+  Bad:     "Off by 3+ pts total. More than a goal out on the combined score.",
+  Missed:  "No pick submitted for this fixture.",
+};
+function BreakdownLegend({payload}) {
+  return (
+    <ul style={{display:"flex",flexWrap:"wrap",gap:"6px 14px",listStyle:"none",padding:0,margin:"8px 0 0",justifyContent:"center"}}>
+      {(payload||[]).map(entry => (
+        <li key={entry.value} title={BREAKDOWN_TIPS[entry.value]} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"var(--text-mid)",cursor:"help"}}>
+          <span style={{width:10,height:10,borderRadius:2,background:entry.color,flexShrink:0}}/>
+          {entry.value}
+        </li>
+      ))}
+    </ul>
+  );
+}
+function RadarTooltip({active, payload, rawMap, tt}) {
+  if (!active || !payload?.length) return null;
+  const axis = payload[0]?.payload?.subject;
+  if (!axis) return null;
+  const players = payload.filter(p => p.name !== "Group Avg");
+  return (
+    <div style={{...tt, padding:"8px 12px", minWidth:140}}>
+      <div style={{fontWeight:600, marginBottom:4, color:"var(--text-bright)"}}>{axis}</div>
+      {players.map(p => (
+        <div key={p.name} style={{display:"flex",justifyContent:"space-between",gap:16,color:p.color,fontSize:11}}>
+          <span>{p.name}</span>
+          <span style={{fontWeight:600}}>{rawMap?.[p.name]?.[axis] ?? p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 function RadarTick({x, y, payload, textAnchor}) {
   const label = payload.value;
   return (
@@ -2400,12 +2435,23 @@ function TrendsTab({group,names}) {
       "Boldness":     centreNorm(raw.map(r=>r.boldness),    false),
       "Winner Rate":  centreNorm(raw.map(r=>r.winnerRate),  false),
     };
-    return axes.map(axis => {
+    const rawMap = {};
+    raw.forEach(r => {
+      rawMap[r.dn] = {
+        "Accuracy":     `${r.rawAvg.toFixed(2)} pts avg`,
+        "Consistency":  `\u00b1${r.stddev.toFixed(2)} pts/GW`,
+        "Perfect Rate": `${(r.perfectRate*100).toFixed(0)}%`,
+        "Boldness":     `${r.boldness.toFixed(1)} goals/pick`,
+        "Winner Rate":  `${(r.winnerRate*100).toFixed(0)}%`,
+      };
+    });
+    const data = axes.map(axis => {
       const scores = rawVals[axis];
       const entry = { subject: axis, Avg: 50 };
       raw.forEach((r, i) => { entry[r.dn] = scores[i]; });
       return entry;
     });
+    return { data, rawMap };
   }, [ds, completedGws, preds, activeSeason]);
   const swingData = useMemo(() => {
     return completedGws.map(g => {
@@ -2563,7 +2609,7 @@ function TrendsTab({group,names}) {
             <XAxis type="number" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/>
-            <Legend wrapperStyle={{fontSize:10}}/>
+            <Legend content={<BreakdownLegend/>}/>
             <Bar dataKey="Perfect" stackId="a" fill="#22c55e"/>
             <Bar dataKey="Close" stackId="a" fill="#f59e0b"/>
             <Bar dataKey="Bad" stackId="a" fill="#ef4444"/>
@@ -2576,11 +2622,11 @@ function TrendsTab({group,names}) {
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
         <CC title="Player Radar vs Group Avg">
           <ResponsiveContainer width="100%" height={260}>
-            <RadarChart data={radarData} margin={{top:10,right:30,bottom:10,left:30}}>
+            <RadarChart data={radarData.data} margin={{top:10,right:30,bottom:10,left:30}}>
               <PolarGrid stroke="var(--border)"/>
               <PolarAngleAxis dataKey="subject" tick={<RadarTick/>}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
-              <Tooltip contentStyle={tt}/>
+              <Tooltip content={<RadarTooltip rawMap={radarData.rawMap} tt={tt}/>}/>
               <Radar name="Group Avg" dataKey="Avg" stroke="#555577" fill="#555577" fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
               {ds.filter(p => !selectedPlayer || selectedPlayer === p.username).map(p=>(
                 <Radar
