@@ -1071,23 +1071,15 @@ const RADAR_TIPS = {
   Reliability: "% of fixtures you actually submitted a pick for (vs. missed). Group avg = 50.",
 };
 function RadarTick({x, y, payload, textAnchor}) {
-  const [tip, setTip] = React.useState(false);
   const label = payload.value;
   return (
-    <g>
-      <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central"
-        fill="var(--text-mid)" fontSize={10} fontFamily="'DM Mono',monospace"
-        style={{cursor:"help",textDecoration:tip?"underline dotted":"none"}}
-        onMouseEnter={()=>setTip(true)} onMouseLeave={()=>setTip(false)}
-      >{label}</text>
-      {tip && (
-        <foreignObject x={x-80} y={y-48} width={160} height={80} style={{pointerEvents:"none",overflow:"visible"}}>
-          <div xmlns="http://www.w3.org/1999/xhtml" style={{background:"var(--surface-2,#1e1e2e)",border:"1px solid var(--border)",borderRadius:6,padding:"6px 8px",fontSize:10,color:"var(--text-mid)",lineHeight:1.4,textAlign:"center",pointerEvents:"none",whiteSpace:"normal",boxShadow:"0 4px 12px rgba(0,0,0,0.5)"}}>
-            {RADAR_TIPS[label]}
-          </div>
-        </foreignObject>
-      )}
-    </g>
+    <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central"
+      fill="var(--text-mid)" fontSize={10} fontFamily="'DM Mono',monospace"
+      style={{cursor:"help"}}
+    >
+      <title>{RADAR_TIPS[label]}</title>
+      {label}
+    </text>
   );
 }
 
