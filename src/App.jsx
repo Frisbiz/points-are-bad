@@ -2348,31 +2348,27 @@ function TrendsTab({group,names}) {
       return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, reliability };
     });
     if (raw.length === 0) return [];
-    // Min-max normalise: best player = 100, worst = 0, avg shown at real position
-    const minMax = (key) => ({ min: Math.min(...raw.map(r=>r[key])), max: Math.max(...raw.map(r=>r[key])) });
-    const mm = {
-      rawAvg:      minMax("rawAvg"),
-      stddev:      minMax("stddev"),
-      perfectRate: minMax("perfectRate"),
-      boldness:    minMax("boldness"),
-      reliability: minMax("reliability"),
-    };
-    // lowerIsBetter: invert so that the worst (highest) value = 0, best (lowest) = 100
-    const norm = (val, {min, max}, lowerIsBetter) => {
-      if (max === min) return 50;
-      const t = (val - min) / (max - min); // 0=worst-raw → 1=best-raw (for higherIsBetter)
-      return Math.round(lowerIsBetter ? (1 - t) * 100 : t * 100);
+    // Mean-centred: avg = 50, most extreme player reaches 0 or 100
+    // lowerIsBetter axes are inverted so "good" always means higher score
+    const centreNorm = (vals, lowerIsBetter) => {
+      const mean = vals.reduce((s,v)=>s+v,0) / vals.length;
+      const maxDev = Math.max(...vals.map(v => Math.abs(v - mean)), 0.001);
+      return vals.map(v => {
+        const dev = lowerIsBetter ? mean - v : v - mean;
+        return Math.round(Math.max(0, Math.min(100, 50 + (dev / maxDev) * 50)));
+      });
     };
     const axes = ["Accuracy","Consistency","Perfect Rate","Boldness","Reliability"];
+    const rawVals = {
+      "Accuracy":     centreNorm(raw.map(r=>r.rawAvg),      true),
+      "Consistency":  centreNorm(raw.map(r=>r.stddev),      true),
+      "Perfect Rate": centreNorm(raw.map(r=>r.perfectRate), false),
+      "Boldness":     centreNorm(raw.map(r=>r.boldness),    false),
+      "Reliability":  centreNorm(raw.map(r=>r.reliability), false),
+    };
     return axes.map(axis => {
-      const scores = raw.map(r => {
-        if (axis === "Accuracy")          return norm(r.rawAvg,      mm.rawAvg,      true);
-        else if (axis === "Consistency")  return norm(r.stddev,      mm.stddev,      true);
-        else if (axis === "Perfect Rate") return norm(r.perfectRate, mm.perfectRate, false);
-        else if (axis === "Boldness")     return norm(r.boldness,    mm.boldness,    false);
-        else                              return norm(r.reliability, mm.reliability, false);
-      });
-      const entry = { subject: axis, Avg: Math.round(scores.reduce((s,v)=>s+v,0)/scores.length) };
+      const scores = rawVals[axis];
+      const entry = { subject: axis, Avg: 50 };
       raw.forEach((r, i) => { entry[r.dn] = scores[i]; });
       return entry;
     });
