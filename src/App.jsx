@@ -1064,11 +1064,11 @@ const THEME_META=[
 ];
 
 const RADAR_TIPS = {
-  Accuracy: "Avg penalty pts per pick (lower = better). Group avg = 50; higher score means fewer pts than average.",
-  Consistency: "How stable your per-GW score is. Low variance = high score. Group avg = 50.",
-  "Perfect Rate": "% of picks where you got the exact scoreline (0 pts). Group avg = 50.",
-  Boldness: "Avg total goals you predict per fixture. Higher = more ambitious. Group avg = 50.",
-  "Winner Rate": "% of picks where you correctly called the result (home win / draw / away win), regardless of exact score. Group avg = 50.",
+  Accuracy: "Avg penalty pts per pick. Lower is better.",
+  Consistency: "How stable your per-GW score is. Low variance scores higher.",
+  "Perfect Rate": "% of picks where you got the exact scoreline (0 pts).",
+  Boldness: "Avg total goals you predict per fixture. Higher means more ambitious predictions.",
+  "Winner Rate": "% of picks where you correctly called the result (home win / draw / away win), regardless of exact score.",
 };
 const BREAKDOWN_TIPS = {
   Perfect: "Exact scoreline (0 pts). Best possible outcome.",
