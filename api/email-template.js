@@ -6,22 +6,24 @@ export function emailHtml({ title, greeting, body, cta }) {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light dark"/>
+<meta name="supported-color-schemes" content="light dark"/>
 <title>${title}</title>
 <style>
-  body, table, td { background-color: #0a0a0f !important; }
-  @media (prefers-color-scheme: dark) {
-    body, table, td { background-color: #0a0a0f !important; }
-  }
+  :root { color-scheme: light dark; }
+  body { background-color: #0a0a0f !important; }
+  table, td { background-color: #0a0a0f; }
 </style>
 </head>
 <body bgcolor="#0a0a0f" style="margin:0;padding:0;background-color:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+<div style="background-color:#0a0a0f;">
   <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#0a0a0f" style="background-color:#0a0a0f;padding:40px 16px;">
     <tr><td align="center" bgcolor="#0a0a0f" style="background-color:#0a0a0f;">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
 
         <!-- Logo -->
         <tr><td align="center" bgcolor="#0a0a0f" style="background-color:#0a0a0f;padding-bottom:28px;">
-          <img src="${APP_URL}/logo.png" alt="Points Are Bad" width="64" style="display:block;width:64px;height:auto;border-radius:14px;"/>
+          <img src="${APP_URL}/ios.png" alt="Points Are Bad" width="72" height="72" style="display:block;width:72px;height:72px;border-radius:18px;"/>
         </td></tr>
 
         <!-- Card -->
@@ -55,6 +57,7 @@ export function emailHtml({ title, greeting, body, cta }) {
       </table>
     </td></tr>
   </table>
+</div>
 </body>
 </html>`;
 }

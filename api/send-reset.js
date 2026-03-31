@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const resetKey = `reset:${token}`;
     await db.collection("data").doc(resetKey.replace(/[/\\]/g, "_")).set({ value: { username, expiry }, updatedAt: Date.now() });
 
-    const appUrl = process.env.APP_URL || "https://points-are-bad.vercel.app";
+    const appUrl = process.env.APP_URL || "https://pab.wtf";
     const resetLink = `${appUrl}?reset=${token}`;
 
     await resend.emails.send({
@@ -47,8 +47,9 @@ export default async function handler(req, res) {
       html: emailHtml({
         title: "Password Reset",
         greeting: `Hey ${username},`,
-        body: `We received a request to reset your password. Click the button below — the link expires in <strong style="color:#f0f0f8;">1 hour</strong>.<br/><br/>If you didn't request this, you can safely ignore this email.`,
-        cta: { url: resetLink, label: "Reset my password →" },
+        body: `We received a request to reset your password. The link expires in <strong style="color:#f0f0f8;">1 hour</strong>.<br/><br/>If you didn't request this, you can safely ignore this email.`,
+        cta: { url: resetLink, label: "Reset my password" },
+        name: username,
       }),
     });
   } catch (e) {

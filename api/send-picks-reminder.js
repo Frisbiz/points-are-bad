@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
   if (!needsReminder.length) return res.status(200).json({ sent: 0, reason: "Everyone has submitted picks" });
 
-  const appUrl = process.env.APP_URL || "https://points-are-bad.vercel.app";
+  const appUrl = process.env.APP_URL || "https://pab.wtf";
   let sent = 0;
   let noEmail = 0;
 
@@ -70,7 +70,8 @@ export default async function handler(req, res) {
           title: `Gameweek ${gw} Picks`,
           greeting: `Hey ${name},`,
           body: `You haven't submitted all your picks for <strong style="color:#f0f0f8;">Gameweek ${gw}</strong> yet.<br/><br/>Get them in before the first kickoff. Picks lock when the whistle blows.`,
-          cta: { url: appUrl, label: "Submit my picks →" },
+          cta: { url: appUrl, label: "Submit my picks" },
+          name,
         }),
       });
       sent++;
