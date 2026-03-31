@@ -2348,29 +2348,32 @@ function TrendsTab({group,names}) {
       return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, reliability };
     });
     if (raw.length === 0) return [];
-    // Group means — each axis normalises so that group mean = 50
-    const grpAvg = (key) => raw.reduce((s,r) => s + r[key], 0) / raw.length || 0.001;
-    const meanRawAvg   = grpAvg("rawAvg");
-    const meanStddev   = grpAvg("stddev");
-    const meanPerfRate = grpAvg("perfectRate");
-    const meanBoldness = grpAvg("boldness");
-    const meanRelbl    = grpAvg("reliability");
-    // norm: ratio * 50 so that exactly-average = 50; lowerIsBetter flips ratio
-    const norm = (val, mean, lowerIsBetter) => {
-      if (mean === 0) return 50;
-      const ratio = lowerIsBetter ? mean / (val || 0.001) : val / mean;
-      return Math.round(Math.max(0, Math.min(100, ratio * 50)));
+    // Min-max normalise: best player = 100, worst = 0, avg shown at real position
+    const minMax = (key) => ({ min: Math.min(...raw.map(r=>r[key])), max: Math.max(...raw.map(r=>r[key])) });
+    const mm = {
+      rawAvg:      minMax("rawAvg"),
+      stddev:      minMax("stddev"),
+      perfectRate: minMax("perfectRate"),
+      boldness:    minMax("boldness"),
+      reliability: minMax("reliability"),
+    };
+    // lowerIsBetter: invert so that the worst (highest) value = 0, best (lowest) = 100
+    const norm = (val, {min, max}, lowerIsBetter) => {
+      if (max === min) return 50;
+      const t = (val - min) / (max - min); // 0=worst-raw → 1=best-raw (for higherIsBetter)
+      return Math.round(lowerIsBetter ? (1 - t) * 100 : t * 100);
     };
     const axes = ["Accuracy","Consistency","Perfect Rate","Boldness","Reliability"];
     return axes.map(axis => {
-      const entry = { subject: axis, Avg: 50 };
-      raw.forEach(r => {
-        if (axis === "Accuracy")     entry[r.dn] = norm(r.rawAvg,     meanRawAvg,   true);
-        else if (axis === "Consistency")  entry[r.dn] = norm(r.stddev,     meanStddev,   true);
-        else if (axis === "Perfect Rate") entry[r.dn] = norm(r.perfectRate,meanPerfRate, false);
-        else if (axis === "Boldness")     entry[r.dn] = norm(r.boldness,   meanBoldness, false);
-        else                              entry[r.dn] = norm(r.reliability, meanRelbl,   false);
+      const scores = raw.map(r => {
+        if (axis === "Accuracy")          return norm(r.rawAvg,      mm.rawAvg,      true);
+        else if (axis === "Consistency")  return norm(r.stddev,      mm.stddev,      true);
+        else if (axis === "Perfect Rate") return norm(r.perfectRate, mm.perfectRate, false);
+        else if (axis === "Boldness")     return norm(r.boldness,    mm.boldness,    false);
+        else                              return norm(r.reliability, mm.reliability, false);
       });
+      const entry = { subject: axis, Avg: Math.round(scores.reduce((s,v)=>s+v,0)/scores.length) };
+      raw.forEach((r, i) => { entry[r.dn] = scores[i]; });
       return entry;
     });
   }, [ds, completedGws, preds, activeSeason]);
@@ -2541,7 +2544,7 @@ function TrendsTab({group,names}) {
 
       {/* ── RADAR + GW SWING ────────────────────────── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Player Radar — vs group average">
+        <CC title="Player Radar vs Group Avg">
           <ResponsiveContainer width="100%" height={260}>
             <RadarChart data={radarData} margin={{top:10,right:30,bottom:10,left:30}}>
               <PolarGrid stroke="var(--border)"/>
