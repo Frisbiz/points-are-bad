@@ -2251,6 +2251,7 @@ function TrendsTab({group,names}) {
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
   const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
+  const filteredGWs = gws;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const inScopeFixtureIds = useMemo(() => {
     const ids = new Set();
@@ -2432,6 +2433,165 @@ function TrendsTab({group,names}) {
         <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
         <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p)=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
+
+      {/* ── GW HEATMAP ──────────────────────────────── */}
+      <CC title="GW Heatmap">
+        <div style={{overflowX:"auto"}}>
+          <svg width={Math.max(completedGws.length*28+100,200)} height={ds.length*28+32} style={{display:"block"}}>
+            {completedGws.map((g,ci)=>(
+              <text key={`ch-${ci}`} x={100+ci*28+14} y={14} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace">{`GW${g.gw}`}</text>
+            ))}
+            {ds.map((p,ri)=>{
+              const row = gwHeatmapData[p.username]||{};
+              return (
+                <g key={p.username}>
+                  <text x={96} y={32+ri*28+9} textAnchor="end" fill="var(--text-mid)" fontSize={10} fontFamily="'DM Mono',monospace" dominantBaseline="middle">{p.dn}</text>
+                  {completedGws.map((g,ci)=>{
+                    const gwKey = `${g.gw}-${g.season||activeSeason}`;
+                    const cell = row[gwKey];
+                    const cellPts = (cell && cell !== "postponed") ? cell.pts : null;
+                    const cellMissed = (cell && cell !== "postponed") ? cell.missed : false;
+                    let fill = "var(--border)";
+                    let label = "";
+                    if (cellPts !== null) {
+                      const nonPostponed = (g.fixtures||[]).filter(f=>f.result&&f.status!=="POSTPONED").length;
+                      if (cellMissed && cellPts >= MISSED_PICK_PTS * nonPostponed) fill = "#333344";
+                      else if (cellPts === 0) fill = "#22c55e";
+                      else if (cellPts === 1) fill = "#86efac";
+                      else if (cellPts === 2) fill = "#fde68a";
+                      else fill = "#ef4444";
+                      label = String(cellPts);
+                    }
+                    const titleText = cell === "postponed" ? "—" : (cellPts !== null ? String(cellPts) : "—");
+                    const textFill = cellPts === 0 || cellPts === 1 ? "#166534" : cellPts === 2 ? "#92400e" : "#fff";
+                    return (
+                      <g key={`${ri}-${ci}`}>
+                        <rect x={100+ci*28+2} y={32+ri*28+2} width={24} height={24} rx={4} fill={fill}>
+                          <title>{titleText}</title>
+                        </rect>
+                        {label && <text x={100+ci*28+14} y={32+ri*28+14} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={8} fontFamily="'DM Mono',monospace" fontWeight={700}>{label}</text>}
+                      </g>
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </CC>
+
+      {/* ── BUMP CHART ──────────────────────────────── */}
+      <CC title="Rankings Over Time">
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*40,200)}>
+          <LineChart data={rankData} margin={{top:4,right:8,left:-10,bottom:0}}>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis reversed domain={[1,ds.length]} allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} ticks={ds.map((_,i)=>i+1)}/>
+            <Tooltip contentStyle={tt} formatter={(val,name,props)=>{const pts=props.payload[`${name}_pts`];return [`#${val} (${pts}pts)`,name];}}/>
+            {ds.map(p=>(
+              <Line
+                key={p.username}
+                type="monotone"
+                dataKey={p.dn}
+                stroke={memberColor(p.username)}
+                strokeWidth={selectedPlayer===p.username?3:2}
+                strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1}
+                dot={{r:4,fill:memberColor(p.username)}}
+                activeDot={{r:6}}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </CC>
+
+      {/* ── POINTS BREAKDOWN ────────────────────────── */}
+      <CC title="Points Breakdown">
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*40,180)}>
+          <BarChart data={breakdownData} layout="vertical" margin={{top:0,right:18,left:60,bottom:0}}>
+            <XAxis type="number" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <Tooltip contentStyle={tt}/>
+            <Legend wrapperStyle={{fontSize:10}}/>
+            <Bar dataKey="Perfect" stackId="a" fill="#22c55e"/>
+            <Bar dataKey="Close" stackId="a" fill="#f59e0b"/>
+            <Bar dataKey="Bad" stackId="a" fill="#ef4444"/>
+            <Bar dataKey="Missed" stackId="a" fill="#555566" radius={[0,4,4,0]}/>
+          </BarChart>
+        </ResponsiveContainer>
+      </CC>
+
+      {/* ── RADAR + GW SWING ────────────────────────── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
+        <CC title="Player Radar">
+          <ResponsiveContainer width="100%" height={260}>
+            <RadarChart data={radarData} margin={{top:10,right:30,bottom:10,left:30}}>
+              <PolarGrid stroke="var(--border)"/>
+              <PolarAngleAxis dataKey="subject" tick={{fill:"var(--text-mid)",fontSize:10,fontFamily:"'DM Mono',monospace"}}/>
+              <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
+              <Tooltip contentStyle={tt}/>
+              {ds.map(p=>(
+                <Radar
+                  key={p.username}
+                  name={p.dn}
+                  dataKey={p.dn}
+                  stroke={memberColor(p.username)}
+                  fill={memberColor(p.username)}
+                  fillOpacity={selectedPlayer===p.username?0.4:selectedPlayer?0.08:0.15}
+                  strokeWidth={2}
+                  strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.3:1}
+                />
+              ))}
+            </RadarChart>
+          </ResponsiveContainer>
+        </CC>
+        <CC title="GW Swing">
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
+              <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={tt}/>
+              <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
+              <Area type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
+              <Line type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
+              {selectedPlayer && (()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </CC>
+      </div>
+
+      {/* ── SCORE PREDICTION HEATMAP ────────────────── */}
+      <CC title={`Score Prediction Heatmap${selectedPlayer?` — ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
+        {(()=>{
+          const maxCount = Math.max(...Object.values(scoreGridData), 1);
+          const cellSize = 44;
+          const pad = 28;
+          return (
+            <div style={{overflowX:"auto"}}>
+              <svg width={6*cellSize+pad+20} height={6*cellSize+pad+20} style={{display:"block",margin:"0 auto"}}>
+                {/* axis labels */}
+                <text x={pad+3*cellSize} y={12} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace">AWAY GOALS →</text>
+                {[0,1,2,3,4,5].map(v=>(
+                  <text key={`ax-${v}`} x={pad+v*cellSize+cellSize/2} y={24} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace">{v}</text>
+                ))}
+                {[0,1,2,3,4,5].map(v=>(
+                  <text key={`ay-${v}`} x={pad-4} y={pad+v*cellSize+cellSize/2+4} textAnchor="end" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace">{v}</text>
+                ))}
+                <text x={12} y={pad+3*cellSize} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace" transform={`rotate(-90,12,${pad+3*cellSize})`}>HOME →</text>
+                {[0,1,2,3,4,5].map(h=>[0,1,2,3,4,5].map(a=>{
+                  const count = scoreGridData[`${h}-${a}`]||0;
+                  const opacity = count===0?0:0.15+0.85*(count/maxCount);
+                  return (
+                    <g key={`${h}-${a}`}>
+                      <rect x={pad+a*cellSize+2} y={pad+h*cellSize+2} width={cellSize-4} height={cellSize-4} rx={6} fill={`rgba(245,158,11,${opacity})`}/>
+                      {count>0&&<text x={pad+a*cellSize+cellSize/2} y={pad+h*cellSize+cellSize/2+4} textAnchor="middle" fill={opacity>0.5?"#000":"var(--text-mid)"} fontSize={11} fontFamily="'DM Mono',monospace" fontWeight={600}>{count}</text>}
+                    </g>
+                  );
+                }))}
+              </svg>
+            </div>
+          );
+        })()}
+      </CC>
+
     </div>
   );
 }
