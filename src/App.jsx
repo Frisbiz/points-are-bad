@@ -2486,6 +2486,17 @@ function TrendsTab({group,names}) {
     return grid;
   }, [selectedPlayer, members, filteredGWs, preds, inScopeFixtureIds]);
 
+  const resultGridData = useMemo(() => {
+    const grid = {};
+    for (let h = 0; h <= 5; h++) for (let a = 0; a <= 5; a++) grid[`${h}-${a}`] = 0;
+    completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
+      if (!f.result || f.status === "POSTPONED") return;
+      const [h, a] = f.result.split("-").map(Number);
+      if (!isNaN(h) && !isNaN(a) && h <= 5 && a <= 5) grid[`${h}-${a}`] = (grid[`${h}-${a}`] || 0) + 1;
+    }));
+    return grid;
+  }, [completedGws]);
+
   const predStyleData = useMemo(() => {
     return ds.map(p => {
       let home = 0, draw = 0, away = 0;
@@ -2775,7 +2786,7 @@ function TrendsTab({group,names}) {
                   const goRight=x<W-90;
                   return (
                     <g key={i}>
-                      <circle cx={x} cy={y} r={7} fill={d.color} opacity={0.9}/>
+                      <circle cx={x} cy={y} r={4} fill={d.color} opacity={0.9}/>
                       <text x={goRight?x+11:x-11} y={y+4} textAnchor={goRight?"start":"end"} fill="var(--text-mid)" fontSize={9} fontFamily="'DM Mono',monospace">{d.name}</text>
                     </g>
                   );
@@ -2786,16 +2797,15 @@ function TrendsTab({group,names}) {
         })()}
       </CC>
 
-      {/* ── SCORE PREDICTION HEATMAP ────────────────── */}
-      <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
-        {(()=>{
-          const maxCount = Math.max(...Object.values(scoreGridData), 1);
-          const cellSize = 44;
-          const pad = 28;
+      {/* ── SCORE HEATMAPS ──────────────────────────── */}
+      {(()=>{
+        const renderHeatmap = (grid, color, label) => {
+          const maxCount = Math.max(...Object.values(grid), 1);
+          const cellSize = 44, pad = 28;
+          const svgSize = 6*cellSize+pad+20;
           return (
             <div style={{overflowX:"auto"}}>
-              <svg width={6*cellSize+pad+20} height={6*cellSize+pad+20} style={{display:"block",margin:"0 auto"}}>
-                {/* axis labels */}
+              <svg width={svgSize} height={svgSize} style={{display:"block",margin:"0 auto"}}>
                 <text x={pad+3*cellSize} y={12} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace">AWAY GOALS →</text>
                 {[0,1,2,3,4,5].map(v=>(
                   <text key={`ax-${v}`} x={pad+v*cellSize+cellSize/2} y={24} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace">{v}</text>
@@ -2805,20 +2815,31 @@ function TrendsTab({group,names}) {
                 ))}
                 <text x={12} y={pad+3*cellSize} textAnchor="middle" fill="var(--text-dim3)" fontSize={9} fontFamily="'DM Mono',monospace" transform={`rotate(-90,12,${pad+3*cellSize})`}>HOME →</text>
                 {[0,1,2,3,4,5].map(h=>[0,1,2,3,4,5].map(a=>{
-                  const count = scoreGridData[`${h}-${a}`]||0;
+                  const count = grid[`${h}-${a}`]||0;
                   const opacity = count===0?0:0.15+0.85*(count/maxCount);
                   return (
                     <g key={`${h}-${a}`}>
-                      <rect x={pad+a*cellSize+2} y={pad+h*cellSize+2} width={cellSize-4} height={cellSize-4} rx={6} fill={`rgba(245,158,11,${opacity})`}/>
+                      <rect x={pad+a*cellSize+2} y={pad+h*cellSize+2} width={cellSize-4} height={cellSize-4} rx={6} fill={color} opacity={opacity===0?0:opacity}/>
                       {count>0&&<text x={pad+a*cellSize+cellSize/2} y={pad+h*cellSize+cellSize/2+4} textAnchor="middle" fill={opacity>0.5?"#000":"var(--text-mid)"} fontSize={11} fontFamily="'DM Mono',monospace" fontWeight={600}>{count}</text>}
                     </g>
                   );
                 }))}
               </svg>
+              <div style={{textAlign:"center",fontSize:9,color:"var(--text-dim3)",marginTop:4,letterSpacing:1}}>{label}</div>
             </div>
           );
-        })()}
-      </CC>
+        };
+        return (
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:18}}>
+            <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
+              {renderHeatmap(scoreGridData,"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
+            </CC>
+            <CC title="Actual Results Heatmap">
+              {renderHeatmap(resultGridData,"rgba(99,102,241,1)","REAL RESULTS")}
+            </CC>
+          </div>
+        );
+      })()}
 
     </div>
   );
