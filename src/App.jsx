@@ -2544,7 +2544,40 @@ function TrendsTab({group,names}) {
           <ResponsiveContainer width="100%" height={260}>
             <RadarChart data={radarData} margin={{top:10,right:30,bottom:10,left:30}}>
               <PolarGrid stroke="var(--border)"/>
-              <PolarAngleAxis dataKey="subject" tick={{fill:"var(--text-mid)",fontSize:10,fontFamily:"'DM Mono',monospace"}}/>
+              <PolarAngleAxis dataKey="subject" tick={(props) => {
+                const RADAR_TIPS = {
+                  Accuracy: "Avg penalty pts per pick (lower = better). Group avg = 50 — higher score means fewer pts than average.",
+                  Consistency: "How stable your per-GW score is. Low variance = high score. Group avg = 50.",
+                  "Perfect Rate": "% of picks where you got the exact scoreline (0 pts). Group avg = 50.",
+                  Boldness: "Avg total goals you predict per fixture. Higher = more ambitious. Group avg = 50.",
+                  Reliability: "% of fixtures you actually submitted a pick for (vs. missed). Group avg = 50.",
+                };
+                const {x,y,payload,textAnchor} = props;
+                const [tip,setTip] = React.useState(false);
+                const label = payload.value;
+                return (
+                  <g>
+                    <text
+                      x={x} y={y}
+                      textAnchor={textAnchor}
+                      dominantBaseline="central"
+                      fill="var(--text-mid)"
+                      fontSize={10}
+                      fontFamily="'DM Mono',monospace"
+                      style={{cursor:"help",textDecoration:tip?"underline dotted":"none"}}
+                      onMouseEnter={()=>setTip(true)}
+                      onMouseLeave={()=>setTip(false)}
+                    >{label}</text>
+                    {tip && (
+                      <foreignObject x={x-80} y={y-48} width={160} height={80} style={{pointerEvents:"none",overflow:"visible"}}>
+                        <div xmlns="http://www.w3.org/1999/xhtml" style={{background:"var(--surface-2,#1e1e2e)",border:"1px solid var(--border)",borderRadius:6,padding:"6px 8px",fontSize:10,color:"var(--text-mid)",lineHeight:1.4,textAlign:"center",pointerEvents:"none",whiteSpace:"normal",boxShadow:"0 4px 12px rgba(0,0,0,0.5)"}}>
+                          {RADAR_TIPS[label]}
+                        </div>
+                      </foreignObject>
+                    )}
+                  </g>
+                );
+              }}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
               <Tooltip contentStyle={tt}/>
               <Radar name="Group Avg" dataKey="Avg" stroke="#555577" fill="#555577" fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
