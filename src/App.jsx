@@ -2437,7 +2437,20 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const [deletePw, setDeletePw] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderMsg, setReminderMsg] = useState("");
 
+  const sendReminders=async()=>{
+    setReminderLoading(true);setReminderMsg("");
+    try {
+      const res=await fetch("/api/send-picks-reminder",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({groupId:group.id,gw:group.currentGW,season:group.season||2025})});
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||"Failed");
+      setReminderMsg(data.sent>0?`Sent to ${data.sent} member${data.sent!==1?"s":""}.`:data.reason||"Nobody to remind.");
+    } catch(e){setReminderMsg("Failed to send.");}
+    setReminderLoading(false);
+    setTimeout(()=>setReminderMsg(""),4000);
+  };
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const [copiedLink,setCopiedLink]=useState(false);
   const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
@@ -2884,6 +2897,15 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
         </div>
       </Section>
 
+      {isAdmin&&(
+        <Section title="Reminders">
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <Btn variant="amber" onClick={sendReminders} disabled={reminderLoading}>{reminderLoading?"Sending...":"Send pick reminders"}</Btn>
+            {reminderMsg&&<span style={{fontSize:12,color:"var(--text-mid)"}}>{reminderMsg}</span>}
+          </div>
+          <div style={{fontSize:11,color:"var(--text-dim2)",marginTop:8}}>Emails GW{group.currentGW} members who haven't submitted all picks yet.</div>
+        </Section>
+      )}
       {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
       {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
       {skipModal&&createPortal(
