@@ -698,7 +698,7 @@ function AuthScreen({ onLogin, successMsg }) {
               <div style={{fontSize:12,color:"var(--text-dim)",letterSpacing:1}}>Enter your email and we'll send a reset link.</div>
               <Input value={forgotEmail} onChange={setForgotEmail} placeholder="Email" type="email" autoFocus onKeyDown={e=>e.key==="Enter"&&sendReset()} />
               {forgotMsg&&<div style={{fontSize:12,color:"#22c55e"}}>{forgotMsg}</div>}
-              <Btn onClick={sendReset} disabled={forgotLoading||!forgotEmail.trim()} style={{width:"100%",padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
+              <Btn onClick={sendReset} disabled={forgotLoading||!forgotEmail.trim()||!!forgotMsg} style={{width:"100%",padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
                 {forgotLoading?"...":"SEND LINK"}
               </Btn>
               <button onClick={()=>{setForgotMode(false);setForgotMsg("");setForgotEmail("");}} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back to sign in</button>
@@ -1217,8 +1217,11 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     return()=>document.removeEventListener("mousedown",handler);
   },[profileOpen]);
   useEffect(()=>{
-    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||(u[0].toUpperCase()+u.slice(1))];}));setNames(Object.fromEntries(e));})();
+    let cancelled=false;
+    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||(u[0].toUpperCase()+u.slice(1))];}));if(!cancelled)setNames(Object.fromEntries(e));})();
+    return()=>{cancelled=true;};
   },[group.members?.join(",")]);
+
   const spawnThumb = (e) => {
     e.stopPropagation();
     const id = Date.now() + Math.random();
@@ -2157,8 +2160,8 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
                   const key=editKey(u,f.id);
                   const isEditingCell=editing[key]!==undefined;
                   if(theme==="excel"){
-                    const ptsBg=effectivePts===null?"transparent":effectivePts===0?"#d4edda":effectivePts<=3?"transparent":effectivePts===4?"#fef3c7":"#fee2e2";
-                    const ptsColor=effectivePts===null?"#999":effectivePts===0?"#16a34a":effectivePts<=3?"#666":effectivePts===4?"#ca8a04":"#dc2626";
+                    const ptsBg=effectivePts===null?"transparent":effectivePts===0?"#d4edda":effectivePts<MISSED_PICK_PTS?"transparent":effectivePts===MISSED_PICK_PTS?"#fef3c7":"#fee2e2";
+                    const ptsColor=effectivePts===null?"#999":effectivePts===0?"#16a34a":effectivePts<MISSED_PICK_PTS?"#666":effectivePts===MISSED_PICK_PTS?"#ca8a04":"#dc2626";
                     return [
                       <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"none",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
