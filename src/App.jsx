@@ -2440,10 +2440,16 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const [reminderLoading, setReminderLoading] = useState(false);
   const [reminderMsg, setReminderMsg] = useState("");
 
+  const activeSeason=group.season||2025;
+  const reminderTargetGW=useMemo(()=>{
+    const seasonGWs=(group.gameweeks||[]).filter(gw=>(gw.season||activeSeason)===activeSeason).sort((a,b)=>a.gw-b.gw);
+    const gw=seasonGWs.find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));
+    return gw?.gw||group.currentGW;
+  },[group.gameweeks,group.season,group.currentGW]);
   const sendReminders=async()=>{
     setReminderLoading(true);setReminderMsg("");
     try {
-      const res=await fetch("/api/send-picks-reminder",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({groupId:group.id,gw:group.currentGW,season:group.season||2025})});
+      const res=await fetch("/api/send-picks-reminder",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({groupId:group.id,gw:reminderTargetGW,season:activeSeason})});
       const data=await res.json();
       if(!res.ok)throw new Error(data.error||"Failed");
       setReminderMsg(data.sent>0?`Sent to ${data.sent} member${data.sent!==1?"s":""}.`:data.reason||"Nobody to remind.");
@@ -2903,7 +2909,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
             <Btn variant="amber" onClick={sendReminders} disabled={reminderLoading}>{reminderLoading?"Sending...":"Send pick reminders"}</Btn>
             {reminderMsg&&<span style={{fontSize:12,color:"var(--text-mid)"}}>{reminderMsg}</span>}
           </div>
-          <div style={{fontSize:11,color:"var(--text-dim2)",marginTop:8}}>Emails GW{group.currentGW} members who haven't submitted all picks yet.</div>
+          <div style={{fontSize:11,color:"var(--text-dim2)",marginTop:8}}>Emails GW{reminderTargetGW} members who haven't submitted all picks yet.</div>
         </Section>
       )}
       {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
