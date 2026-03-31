@@ -2440,7 +2440,7 @@ function TrendsTab({group,names}) {
       rawMap[r.dn] = {
         "Accuracy":     `${r.rawAvg.toFixed(2)} pts avg`,
         "Consistency":  `\u00b1${r.stddev.toFixed(2)} pts/GW`,
-        "Perfect Rate": `${(r.perfectRate*100).toFixed(0)}%`,
+        "Perfect Rate": `${(r.perfectRate*100).toFixed(1)}%`,
         "Boldness":     `${r.boldness.toFixed(1)} goals/pick`,
         "Winner Rate":  `${(r.winnerRate*100).toFixed(0)}%`,
       };
