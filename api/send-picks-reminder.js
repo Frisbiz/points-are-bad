@@ -51,13 +51,14 @@ export default async function handler(req, res) {
 
   const appUrl = process.env.APP_URL || "https://points-are-bad.vercel.app";
   let sent = 0;
+  let noEmail = 0;
 
   await Promise.all(needsReminder.map(async username => {
     try {
       const userSnap = await db.collection("data").doc(docKey(`user:${username}`)).get();
-      if (!userSnap.exists) return;
+      if (!userSnap.exists) { noEmail++; return; }
       const user = userSnap.data().value;
-      if (!user?.email) return;
+      if (!user?.email) { noEmail++; return; }
 
       const name = user.displayName || username;
       await resend.emails.send({
@@ -72,5 +73,6 @@ export default async function handler(req, res) {
     }
   }));
 
-  return res.status(200).json({ sent });
+  const reason = sent === 0 && noEmail > 0 ? `${noEmail} member${noEmail !== 1 ? "s" : ""} have no email on file` : undefined;
+  return res.status(200).json({ sent, noEmail, reason });
 }
