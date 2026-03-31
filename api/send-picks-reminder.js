@@ -65,11 +65,11 @@ export default async function handler(req, res) {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL,
         to: user.email,
-        subject: `GW${gw} picks reminder — don't miss out`,
+        subject: `GW${gw} picks reminder`,
         html: emailHtml({
           title: `Gameweek ${gw} Picks`,
           greeting: `Hey ${name},`,
-          body: `You haven't submitted all your picks for <strong style="color:#f0f0f8;">Gameweek ${gw}</strong> yet.<br/><br/>Get them in before the first kickoff — picks lock when the whistle blows.`,
+          body: `You haven't submitted all your picks for <strong style="color:#f0f0f8;">Gameweek ${gw}</strong> yet.<br/><br/>Get them in before the first kickoff. Picks lock when the whistle blows.`,
           cta: { url: appUrl, label: "Submit my picks →" },
         }),
       });
