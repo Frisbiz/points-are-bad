@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
@@ -2485,6 +2485,67 @@ function TrendsTab({group,names}) {
     });
     return grid;
   }, [selectedPlayer, members, filteredGWs, preds, inScopeFixtureIds]);
+
+  const predStyleData = useMemo(() => {
+    return ds.map(p => {
+      let home = 0, draw = 0, away = 0;
+      completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
+        if (!f.result || f.status === "POSTPONED") return;
+        const pred = preds[p.username]?.[f.id];
+        if (!pred) return;
+        const [ph, pa] = pred.split("-").map(Number);
+        if (isNaN(ph) || isNaN(pa)) return;
+        if (ph > pa) home++;
+        else if (ph < pa) away++;
+        else draw++;
+      }));
+      const total = home + draw + away;
+      return {
+        name: p.dn,
+        Home: total ? +((home/total)*100).toFixed(1) : 0,
+        Draw: total ? +((draw/total)*100).toFixed(1) : 0,
+        Away: total ? +((away/total)*100).toFixed(1) : 0,
+      };
+    });
+  }, [ds, completedGws, preds]);
+
+  const goalInflationData = useMemo(() => {
+    return ds.map(p => {
+      let predTotal = 0, actualTotal = 0, count = 0;
+      completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
+        if (!f.result || f.status === "POSTPONED") return;
+        const pred = preds[p.username]?.[f.id];
+        if (!pred) return;
+        const [ph, pa] = pred.split("-").map(Number);
+        const [rh, ra] = f.result.split("-").map(Number);
+        if (isNaN(ph)||isNaN(pa)||isNaN(rh)||isNaN(ra)) return;
+        predTotal += ph + pa;
+        actualTotal += rh + ra;
+        count++;
+      }));
+      return { name: p.dn, value: count > 0 ? +((predTotal - actualTotal) / count).toFixed(2) : 0, color: memberColor(p.username) };
+    }).sort((a, b) => a.value - b.value);
+  }, [ds, completedGws, preds]);
+
+  const boldnessAccuracyData = useMemo(() => {
+    return ds.map(p => {
+      let predGoals = 0, ptsTotal = 0, count = 0;
+      completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
+        if (!f.result || f.status === "POSTPONED") return;
+        const pred = preds[p.username]?.[f.id];
+        if (!pred) return;
+        const fp = calcPts(pred, f.result);
+        if (fp === null) return;
+        const [ph, pa] = pred.split("-").map(Number);
+        if (isNaN(ph)||isNaN(pa)) return;
+        predGoals += ph + pa;
+        ptsTotal += fp;
+        count++;
+      }));
+      return { name: p.dn, boldness: count > 0 ? +(predGoals/count).toFixed(2) : 0, accuracy: count > 0 ? +(ptsTotal/count).toFixed(2) : 0, color: memberColor(p.username) };
+    });
+  }, [ds, completedGws, preds]);
+
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <div>
@@ -2656,6 +2717,74 @@ function TrendsTab({group,names}) {
           </ResponsiveContainer>
         </CC>
       </div>
+
+      {/* ── PREDICTION STYLE ────────────────────────── */}
+      <CC title="Prediction Style: Home / Draw / Away %">
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
+          <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:40,left:60,bottom:0}}>
+            <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
+            <Legend wrapperStyle={{fontSize:10}}/>
+            <Bar dataKey="Home" stackId="a" fill="#6366f1"/>
+            <Bar dataKey="Draw" stackId="a" fill="#f59e0b"/>
+            <Bar dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
+          </BarChart>
+        </ResponsiveContainer>
+      </CC>
+
+      {/* ── GOAL INFLATION ───────────────────────────── */}
+      <CC title="Goal Inflation: Avg Predicted Goals vs Reality">
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
+          <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:50,left:60,bottom:0}}>
+            <XAxis type="number" tickFormatter={v=>v>0?`+${v}`:String(v)} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <Tooltip contentStyle={tt} formatter={(v)=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
+            <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
+            <Bar dataKey="value" radius={[0,4,4,0]}>
+              {goalInflationData.map((entry,i)=><Cell key={i} fill={entry.value>=0?"#f59e0b":"#6366f1"}/>)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:10,fontSize:10,color:"var(--text-dim3)"}}>
+          <span><span style={{color:"#f59e0b"}}>■</span> Over-predicts goals</span>
+          <span><span style={{color:"#6366f1"}}>■</span> Under-predicts goals</span>
+        </div>
+      </CC>
+
+      {/* ── BOLDNESS VS ACCURACY SCATTER ─────────────── */}
+      <CC title="Boldness vs Accuracy">
+        {(()=>{
+          const data = boldnessAccuracyData;
+          if (!data.length) return null;
+          const xs = data.map(d=>d.boldness), ys = data.map(d=>d.accuracy);
+          const xMin=Math.min(...xs)-0.15, xMax=Math.max(...xs)+0.15;
+          const yMin=Math.min(...ys)-0.08, yMax=Math.max(...ys)+0.08;
+          const W=340, H=230, PL=46, PR=20, PT=14, PB=38;
+          const tx=v=>PL+(v-xMin)/(xMax-xMin)*(W-PL-PR);
+          const ty=v=>PT+(1-(v-yMin)/(yMax-yMin))*(H-PT-PB);
+          return (
+            <div style={{overflowX:"auto"}}>
+              <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:500,margin:"0 auto"}}>
+                <line x1={PL} y1={H-PB} x2={W-PR} y2={H-PB} stroke="var(--border)"/>
+                <line x1={PL} y1={PT} x2={PL} y2={H-PB} stroke="var(--border)"/>
+                <text x={W/2} y={H-6} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace">Avg goals predicted per pick (bolder)</text>
+                <text x={10} y={H/2} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace" transform={`rotate(-90,10,${H/2})`}>Avg pts / pick (lower = better)</text>
+                {data.map((d,i)=>{
+                  const x=tx(d.boldness), y=ty(d.accuracy);
+                  const goRight=x<W-90;
+                  return (
+                    <g key={i}>
+                      <circle cx={x} cy={y} r={7} fill={d.color} opacity={0.9}/>
+                      <text x={goRight?x+11:x-11} y={y+4} textAnchor={goRight?"start":"end"} fill="var(--text-mid)" fontSize={9} fontFamily="'DM Mono',monospace">{d.name}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          );
+        })()}
+      </CC>
 
       {/* ── SCORE PREDICTION HEATMAP ────────────────── */}
       <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
