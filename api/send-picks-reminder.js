@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { Resend } from "resend";
+import { emailHtml } from "./email-template.js";
 
 if (!getApps().length) {
   initializeApp({
@@ -64,8 +65,13 @@ export default async function handler(req, res) {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL,
         to: user.email,
-        subject: `GW${gw} picks reminder`,
-        html: `<p>Hi ${name},</p><p>You haven't submitted all your picks for Gameweek ${gw} yet. Get them in before kickoff!</p><p><a href="${appUrl}">${appUrl}</a></p>`,
+        subject: `GW${gw} picks reminder — don't miss out`,
+        html: emailHtml({
+          title: `Gameweek ${gw} Picks`,
+          greeting: `Hey ${name},`,
+          body: `You haven't submitted all your picks for <strong style="color:#f0f0f8;">Gameweek ${gw}</strong> yet.<br/><br/>Get them in before the first kickoff — picks lock when the whistle blows.`,
+          cta: { url: appUrl, label: "Submit my picks →" },
+        }),
       });
       sent++;
     } catch (e) {

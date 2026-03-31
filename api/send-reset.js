@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { Resend } from "resend";
+import { emailHtml } from "./email-template.js";
 
 if (!getApps().length) {
   initializeApp({
@@ -43,7 +44,12 @@ export default async function handler(req, res) {
       from: process.env.RESEND_FROM_EMAIL,
       to: normalised,
       subject: "Reset your Points Are Bad password",
-      html: `<p>Hi ${username},</p><p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you did not request this, ignore this email.</p>`,
+      html: emailHtml({
+        title: "Password Reset",
+        greeting: `Hey ${username},`,
+        body: `We received a request to reset your password. Click the button below — the link expires in <strong style="color:#f0f0f8;">1 hour</strong>.<br/><br/>If you didn't request this, you can safely ignore this email.`,
+        cta: { url: resetLink, label: "Reset my password →" },
+      }),
     });
   } catch (e) {
     console.error("send-reset error", e);
