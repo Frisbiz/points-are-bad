@@ -6,14 +6,22 @@ export function emailHtml({ title, greeting, body, cta }) {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light dark"/>
+<meta name="supported-color-schemes" content="light dark"/>
 <title>${title}</title>
 <style>@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');</style>
 <style>
+  :root { color-scheme: light dark; }
   body, table, td, th, a { -webkit-text-size-adjust:100%; }
   .t-lo { color: #555566 !important; }
   .t-bd { color: #e8e4d9 !important; }
   .t-ft { color: #333 !important; }
   .t-cp { color: #555566 !important; }
+  @media (prefers-color-scheme: dark) {
+    body, .ebg { background-color: #080810 !important; }
+    .ecard { background-color: #0c0c18 !important; border-color: #1a1a26 !important; }
+    .etitle { color: #ffffff !important; }
+  }
   @media (prefers-color-scheme: light) {
     body, .ebg { background-color: #ffffff !important; }
     .ecard { background-color: #f4f4f4 !important; border-color: #e0e0e0 !important; }
