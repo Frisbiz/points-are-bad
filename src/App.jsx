@@ -67,7 +67,7 @@ function ldel(key) {
 
 const FD_BASE = "https://api.football-data.org/v4";
 const PL_CODE = "PL";
-// Global API key — works for all groups automatically
+// Global API key (works for all groups automatically)
 const GLOBAL_API_KEY = import.meta.env.VITE_FD_API_KEY;
 
 const TEAM_NAME_MAP = {
@@ -1014,7 +1014,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {[
                       ["open","Open","Everyone picks freely each gameweek."],
-                      ["dibs","Dibs","Take turns claiming scorelines — no duplicates per match."],
+                      ["dibs","Dibs","Take turns claiming scorelines, no duplicates per match."],
                     ].map(([val,label,desc])=>(
                       <button key={val} onClick={()=>setSetupPickMode(val)}
                         style={{background:setupPickMode===val?"var(--btn-bg)":"var(--card)",color:setupPickMode===val?"var(--btn-text)":"var(--text-dim2)",border:`1px solid ${setupPickMode===val?"var(--btn-bg)":"var(--border)"}`,borderRadius:6,padding:"8px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,textAlign:"left",transition:"all 0.15s"}}>
@@ -1064,11 +1064,11 @@ const THEME_META=[
 ];
 
 const RADAR_TIPS = {
-  Accuracy: "Avg penalty pts per pick (lower = better). Group avg = 50 — higher score means fewer pts than average.",
+  Accuracy: "Avg penalty pts per pick (lower = better). Group avg = 50; higher score means fewer pts than average.",
   Consistency: "How stable your per-GW score is. Low variance = high score. Group avg = 50.",
   "Perfect Rate": "% of picks where you got the exact scoreline (0 pts). Group avg = 50.",
   Boldness: "Avg total goals you predict per fixture. Higher = more ambitious. Group avg = 50.",
-  Reliability: "% of fixtures you actually submitted a pick for (vs. missed). Group avg = 50.",
+  "Winner Rate": "% of picks where you correctly called the result (home win / draw / away win), regardless of exact score. Group avg = 50.",
 };
 function RadarTick({x, y, payload, textAnchor}) {
   const label = payload.value;
@@ -2364,8 +2364,22 @@ function TrendsTab({group,names}) {
       const pavgMean = gwPickedAvgs.length > 0 ? gwPickedAvgs.reduce((a,b)=>a+b,0)/gwPickedAvgs.length : 0;
       const stddev = gwPickedAvgs.length > 1 ? Math.sqrt(gwPickedAvgs.reduce((s,v)=>s+(v-pavgMean)**2,0)/gwPickedAvgs.length) : 0;
       const perfectRate = rawScored > 0 ? rawPerfects / rawScored : 0;
-      const reliability = rawScored > 0 ? 1 - rawMissed / rawScored : 1;
-      return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, reliability };
+      let winnerCorrect = 0;
+      completedGws.forEach(g => {
+        (g.fixtures||[]).forEach(f => {
+          if (!f.result || f.status === "POSTPONED") return;
+          const pred = preds[p.username]?.[f.id];
+          if (!pred) return;
+          const [ph, pa] = pred.split("-").map(Number);
+          const [rh, ra] = f.result.split("-").map(Number);
+          if (isNaN(ph)||isNaN(pa)||isNaN(rh)||isNaN(ra)) return;
+          const pOut = ph > pa ? 1 : ph < pa ? -1 : 0;
+          const rOut = rh > ra ? 1 : rh < ra ? -1 : 0;
+          if (pOut === rOut) winnerCorrect++;
+        });
+      });
+      const winnerRate = rawPicked > 0 ? winnerCorrect / rawPicked : 0;
+      return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, winnerRate };
     });
     if (raw.length === 0) return [];
     // Mean-centred: avg = 50, most extreme player reaches 0 or 100
@@ -2378,13 +2392,13 @@ function TrendsTab({group,names}) {
         return Math.round(Math.max(0, Math.min(100, 50 + (dev / maxDev) * 50)));
       });
     };
-    const axes = ["Accuracy","Consistency","Perfect Rate","Boldness","Reliability"];
+    const axes = ["Accuracy","Consistency","Perfect Rate","Boldness","Winner Rate"];
     const rawVals = {
       "Accuracy":     centreNorm(raw.map(r=>r.rawAvg),      true),
       "Consistency":  centreNorm(raw.map(r=>r.stddev),      true),
       "Perfect Rate": centreNorm(raw.map(r=>r.perfectRate), false),
       "Boldness":     centreNorm(raw.map(r=>r.boldness),    false),
-      "Reliability":  centreNorm(raw.map(r=>r.reliability), false),
+      "Winner Rate":  centreNorm(raw.map(r=>r.winnerRate),  false),
     };
     return axes.map(axis => {
       const scores = rawVals[axis];
@@ -2598,7 +2612,7 @@ function TrendsTab({group,names}) {
       </div>
 
       {/* ── SCORE PREDICTION HEATMAP ────────────────── */}
-      <CC title={`Score Prediction Heatmap${selectedPlayer?` — ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
+      <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
         {(()=>{
           const maxCount = Math.max(...Object.values(scoreGridData), 1);
           const cellSize = 44;
@@ -2978,7 +2992,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
           );
         const memberOrder = group.memberOrder || group.members || [];
         return (
-          <Section title="Dibs — Pick Order">
+          <Section title="Dibs: Pick Order">
             <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:14,letterSpacing:0}}>
               Pick rotation for this season. Order determines who has first pick each fixture.
             </div>
