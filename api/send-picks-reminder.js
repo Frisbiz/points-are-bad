@@ -32,14 +32,12 @@ export default async function handler(req, res) {
   const gwObj = (group.gameweeks || []).find(g => g.gw === gw && (g.season || group.season || 2025) === season);
   if (!gwObj) return res.status(404).json({ error: "Gameweek not found" });
 
-  const now = Date.now();
   const openFixtures = (gwObj.fixtures || []).filter(f =>
     !f.result &&
     f.status !== "FINISHED" &&
     f.status !== "IN_PLAY" &&
     f.status !== "PAUSED" &&
-    f.status !== "POSTPONED" &&
-    (!f.date || new Date(f.date).getTime() > now)
+    f.status !== "POSTPONED"
   );
 
   if (!openFixtures.length) return res.status(200).json({ sent: 0, reason: "No open fixtures" });
