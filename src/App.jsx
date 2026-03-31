@@ -2343,28 +2343,34 @@ function TrendsTab({group,names}) {
       const boldness = rawPicked > 0 ? boldTotal / rawPicked : 0;
       const mean = gwPts.length > 0 ? gwPts.reduce((a,b)=>a+b,0)/gwPts.length : 0;
       const stddev = gwPts.length > 1 ? Math.sqrt(gwPts.reduce((s,v)=>s+(v-mean)**2,0)/gwPts.length) : 0;
-      return { username: p.username, dn: p.dn, rawScored, rawMissed, rawPicked, rawPerfects, rawAvg, boldness, stddev };
+      const perfectRate = rawScored > 0 ? rawPerfects / rawScored : 0;
+      const reliability = rawScored > 0 ? 1 - rawMissed / rawScored : 1;
+      return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, reliability };
     });
     if (raw.length === 0) return [];
-    const maxAvg = Math.max(...raw.map(r => r.rawAvg), 0.001);
-    const maxStddev = Math.max(...raw.map(r => r.stddev), 0.001);
-    const maxBold = Math.max(...raw.map(r => r.boldness), 0.001);
+    // Group means — each axis normalises so that group mean = 50
+    const grpAvg = (key) => raw.reduce((s,r) => s + r[key], 0) / raw.length || 0.001;
+    const meanRawAvg   = grpAvg("rawAvg");
+    const meanStddev   = grpAvg("stddev");
+    const meanPerfRate = grpAvg("perfectRate");
+    const meanBoldness = grpAvg("boldness");
+    const meanRelbl    = grpAvg("reliability");
+    // norm: ratio * 50 so that exactly-average = 50; lowerIsBetter flips ratio
+    const norm = (val, mean, lowerIsBetter) => {
+      if (mean === 0) return 50;
+      const ratio = lowerIsBetter ? mean / (val || 0.001) : val / mean;
+      return Math.round(Math.max(0, Math.min(100, ratio * 50)));
+    };
     const axes = ["Accuracy","Consistency","Perfect Rate","Boldness","Reliability"];
-    const normalized = raw.map(r => {
-      const scores = {
-        "Accuracy":     Math.round(100 - (r.rawAvg / maxAvg) * 100),
-        "Consistency":  Math.round(100 - (r.stddev / maxStddev) * 100),
-        "Perfect Rate": r.rawScored > 0 ? Math.round((r.rawPerfects / r.rawScored) * 100) : 0,
-        "Boldness":     Math.round((r.boldness / maxBold) * 100),
-        "Reliability":  r.rawScored > 0 ? Math.round((1 - r.rawMissed / r.rawScored) * 100) : 100,
-      };
-      if (raw.length === 1) Object.keys(scores).forEach(k => scores[k] = 100);
-      return { username: r.username, dn: r.dn, scores };
-    });
     return axes.map(axis => {
-      const entry = { subject: axis };
-      normalized.forEach(p => { entry[p.dn] = p.scores[axis]; });
-      entry["Avg"] = normalized.length > 0 ? Math.round(normalized.reduce((s, p) => s + p.scores[axis], 0) / normalized.length) : 50;
+      const entry = { subject: axis, Avg: 50 };
+      raw.forEach(r => {
+        if (axis === "Accuracy")     entry[r.dn] = norm(r.rawAvg,     meanRawAvg,   true);
+        else if (axis === "Consistency")  entry[r.dn] = norm(r.stddev,     meanStddev,   true);
+        else if (axis === "Perfect Rate") entry[r.dn] = norm(r.perfectRate,meanPerfRate, false);
+        else if (axis === "Boldness")     entry[r.dn] = norm(r.boldness,   meanBoldness, false);
+        else                              entry[r.dn] = norm(r.reliability, meanRelbl,   false);
+      });
       return entry;
     });
   }, [ds, completedGws, preds, activeSeason]);
@@ -2542,17 +2548,16 @@ function TrendsTab({group,names}) {
               <PolarAngleAxis dataKey="subject" tick={{fill:"var(--text-mid)",fontSize:10,fontFamily:"'DM Mono',monospace"}}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
               <Tooltip contentStyle={tt}/>
-              <Radar name="Group Avg" dataKey="Avg" stroke="#555566" fill="#555566" fillOpacity={0.18} strokeWidth={1.5} strokeDasharray="5 3"/>
-              {ds.map(p=>(
+              <Radar name="Group Avg" dataKey="Avg" stroke="#555577" fill="#555577" fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
+              {ds.filter(p => !selectedPlayer || selectedPlayer === p.username).map(p=>(
                 <Radar
                   key={p.username}
                   name={p.dn}
                   dataKey={p.dn}
                   stroke={memberColor(p.username)}
                   fill={memberColor(p.username)}
-                  fillOpacity={selectedPlayer===p.username?0.45:selectedPlayer?0.05:0.12}
-                  strokeWidth={selectedPlayer===p.username?2.5:1.5}
-                  strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.2:1}
+                  fillOpacity={selectedPlayer ? 0.4 : 0.15}
+                  strokeWidth={selectedPlayer ? 2.5 : 1.5}
                 />
               ))}
             </RadarChart>
