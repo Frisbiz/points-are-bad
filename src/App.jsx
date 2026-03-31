@@ -2305,7 +2305,8 @@ function TrendsTab({group,names}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,children})=><div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"22px 18px",marginBottom:18}}><h3 style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"var(--text-mid)",marginBottom:18}}>{title}</h3>{children}</div>;
+  const CC=({title,sub,children})=>(<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"20px 20px 18px",marginBottom:18}}><div style={{marginBottom:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:"var(--text-dim3)",textTransform:"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:"32px 0 18px"}}><div style={{width:2,height:14,background:"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const filteredGWs = gws;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const inScopeFixtureIds = useMemo(() => {
@@ -2561,39 +2562,84 @@ function TrendsTab({group,names}) {
   return (
     <div>
       <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:28}}>Trends</h1>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:20}}>
-        {ds.map((p)=>(
-          <div
-            key={p.username}
-            onClick={() => setSelectedPlayer(prev => prev === p.username ? null : p.username)}
-            style={{
-              background:"var(--surface)",
-              border:`1px solid ${selectedPlayer===p.username ? memberColor(p.username) : "var(--border)"}`,
-              borderRadius:10,
-              padding:"16px 18px",
-              cursor:"pointer",
-              opacity: selectedPlayer && selectedPlayer!==p.username ? 0.4 : 1,
-              transition:"opacity 0.15s,border-color 0.15s"
-            }}
-          >
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><Avatar name={p.dn} size={26} color={memberColor(p.username)}/><span style={{fontSize:12,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.dn}</span></div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[["TOTAL",p.total,memberColor(p.username)],["AVG",p.avg,"var(--text-mid)"],["PERFECT",p.perfects,"#22c55e"],["PLAYED",p.scored,"var(--text-dim3)"]].map(([l,v,c])=>(
-                <div key={l}><div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:2}}>{l}</div><div style={{fontSize:l==="TOTAL"?20:16,fontWeight:700,color:c,fontFamily:l==="TOTAL"?"'Playfair Display',serif":"inherit"}}>{v}</div></div>
-              ))}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10,marginBottom:30}}>
+        {ds.map((p,ri)=>{
+          const rank=ri+1;
+          const medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":null;
+          const color=memberColor(p.username);
+          const isSelected=selectedPlayer===p.username;
+          return (
+            <div key={p.username} onClick={()=>setSelectedPlayer(prev=>prev===p.username?null:p.username)}
+              style={{background:"var(--surface)",border:`1px solid ${isSelected?color:"var(--border)"}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",opacity:selectedPlayer&&!isSelected?0.35:1,transition:"opacity 0.15s,border-color 0.15s",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:color,borderRadius:"12px 12px 0 0"}}/>
+              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,marginTop:4}}>
+                <span style={{fontSize:11,fontWeight:700,color:"var(--text-dim3)",minWidth:20}}>{medal||`#${rank}`}</span>
+                <Avatar name={p.dn} size={21} color={color}/>
+                <span style={{fontSize:11,fontWeight:600,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{p.dn}</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",gap:2}}>
+                {[["PTS",p.total,color,"'Playfair Display',serif",17],["AVG",p.avg,"var(--text-mid)","inherit",13],["PERF",p.perfects,"#22c55e","inherit",13]].map(([l,v,c,ff,fs])=>(
+                  <div key={l} style={{textAlign:"center",flex:1}}>
+                    <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1.5,marginBottom:2}}>{l}</div>
+                    <div style={{fontSize:fs,fontWeight:800,color:c,fontFamily:ff,lineHeight:1}}>{v}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <CC title="Points Per Gameweek"><ResponsiveContainer width="100%" height={200}><LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>{ds.filter(p => !selectedPlayer || selectedPlayer===p.username).map((p)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}</LineChart></ResponsiveContainer></CC>
-      <CC title="Cumulative Points Race (lower = winning)"><ResponsiveContainer width="100%" height={200}><LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.filter(p => !selectedPlayer || selectedPlayer===p.username).map((p)=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}</LineChart></ResponsiveContainer></CC>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
-        <CC title="Points Distribution"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map((p)=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+      <SH label="Season Story"/>
+      <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek">
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*40,200)}>
+          <LineChart data={rankData} margin={{top:20,right:8,left:-10,bottom:0}}>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis reversed domain={[1,ds.length]} allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} ticks={ds.map((_,i)=>i+1)}/>
+            <Tooltip contentStyle={tt} formatter={(val,name,props)=>{const pts=props.payload[`${name}_pts`];return [`#${val} (${pts}pts)`,name];}}/>
+            {ds.map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={selectedPlayer===p.username?3:2} strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1} dot={{r:4,fill:memberColor(p.username)}} activeDot={{r:6}}/>)}
+          </LineChart>
+        </ResponsiveContainer>
+      </CC>
+      <CC title="Cumulative Points Race" sub="Running total — lower is winning">
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>
+            {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}
+          </LineChart>
+        </ResponsiveContainer>
+      </CC>
+
+      <SH label="Gameweek Performance"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:18}}>
+        <CC title="Points Per Gameweek">
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}>
+              <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>
+              {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}
+            </LineChart>
+          </ResponsiveContainer>
+        </CC>
+        <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
+              <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={tt}/>
+              <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
+              <Area type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
+              <Line type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
+              {selectedPlayer&&(()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </CC>
       </div>
 
       {/* ── GW HEATMAP ──────────────────────────────── */}
-      <CC title="GW Heatmap">
+      <CC title="GW Heatmap" sub="Points per gameweek — green = low (good), red = high (bad)">
         {(()=>{
           // build relative color scale from actual data
           const allPts = ds.flatMap(p => completedGws.map(g => {
@@ -2651,31 +2697,8 @@ function TrendsTab({group,names}) {
         })()}
       </CC>
 
-      {/* ── BUMP CHART ──────────────────────────────── */}
-      <CC title="Rankings Over Time">
-        <ResponsiveContainer width="100%" height={Math.max(ds.length*40,200)}>
-          <LineChart data={rankData} margin={{top:20,right:8,left:-10,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-            <YAxis reversed domain={[1,ds.length]} allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} ticks={ds.map((_,i)=>i+1)}/>
-            <Tooltip contentStyle={tt} formatter={(val,name,props)=>{const pts=props.payload[`${name}_pts`];return [`#${val} (${pts}pts)`,name];}}/>
-            {ds.map(p=>(
-              <Line
-                key={p.username}
-                type="monotone"
-                dataKey={p.dn}
-                stroke={memberColor(p.username)}
-                strokeWidth={selectedPlayer===p.username?3:2}
-                strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1}
-                dot={{r:4,fill:memberColor(p.username)}}
-                activeDot={{r:6}}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </CC>
-
-      {/* ── POINTS BREAKDOWN ────────────────────────── */}
-      <CC title="Points Breakdown">
+      <SH label="Pick Quality"/>
+      <CC title="Points Breakdown" sub="How each player's picks land across outcome types">
         <ResponsiveContainer width="100%" height={Math.max(ds.length*40,180)}>
           <BarChart data={breakdownData} layout="vertical" margin={{top:0,right:18,left:60,bottom:0}}>
             <XAxis type="number" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -2689,10 +2712,27 @@ function TrendsTab({group,names}) {
           </BarChart>
         </ResponsiveContainer>
       </CC>
-
-      {/* ── RADAR + GW SWING ────────────────────────── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Player Radar vs Group Avg">
+        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+      </div>
+
+      <SH label="Playing Style"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
+        <CC title="Prediction Style" sub="How often each player backs home win / draw / away win">
+          <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
+            <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:40,left:60,bottom:0}}>
+              <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
+              <Legend wrapperStyle={{fontSize:10}}/>
+              <Bar dataKey="Home" stackId="a" fill="#6366f1"/>
+              <Bar dataKey="Draw" stackId="a" fill="#f59e0b"/>
+              <Bar dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </CC>
+        <CC title="Player Radar" sub="Normalized vs group average. Hover axis labels for definitions">
           <ResponsiveContainer width="100%" height={260}>
             <RadarChart data={radarData.data} margin={{top:10,right:30,bottom:10,left:30}}>
               <PolarGrid stroke="var(--border)"/>
@@ -2700,103 +2740,61 @@ function TrendsTab({group,names}) {
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
               <Tooltip content={<RadarTooltip rawMap={radarData.rawMap} tt={tt}/>}/>
               <Radar name="Group Avg" dataKey="Avg" stroke="#555577" fill="#555577" fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
-              {ds.filter(p => !selectedPlayer || selectedPlayer === p.username).map(p=>(
-                <Radar
-                  key={p.username}
-                  name={p.dn}
-                  dataKey={p.dn}
-                  stroke={memberColor(p.username)}
-                  fill={memberColor(p.username)}
-                  fillOpacity={selectedPlayer ? 0.4 : 0.15}
-                  strokeWidth={selectedPlayer ? 2.5 : 1.5}
-                />
+              {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=>(
+                <Radar key={p.username} name={p.dn} dataKey={p.dn} stroke={memberColor(p.username)} fill={memberColor(p.username)} fillOpacity={selectedPlayer?0.4:0.15} strokeWidth={selectedPlayer?2.5:1.5}/>
               ))}
             </RadarChart>
           </ResponsiveContainer>
         </CC>
-        <CC title="GW Swing">
-          <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
-              <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={tt}/>
-              <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
-              <Area type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
-              <Line type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
-              {selectedPlayer && (()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
-            </ComposedChart>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
+        <CC title="Goal Inflation" sub="Avg predicted total goals minus actual goals per pick">
+          <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
+            <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:50,left:60,bottom:0}}>
+              <XAxis type="number" tickFormatter={v=>v>0?`+${v}`:String(v)} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <Tooltip contentStyle={tt} formatter={v=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
+              <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
+              <Bar dataKey="value" radius={[0,4,4,0]}>
+                {goalInflationData.map((e,i)=><Cell key={i} fill={e.value>=0?"#f59e0b":"#6366f1"}/>)}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
+          <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:10,fontSize:10,color:"var(--text-dim3)"}}>
+            <span><span style={{color:"#f59e0b"}}>■</span> Over-predicts</span>
+            <span><span style={{color:"#6366f1"}}>■</span> Under-predicts</span>
+          </div>
+        </CC>
+        <CC title="Boldness vs Accuracy" sub="Do bolder scoreline predictions help or hurt?">
+          {(()=>{
+            const data=boldnessAccuracyData;
+            if(!data.length) return null;
+            const xs=data.map(d=>d.boldness),ys=data.map(d=>d.accuracy);
+            const xMin=Math.min(...xs)-0.15,xMax=Math.max(...xs)+0.15;
+            const yMin=Math.min(...ys)-0.08,yMax=Math.max(...ys)+0.08;
+            const W=320,H=220,PL=44,PR=16,PT=12,PB=36;
+            const tx=v=>PL+(v-xMin)/(xMax-xMin)*(W-PL-PR);
+            const ty=v=>PT+(1-(v-yMin)/(yMax-yMin))*(H-PT-PB);
+            return (
+              <div style={{overflowX:"auto"}}>
+                <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:480,margin:"0 auto"}}>
+                  <line x1={PL} y1={H-PB} x2={W-PR} y2={H-PB} stroke="var(--border)"/>
+                  <line x1={PL} y1={PT} x2={PL} y2={H-PB} stroke="var(--border)"/>
+                  <text x={W/2} y={H-4} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace">avg goals predicted / pick</text>
+                  <text x={10} y={H/2} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace" transform={`rotate(-90,10,${H/2})`}>avg pts / pick</text>
+                  {data.map((d,i)=>{
+                    const x=tx(d.boldness),y=ty(d.accuracy),goRight=x<W-80;
+                    return (<g key={i}><circle cx={x} cy={y} r={4} fill={d.color} opacity={0.9}/><text x={goRight?x+8:x-8} y={y+4} textAnchor={goRight?"start":"end"} fill="var(--text-mid)" fontSize={9} fontFamily="'DM Mono',monospace">{d.name}</text></g>);
+                  })}
+                </svg>
+              </div>
+            );
+          })()}
         </CC>
       </div>
 
-      {/* ── PREDICTION STYLE ────────────────────────── */}
-      <CC title="Prediction Style: Home / Draw / Away %">
-        <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
-          <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:40,left:60,bottom:0}}>
-            <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-            <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
-            <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
-            <Legend wrapperStyle={{fontSize:10}}/>
-            <Bar dataKey="Home" stackId="a" fill="#6366f1"/>
-            <Bar dataKey="Draw" stackId="a" fill="#f59e0b"/>
-            <Bar dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
-          </BarChart>
-        </ResponsiveContainer>
-      </CC>
-
-      {/* ── GOAL INFLATION ───────────────────────────── */}
-      <CC title="Goal Inflation: Avg Predicted Goals vs Reality">
-        <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
-          <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:50,left:60,bottom:0}}>
-            <XAxis type="number" tickFormatter={v=>v>0?`+${v}`:String(v)} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-            <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
-            <Tooltip contentStyle={tt} formatter={(v)=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
-            <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
-            <Bar dataKey="value" radius={[0,4,4,0]}>
-              {goalInflationData.map((entry,i)=><Cell key={i} fill={entry.value>=0?"#f59e0b":"#6366f1"}/>)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:10,fontSize:10,color:"var(--text-dim3)"}}>
-          <span><span style={{color:"#f59e0b"}}>■</span> Over-predicts goals</span>
-          <span><span style={{color:"#6366f1"}}>■</span> Under-predicts goals</span>
-        </div>
-      </CC>
-
-      {/* ── BOLDNESS VS ACCURACY SCATTER ─────────────── */}
-      <CC title="Boldness vs Accuracy">
-        {(()=>{
-          const data = boldnessAccuracyData;
-          if (!data.length) return null;
-          const xs = data.map(d=>d.boldness), ys = data.map(d=>d.accuracy);
-          const xMin=Math.min(...xs)-0.15, xMax=Math.max(...xs)+0.15;
-          const yMin=Math.min(...ys)-0.08, yMax=Math.max(...ys)+0.08;
-          const W=340, H=230, PL=46, PR=20, PT=14, PB=38;
-          const tx=v=>PL+(v-xMin)/(xMax-xMin)*(W-PL-PR);
-          const ty=v=>PT+(1-(v-yMin)/(yMax-yMin))*(H-PT-PB);
-          return (
-            <div style={{overflowX:"auto"}}>
-              <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",maxWidth:500,margin:"0 auto"}}>
-                <line x1={PL} y1={H-PB} x2={W-PR} y2={H-PB} stroke="var(--border)"/>
-                <line x1={PL} y1={PT} x2={PL} y2={H-PB} stroke="var(--border)"/>
-                <text x={W/2} y={H-6} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace">Avg goals predicted per pick (bolder)</text>
-                <text x={10} y={H/2} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace" transform={`rotate(-90,10,${H/2})`}>Avg pts / pick (lower = better)</text>
-                {data.map((d,i)=>{
-                  const x=tx(d.boldness), y=ty(d.accuracy);
-                  const goRight=x<W-90;
-                  return (
-                    <g key={i}>
-                      <circle cx={x} cy={y} r={4} fill={d.color} opacity={0.9}/>
-                      <text x={goRight?x+11:x-11} y={y+4} textAnchor={goRight?"start":"end"} fill="var(--text-mid)" fontSize={9} fontFamily="'DM Mono',monospace">{d.name}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-          );
-        })()}
-      </CC>
-
+      <SH label="Scorelines"/>
       {/* ── SCORE HEATMAPS ──────────────────────────── */}
       {(()=>{
         const renderHeatmap = (grid, color, label) => {
