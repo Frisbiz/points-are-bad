@@ -2323,26 +2323,26 @@ function TrendsTab({group,names}) {
   const radarData = useMemo(() => {
     const raw = ds.map(p => {
       let rawScored = 0, rawMissed = 0, rawPicked = 0, rawPerfects = 0, rawTotal = 0, boldTotal = 0;
-      const gwPts = [];
+      const gwPickedAvgs = []; // per-GW avg pts on picked fixtures only (misses excluded)
       completedGws.forEach(g => {
-        let gwSum = 0;
+        let gwPickSum = 0, gwPickCount = 0;
         (g.fixtures||[]).forEach(f => {
           if (!f.result || f.status === "POSTPONED") return;
           rawScored++;
           const pred = preds[p.username]?.[f.id];
-          if (!pred) { rawMissed++; gwSum += MISSED_PICK_PTS; return; }
+          if (!pred) { rawMissed++; return; }
           const fp = calcPts(pred, f.result) ?? 0;
-          rawPicked++; rawTotal += fp; gwSum += fp;
+          rawPicked++; rawTotal += fp; gwPickSum += fp; gwPickCount++;
           if (fp === 0) rawPerfects++;
           const [h, a] = pred.split("-").map(Number);
           if (!isNaN(h) && !isNaN(a)) boldTotal += h + a;
         });
-        gwPts.push(gwSum);
+        if (gwPickCount > 0) gwPickedAvgs.push(gwPickSum / gwPickCount);
       });
       const rawAvg = rawPicked > 0 ? rawTotal / rawPicked : 0;
       const boldness = rawPicked > 0 ? boldTotal / rawPicked : 0;
-      const mean = gwPts.length > 0 ? gwPts.reduce((a,b)=>a+b,0)/gwPts.length : 0;
-      const stddev = gwPts.length > 1 ? Math.sqrt(gwPts.reduce((s,v)=>s+(v-mean)**2,0)/gwPts.length) : 0;
+      const pavgMean = gwPickedAvgs.length > 0 ? gwPickedAvgs.reduce((a,b)=>a+b,0)/gwPickedAvgs.length : 0;
+      const stddev = gwPickedAvgs.length > 1 ? Math.sqrt(gwPickedAvgs.reduce((s,v)=>s+(v-pavgMean)**2,0)/gwPickedAvgs.length) : 0;
       const perfectRate = rawScored > 0 ? rawPerfects / rawScored : 0;
       const reliability = rawScored > 0 ? 1 - rawMissed / rawScored : 1;
       return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, reliability };
