@@ -985,7 +985,6 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
       const existing = await sget(`useremail:${normEmail}`);
       if (existing && existing.username !== user.username) {
         setEmailError("Email already in use.");
-        setEmailLoading(false);
         return;
       }
       // Write sequentially
@@ -995,14 +994,12 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
         if (!delOk) {
           // sdel failed after sset succeeded -- unrecoverable partial write
           setEmailError("Something went wrong. Please contact support.");
-          setEmailLoading(false);
           return;
         }
       }
       const patchOk = await spatch(`user:${user.username}`, "email", normEmail);
       if (!patchOk) {
         setEmailError("Something went wrong. Please contact support.");
-        setEmailLoading(false);
         return;
       }
       onUpdateUser({ ...user, email: normEmail });
