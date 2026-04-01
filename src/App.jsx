@@ -786,6 +786,139 @@ function ResetPasswordScreen({ token, onDone }) {
   );
 }
 
+/* ── ACCOUNT SETUP MODAL ─────────────────────────────── */
+function AccountSetupModal({ user, onDone }) {
+  const needsEmail = !user.email;
+  const needsPassword = user.password === "password123";
+
+  const [emailVal, setEmailVal] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const pendingUser = useRef(null);
+
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => onDone(pendingUser.current), 1500);
+    return () => clearTimeout(t);
+  }, [success, onDone]);
+
+  const handle = async () => {
+    setError("");
+    // Client-side validation
+    if (needsEmail) {
+      if (!emailVal.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal.trim())) {
+        setError("Please enter a valid email address.");
+        return;
+      }
+    }
+    if (needsPassword) {
+      if (pwNew.trim().length < 6) { setError("Password must be at least 6 characters."); return; }
+      if (pwNew !== pwConfirm) { setError("Passwords do not match."); return; }
+    }
+    setLoading(true);
+    try {
+      const normEmail = emailVal.trim().toLowerCase();
+      // Email uniqueness check
+      if (needsEmail) {
+        const existing = await sget(`useremail:${normEmail}`);
+        if (existing && existing.username !== user.username) {
+          setError("Email already in use.");
+          setLoading(false);
+          return;
+        }
+      }
+      // Firebase writes
+      if (needsEmail) {
+        await sset(`useremail:${normEmail}`, { username: user.username });
+        await spatch(`user:${user.username}`, "email", normEmail);
+      }
+      if (needsPassword) {
+        await spatch(`user:${user.username}`, "password", pwNew);
+      }
+      // Stage updated user and trigger success flash
+      pendingUser.current = {
+        ...user,
+        ...(needsEmail && { email: normEmail }),
+        ...(needsPassword && { password: pwNew }),
+      };
+      setSuccess(true);
+    } catch {
+      setError("Something went wrong, please try again.");
+      setLoading(false);
+    }
+  };
+
+  return createPortal(
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)",
+      zIndex: 2000, display: "flex", alignItems: "center",
+      justifyContent: "center", padding: 24,
+    }}>
+      <div style={{
+        background: "var(--card)", border: "1px solid var(--border)",
+        borderRadius: 14, padding: 32, width: "100%", maxWidth: 400,
+        fontFamily: "'DM Mono',monospace",
+      }}>
+        <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3, marginBottom: 8 }}>
+          COMPLETE YOUR ACCOUNT
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 24 }}>
+          Before you continue, please secure your account.
+        </div>
+
+        {success ? (
+          <div style={{ textAlign: "center", padding: "24px 0", fontSize: 14, color: "#22c55e" }}>
+            All set!
+          </div>
+        ) : (
+          <>
+            {needsEmail && (
+              <div style={{ marginBottom: needsPassword ? 16 : 0 }}>
+                <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3, marginBottom: 6 }}>
+                  ADD YOUR EMAIL
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 10 }}>
+                  Add an email address so you can reset your password if you ever get locked out.
+                </div>
+                <Input value={emailVal} onChange={setEmailVal} placeholder="Email address" type="email" />
+              </div>
+            )}
+
+            {needsEmail && needsPassword && (
+              <div style={{ borderTop: "1px solid var(--border3)", margin: "16px 0" }} />
+            )}
+
+            {needsPassword && (
+              <div>
+                <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3, marginBottom: 6 }}>
+                  SET A NEW PASSWORD
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 10 }}>
+                  Your account is using the default password. Please set a secure one.
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
+                  <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password"
+                    onKeyDown={e => e.key === "Enter" && handle()} />
+                </div>
+              </div>
+            )}
+
+            {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 12 }}>{error}</div>}
+            <Btn onClick={handle} disabled={loading} style={{ width: "100%", marginTop: 20, padding: "12px 0", display: "block", textAlign: "center", letterSpacing: 2 }}>
+              {loading ? "..." : "SAVE & CONTINUE"}
+            </Btn>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* ── GROUP LOBBY ─────────────────────────────────── */
 function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null }) {
   const [groups,setGroups]=useState([]);
