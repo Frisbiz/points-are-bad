@@ -944,6 +944,11 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const [pwError,setPwError]=useState("");
   const [pwSuccess,setPwSuccess]=useState(false);
   const [pwLoading,setPwLoading]=useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailChanging, setEmailChanging] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState(false);
   const profileRef=useRef(null);
   useEffect(()=>{
     if(!profileOpen)return;
@@ -961,6 +966,51 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     await sset(`user:${user.username}`,{...fresh,password:pwNew});
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
+  };
+  const saveEmail = async () => {
+    const normEmail = emailInput.trim().toLowerCase();
+    setEmailError("");
+    if (!normEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+    // No-op: same as current email
+    if (user.email && normEmail === user.email.toLowerCase()) {
+      setEmailChanging(false);
+      setEmailInput("");
+      return;
+    }
+    setEmailLoading(true);
+    try {
+      const existing = await sget(`useremail:${normEmail}`);
+      if (existing && existing.username !== user.username) {
+        setEmailError("Email already in use.");
+        setEmailLoading(false);
+        return;
+      }
+      // Write sequentially
+      await sset(`useremail:${normEmail}`, { username: user.username });
+      if (user.email) {
+        const delOk = await sdel(`useremail:${user.email}`);
+        if (!delOk) {
+          // sdel failed after sset succeeded -- unrecoverable partial write
+          setEmailError("Something went wrong. Please contact support.");
+          setEmailLoading(false);
+          return;
+        }
+      }
+      await spatch(`user:${user.username}`, "email", normEmail);
+      onUpdateUser({ ...user, email: normEmail });
+      setEmailSuccess(true);
+      setTimeout(() => {
+        setEmailSuccess(false);
+        setEmailChanging(false);
+        setEmailInput("");
+      }, 1500);
+    } catch {
+      setEmailError("Something went wrong, please try again.");
+    }
+    setEmailLoading(false);
   };
   const [creating,setCreating]=useState(false);
   const [setupMode,setSetupMode]=useState(false);
@@ -1088,8 +1138,31 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
           <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-mid)"}}>{user.username}</span>
         </div>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
+        <div style={{borderBottom:"1px solid var(--border3)",paddingBottom:8,marginBottom:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"6px 0"}}>
+            <span style={{color:"var(--text-dim)"}}>Email</span>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
+              <button
+                onClick={()=>{setEmailChanging(o=>!o);setEmailInput("");setEmailError("");setEmailSuccess(false);}}
+                style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,
+                  letterSpacing:1,fontFamily:"inherit",padding:0}}>
+                {emailChanging?"CANCEL":user.email?"CHANGE →":"ADD →"}
+              </button>
+            </div>
+          </div>
+          {emailChanging&&(
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>
+              <Input value={emailInput} onChange={setEmailInput} placeholder="Email address" type="email"
+                onKeyDown={e=>e.key==="Enter"&&saveEmail()} autoFocus />
+              {emailError&&<div style={{color:"#ef4444",fontSize:12}}>{emailError}</div>}
+              {emailSuccess&&<div style={{color:"#22c55e",fontSize:12}}>Email updated.</div>}
+              <Btn onClick={saveEmail} disabled={emailLoading||emailSuccess}
+                style={{padding:"8px 0",textAlign:"center",letterSpacing:2}}>
+                {emailLoading?"...":"SAVE"}
+              </Btn>
+            </div>
+          )}
         </div>
       </div>
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CHANGE PASSWORD</div>
