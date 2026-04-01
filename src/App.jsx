@@ -787,7 +787,7 @@ function ResetPasswordScreen({ token, onDone }) {
 }
 
 /* ── ACCOUNT SETUP MODAL ─────────────────────────────── */
-function AccountSetupModal({ user, onDone }) {
+function AccountSetupModal({ user, onDone, onLogout }) {
   const needsEmail = !user.email;
   const needsPassword = user.password === "password123";
 
@@ -914,7 +914,10 @@ function AccountSetupModal({ user, onDone }) {
             </Btn>
           </>
         )}
+      <div style={{textAlign:"center",marginTop:20}}>
+        <button onClick={onLogout} style={{background:"none",border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>Log out</button>
       </div>
+    </div>
     </div>,
     document.body
   );
@@ -1433,7 +1436,7 @@ export default function App() {
         </div>
       )}
       {user && needsSetup && boot && (
-        <AccountSetupModal user={user} onDone={handleSetupDone} />
+        <AccountSetupModal user={user} onDone={handleSetupDone} onLogout={handleLogout} />
       )}
       {!boot?(
         <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
