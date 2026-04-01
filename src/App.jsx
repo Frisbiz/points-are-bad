@@ -814,9 +814,10 @@ function AccountSetupModal({ user, onDone }) {
         return;
       }
     }
+    const trimmedPw = needsPassword ? pwNew.trim() : "";
     if (needsPassword) {
-      if (pwNew.trim().length < 6) { setError("Password must be at least 6 characters."); return; }
-      if (pwNew !== pwConfirm) { setError("Passwords do not match."); return; }
+      if (trimmedPw.length < 6) { setError("Password must be at least 6 characters."); return; }
+      if (trimmedPw !== pwConfirm.trim()) { setError("Passwords do not match."); return; }
     }
     setLoading(true);
     try {
@@ -836,13 +837,13 @@ function AccountSetupModal({ user, onDone }) {
         await spatch(`user:${user.username}`, "email", normEmail);
       }
       if (needsPassword) {
-        await spatch(`user:${user.username}`, "password", pwNew);
+        await spatch(`user:${user.username}`, "password", trimmedPw);
       }
       // Stage updated user and trigger success flash
       pendingUser.current = {
         ...user,
         ...(needsEmail && { email: normEmail }),
-        ...(needsPassword && { password: pwNew }),
+        ...(needsPassword && { password: trimmedPw }),
       };
       setSuccess(true);
     } catch {
@@ -883,7 +884,7 @@ function AccountSetupModal({ user, onDone }) {
                 <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 10 }}>
                   Add an email address so you can reset your password if you ever get locked out.
                 </div>
-                <Input value={emailVal} onChange={setEmailVal} placeholder="Email address" type="email" />
+                <Input value={emailVal} onChange={setEmailVal} placeholder="Email address" type="email" onKeyDown={e => e.key === "Enter" && handle()} />
               </div>
             )}
 
@@ -900,7 +901,7 @@ function AccountSetupModal({ user, onDone }) {
                   Your account is using the default password. Please set a secure one.
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
+                  <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" onKeyDown={e => e.key === "Enter" && handle()} />
                   <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password"
                     onKeyDown={e => e.key === "Enter" && handle()} />
                 </div>
