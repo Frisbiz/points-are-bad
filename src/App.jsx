@@ -999,7 +999,12 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
           return;
         }
       }
-      await spatch(`user:${user.username}`, "email", normEmail);
+      const patchOk = await spatch(`user:${user.username}`, "email", normEmail);
+      if (!patchOk) {
+        setEmailError("Something went wrong. Please contact support.");
+        setEmailLoading(false);
+        return;
+      }
       onUpdateUser({ ...user, email: normEmail });
       setEmailSuccess(true);
       setTimeout(() => {
@@ -1009,8 +1014,9 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
       }, 1500);
     } catch {
       setEmailError("Something went wrong, please try again.");
+    } finally {
+      setEmailLoading(false);
     }
-    setEmailLoading(false);
   };
   const [creating,setCreating]=useState(false);
   const [setupMode,setSetupMode]=useState(false);
@@ -1144,7 +1150,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
               <button
-                onClick={()=>{setEmailChanging(o=>!o);setEmailInput("");setEmailError("");setEmailSuccess(false);}}
+                onClick={()=>{setEmailChanging(o=>!o);setEmailInput("");setEmailError("");setEmailSuccess(false);setEmailLoading(false);}}
                 style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,
                   letterSpacing:1,fontFamily:"inherit",padding:0}}>
                 {emailChanging?"CANCEL":user.email?"CHANGE →":"ADD →"}
