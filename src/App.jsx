@@ -2290,6 +2290,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 
 /* ── TRENDS ──────────────────────────────────────── */
 function TrendsTab({group,names}) {
+  const mob = useMobile();
   const stats = useMemo(()=>computeStats(group),[group]);
   const members = group.members||[];
   const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
@@ -2305,8 +2306,8 @@ function TrendsTab({group,names}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,sub,children})=>(<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"20px 20px 18px",marginBottom:18}}><div style={{marginBottom:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:"var(--text-dim3)",textTransform:"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
-  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:"32px 0 18px"}}><div style={{width:2,height:14,background:"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
+  const CC=({title,sub,children})=>(<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:"var(--text-dim3)",textTransform:"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const filteredGWs = gws;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const inScopeFixtureIds = useMemo(() => {
@@ -2561,8 +2562,8 @@ function TrendsTab({group,names}) {
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <div>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:28}}>Trends</h1>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:10,marginBottom:30}}>
+      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:mob?24:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:mob?16:28}}>Trends</h1>
+      <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${mob?140:155}px,1fr))`,gap:mob?8:10,marginBottom:mob?20:30}}>
         {ds.map((p,ri)=>{
           const rank=ri+1;
           const medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":null;
@@ -2591,19 +2592,19 @@ function TrendsTab({group,names}) {
       </div>
       <SH label="Season Story"/>
       <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek">
-        <ResponsiveContainer width="100%" height={Math.max(ds.length*40,200)}>
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?160:200)}>
           <LineChart data={rankData} margin={{top:20,right:8,left:-10,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
             <YAxis reversed domain={[1,ds.length]} allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} ticks={ds.map((_,i)=>i+1)}/>
             <Tooltip contentStyle={tt} formatter={(val,name,props)=>{const pts=props.payload[`${name}_pts`];return [`#${val} (${pts}pts)`,name];}}/>
-            {ds.map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={selectedPlayer===p.username?3:2} strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1} dot={{r:4,fill:memberColor(p.username)}} activeDot={{r:6}}/>)}
+            {ds.map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={selectedPlayer===p.username?3:2} strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1} dot={{r:mob?3:4,fill:memberColor(p.username)}} activeDot={{r:6}}/>)}
           </LineChart>
         </ResponsiveContainer>
       </CC>
       <CC title="Cumulative Points Race" sub="Running total — lower is winning">
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={mob?160:200}>
           <LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>
             {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}
@@ -2613,19 +2614,19 @@ function TrendsTab({group,names}) {
 
       <SH label="Gameweek Performance"/>
       <CC title="Points Per Gameweek">
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={mob?200:260}>
           <LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>
-            {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}
+            {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:mob?2:3}} activeDot={{r:5}}/>)}
           </LineChart>
         </ResponsiveContainer>
       </CC>
       <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={mob?170:220}>
           <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/>
             <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
@@ -2656,33 +2657,33 @@ function TrendsTab({group,names}) {
             const tt = (t-0.5)*2;
             return `hsl(${55-tt*55},${80+tt*5}%,${38+tt*5}%)`;
           };
-          const cellW = 30, rowH = 30, labelW = 100;
+          const cellW = mob?22:30, rowH = mob?22:30, labelW = mob?72:100;
           return (
-            <div style={{overflowX:"auto"}}>
+            <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
               <svg width={Math.max(completedGws.length*cellW+labelW,200)} height={ds.length*rowH+32} style={{display:"block"}}>
                 {completedGws.map((g,ci)=>(
-                  <text key={`ch-${ci}`} x={labelW+ci*cellW+cellW/2} y={14} textAnchor="middle" fill="var(--text-dim3)" fontSize={8} fontFamily="'DM Mono',monospace">{`GW${g.gw}`}</text>
+                  <text key={`ch-${ci}`} x={labelW+ci*cellW+cellW/2} y={14} textAnchor="middle" fill="var(--text-dim3)" fontSize={mob?7:8} fontFamily="'DM Mono',monospace">{mob?String(g.gw):`GW${g.gw}`}</text>
                 ))}
                 {ds.map((p,ri)=>{
                   const row = gwHeatmapData[p.username]||{};
                   return (
                     <g key={p.username}>
-                      <text x={labelW-4} y={32+ri*rowH+rowH/2} textAnchor="end" fill="var(--text-mid)" fontSize={10} fontFamily="'DM Mono',monospace" dominantBaseline="middle">{p.dn}</text>
+                      <text x={labelW-4} y={32+ri*rowH+rowH/2} textAnchor="end" fill="var(--text-mid)" fontSize={mob?9:10} fontFamily="'DM Mono',monospace" dominantBaseline="middle">{p.dn}</text>
                       {completedGws.map((g,ci)=>{
                         const gwKey = `${g.gw}-${g.season||activeSeason}`;
                         const cell = row[gwKey];
-                        if (!cell) return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+2} y={32+ri*rowH+2} width={cellW-4} height={rowH-4} rx={4} fill="var(--border)"/>;
-                        if (cell === "postponed") return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+2} y={32+ri*rowH+2} width={cellW-4} height={rowH-4} rx={4} fill="var(--border)"/>;
+                        if (!cell) return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill="var(--border)"/>;
+                        if (cell === "postponed") return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill="var(--border)"/>;
                         const nonPP = (g.fixtures||[]).filter(f=>f.result&&f.status!=="POSTPONED").length;
                         const allMissed = cell.missed && cell.pts >= MISSED_PICK_PTS * nonPP;
                         const fill = allMissed ? "#1e1e30" : heatColor(cell.pts);
                         const textFill = allMissed ? "#555566" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111");
                         return (
                           <g key={`${ri}-${ci}`}>
-                            <rect x={labelW+ci*cellW+2} y={32+ri*rowH+2} width={cellW-4} height={rowH-4} rx={4} fill={fill}>
+                            <rect x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill={fill}>
                               <title>{allMissed?"missed":String(cell.pts)}</title>
                             </rect>
-                            {!allMissed && <text x={labelW+ci*cellW+cellW/2} y={32+ri*rowH+rowH/2} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={8} fontFamily="'DM Mono',monospace" fontWeight={600}>{cell.pts}</text>}
+                            {!allMissed && !mob && <text x={labelW+ci*cellW+cellW/2} y={32+ri*rowH+rowH/2} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={8} fontFamily="'DM Mono',monospace" fontWeight={600}>{cell.pts}</text>}
                           </g>
                         );
                       })}
@@ -2697,10 +2698,10 @@ function TrendsTab({group,names}) {
 
       <SH label="Pick Quality"/>
       <CC title="Points Breakdown" sub="How each player's picks land across outcome types">
-        <ResponsiveContainer width="100%" height={Math.max(ds.length*40,180)}>
-          <BarChart data={breakdownData} layout="vertical" margin={{top:0,right:18,left:60,bottom:0}}>
+        <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?150:180)}>
+          <BarChart data={breakdownData} layout="vertical" margin={{top:0,right:mob?8:18,left:mob?50:60,bottom:0}}>
             <XAxis type="number" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-            <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/>
             <Legend content={<BreakdownLegend/>}/>
             <Bar dataKey="Perfect" stackId="a" fill="#22c55e"/>
@@ -2718,10 +2719,10 @@ function TrendsTab({group,names}) {
       <SH label="Playing Style"/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
         <CC title="Prediction Style" sub="How often each player backs home win / draw / away win">
-          <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
-            <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:40,left:60,bottom:0}}>
+          <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:44),mob?160:200)}>
+            <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:mob?8:40,left:mob?50:60,bottom:0}}>
               <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
               <Legend wrapperStyle={{fontSize:10}}/>
               <Bar dataKey="Home" stackId="a" fill="#6366f1"/>
@@ -2731,8 +2732,8 @@ function TrendsTab({group,names}) {
           </ResponsiveContainer>
         </CC>
         <CC title="Player Radar" sub="Normalized vs group average. Hover axis labels for definitions">
-          <ResponsiveContainer width="100%" height={260}>
-            <RadarChart data={radarData.data} margin={{top:10,right:30,bottom:10,left:30}}>
+          <ResponsiveContainer width="100%" height={mob?220:260}>
+            <RadarChart data={radarData.data} margin={{top:10,right:mob?20:30,bottom:10,left:mob?20:30}}>
               <PolarGrid stroke="var(--border)"/>
               <PolarAngleAxis dataKey="subject" tick={<RadarTick/>}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
@@ -2748,10 +2749,10 @@ function TrendsTab({group,names}) {
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
         <CC title="Goal Inflation" sub="Avg predicted total goals minus actual goals per pick">
-          <ResponsiveContainer width="100%" height={Math.max(ds.length*44,200)}>
-            <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:50,left:60,bottom:0}}>
+          <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:44),mob?160:200)}>
+            <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:mob?24:50,left:mob?50:60,bottom:0}}>
               <XAxis type="number" tickFormatter={v=>v>0?`+${v}`:String(v)} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis type="category" dataKey="name" width={58} tick={{fill:"var(--text-mid)",fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={tt} formatter={v=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
               <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
               <Bar dataKey="value" radius={[0,4,4,0]}>
@@ -2797,7 +2798,7 @@ function TrendsTab({group,names}) {
       {(()=>{
         const renderHeatmap = (grid, color, label) => {
           const maxCount = Math.max(...Object.values(grid), 1);
-          const cellSize = 44, pad = 28;
+          const cellSize = mob?36:44, pad = mob?22:28;
           const svgSize = 6*cellSize+pad+20;
           return (
             <div style={{overflowX:"auto"}}>
