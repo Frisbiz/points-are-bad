@@ -2612,31 +2612,29 @@ function TrendsTab({group,names}) {
       </CC>
 
       <SH label="Gameweek Performance"/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:18}}>
-        <CC title="Points Per Gameweek">
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}>
-              <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>
-              {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}
-            </LineChart>
-          </ResponsiveContainer>
-        </CC>
-        <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
-          <ResponsiveContainer width="100%" height={200}>
-            <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
-              <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={tt}/>
-              <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
-              <Area type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
-              <Line type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
-              {selectedPlayer&&(()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
-            </ComposedChart>
-          </ResponsiveContainer>
-        </CC>
-      </div>
+      <CC title="Points Per Gameweek">
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>
+            {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:3}} activeDot={{r:5}}/>)}
+          </LineChart>
+        </ResponsiveContainer>
+      </CC>
+      <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
+        <ResponsiveContainer width="100%" height={220}>
+          <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
+            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
+            <Tooltip contentStyle={tt}/>
+            <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
+            <Area type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
+            <Line type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
+            {selectedPlayer&&(()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </CC>
 
       {/* ── GW HEATMAP ──────────────────────────────── */}
       <CC title="GW Heatmap" sub="Points per gameweek — green = low (good), red = high (bad)">
