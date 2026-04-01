@@ -287,6 +287,41 @@ const CLUB_COLORS = {
   "Southampton":"#D71920","Spurs":"#132257","West Ham":"#7A263A","Wolves":"#FDB913"
 };
 
+const TEAM_BADGES = {
+  "Arsenal": "https://resources.premierleague.com/premierleague/badges/t3.png",
+  "Aston Villa": "https://resources.premierleague.com/premierleague/badges/t7.png",
+  "Bournemouth": "https://resources.premierleague.com/premierleague/badges/t91.png",
+  "Brentford": "https://resources.premierleague.com/premierleague/badges/t94.png",
+  "Brighton": "https://resources.premierleague.com/premierleague/badges/t36.png",
+  "Burnley": "https://resources.premierleague.com/premierleague/badges/t90.png",
+  "Chelsea": "https://resources.premierleague.com/premierleague/badges/t8.png",
+  "Crystal Palace": "https://resources.premierleague.com/premierleague/badges/t31.png",
+  "Everton": "https://resources.premierleague.com/premierleague/badges/t11.png",
+  "Fulham": "https://resources.premierleague.com/premierleague/badges/t54.png",
+  "Ipswich": "https://resources.premierleague.com/premierleague/badges/t40.png",
+  "Leeds": "https://resources.premierleague.com/premierleague/badges/t2.png",
+  "Leicester": "https://resources.premierleague.com/premierleague/badges/t13.png",
+  "Liverpool": "https://resources.premierleague.com/premierleague/badges/t14.png",
+  "Man City": "https://resources.premierleague.com/premierleague/badges/t43.png",
+  "Man Utd": "https://resources.premierleague.com/premierleague/badges/t1.png",
+  "Newcastle": "https://resources.premierleague.com/premierleague/badges/t4.png",
+  "Nott'm Forest": "https://resources.premierleague.com/premierleague/badges/t17.png",
+  "Southampton": "https://resources.premierleague.com/premierleague/badges/t20.png",
+  "Spurs": "https://resources.premierleague.com/premierleague/badges/t6.png",
+  "Sunderland": "https://resources.premierleague.com/premierleague/badges/t56.png",
+  "West Ham": "https://resources.premierleague.com/premierleague/badges/t21.png",
+  "Wolves": "https://resources.premierleague.com/premierleague/badges/t39.png",
+};
+
+function TeamBadge({ team, size = 18, style = {} }) {
+  const badge = TEAM_BADGES[team];
+  const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
+  if (!badge) {
+    return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
+  }
+  return <img src={badge} alt={team} style={{width:size,height:size,objectFit:"contain",flexShrink:0,...style}} />;
+}
+
 function makeFixturesFallback(gw, season) {
   const CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];
   const seed = gw * 9301 + 49297;
@@ -2282,13 +2317,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.home]||"var(--text-dim)",flexShrink:0}}/>
+                <TeamBadge team={f.home} size={16} />
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
-                <div style={{width:7,height:7,borderRadius:"50%",background:CLUB_COLORS[f.away]||"var(--text-dim)",flexShrink:0}}/>
+                <TeamBadge team={f.away} size={16} />
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -2305,11 +2340,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
-              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.home]||"var(--text-dim)",flexShrink:0}}/>
+              <TeamBadge team={f.home} size={18} />
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[f.away]||"var(--text-dim)",flexShrink:0}}/>
+              <TeamBadge team={f.away} size={18} />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{pickBlock}</div>
@@ -2432,7 +2467,15 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               const rowBg=theme==="excel"?(fi%2===0?"#ffffff":"#f5f5f5"):undefined;
               return (
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
-                <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>{f.home} vs {f.away}</td>
+                <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:theme==="excel"?"flex-start":"center",flexWrap:"wrap"}}>
+                    <TeamBadge team={f.home} size={16} />
+                    <span>{f.home}</span>
+                    <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:1}}>vs</span>
+                    <TeamBadge team={f.away} size={16} />
+                    <span>{f.away}</span>
+                  </div>
+                </td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{f.result?f.result:f.liveScore?<span style={{color:"#f59e0b"}}>{f.liveScore}</span>:f.status==="POSTPONED"?<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>:null}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
