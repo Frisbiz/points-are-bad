@@ -1271,6 +1271,11 @@ export default function App() {
     return p.get("join")||null;
   });
   const [resetDone,setResetDone]=useState(false);
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const handleSetupDone = useCallback((updatedUser) => {
+    setUser(updatedUser);
+    setNeedsSetup(false);
+  }, []);
   const showToast=useCallback((msg)=>{
     setToast(msg);
     if(toastTimer.current)clearTimeout(toastTimer.current);
@@ -1290,6 +1295,7 @@ export default function App() {
       const u=await sget(`user:${saved.username}`);
       if(!u){setBootError(true);setBoot(true);return;}
       setUser(u);
+      setNeedsSetup(!u.email || u.password === "password123");
       if(saved.groupId){
         const g=await sget(`group:${saved.groupId}`);
         if(g&&g.members?.includes(u.username)){
@@ -1303,7 +1309,11 @@ export default function App() {
 
   useEffect(()=>{runBoot();},[]);
 
-  const handleLogin = async (u) => {lset("session",{username:u.username});setUser(u);};
+  const handleLogin = async (u) => {
+    lset("session", {username: u.username});
+    setUser(u);
+    setNeedsSetup(!u.email || u.password === "password123");
+  };
   const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
@@ -1345,6 +1355,9 @@ export default function App() {
           fontFamily:"'DM Mono',monospace",whiteSpace:"nowrap"}}>
           {toast}
         </div>
+      )}
+      {user && needsSetup && (
+        <AccountSetupModal user={user} onDone={handleSetupDone} />
       )}
       {!boot?(
         <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
