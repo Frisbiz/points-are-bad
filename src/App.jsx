@@ -1307,7 +1307,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   const myRank = stats.findIndex(s => s.username === user.username) + 1;
   const activeSeason = group.season || 2025;
   const completedGWs = (group.gameweeks || [])
-    .filter(g => (g.season || activeSeason) === activeSeason && g.fixtures.length > 0 && g.fixtures.every(f => f.result));
+    .filter(g => (g.season || activeSeason) === activeSeason && g.fixtures.length > 0 && g.fixtures.every(f => f.result || f.status === "POSTPONED"));
   const recapGW = completedGWs.length > 0 ? completedGWs.reduce((a, b) => a.gw > b.gw ? a : b) : null;
   const recapKey = recapGW ? `recap:${group.id}:${user.username}:gw${recapGW.gw}` : null;
   const [recapDismissed, setRecapDismissed] = useState(() => recapKey ? !!lget(recapKey) : true);
