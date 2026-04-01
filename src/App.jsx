@@ -1356,7 +1356,7 @@ export default function App() {
           {toast}
         </div>
       )}
-      {user && needsSetup && (
+      {user && needsSetup && boot && (
         <AccountSetupModal user={user} onDone={handleSetupDone} />
       )}
       {!boot?(
