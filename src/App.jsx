@@ -84,10 +84,10 @@ const TEAM_NAME_MAP = {
 
 function normName(n) { return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, "").replace(/ AFC$/, "") || n; }
 
-async function fetchMatchweek(apiKey, matchday, season = 2025) {
+async function fetchMatchweek(apiKey, matchday, season = 2025, competition = "PL") {
   const url = matchday != null
-    ? `/api/fixtures?matchday=${matchday}&season=${season}`
-    : `/api/fixtures?season=${season}`;
+    ? `/api/fixtures?matchday=${matchday}&season=${season}&competition=${competition}`
+    : `/api/fixtures?season=${season}&competition=${competition}`;
   const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 403) throw new Error("Invalid API key.");
@@ -106,20 +106,36 @@ async function fetchLiveMatches() {
   return data.matches || [];
 }
 
-function parseMatchesToFixtures(matches, matchday) {
+function parseMatchesToFixtures(matches, matchday, competition = "PL") {
+  const isWC = competition === "WC";
   return matches.map((m, i) => {
     const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
     const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
     const status = m.status;
     let result = null;
-    if (status === "FINISHED" && m.score?.fullTime) {
-      const { home: h, away: a } = m.score.fullTime;
-      if (h !== null && a !== null) result = `${h}-${a}`;
+    if (status === "FINISHED") {
+      // For WC knockout rounds, use extraTime score if available (covers goals in ET),
+      // otherwise fall back to fullTime. Group stage never has ET so fullTime is always correct.
+      const isKnockout = isWC && m.stage && m.stage !== "GROUP_STAGE";
+      const scoreObj = isKnockout && m.score?.extraTime?.home != null
+        ? m.score.extraTime
+        : m.score?.fullTime;
+      if (scoreObj) {
+        const { home: h, away: a } = scoreObj;
+        if (h !== null && a !== null) result = `${h}-${a}`;
+      }
     }
     const date = m.utcDate ? new Date(m.utcDate) : null;
     const scoreObj = m.score?.fullTime;
     const liveScore = (status==="IN_PLAY"||status==="PAUSED") && scoreObj?.home!=null && scoreObj?.away!=null ? `${scoreObj.home}-${scoreObj.away}` : null;
-    return { id: `gw${matchday}-f${m.id || i}`, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
+    const id = isWC ? `wc-gw${matchday}-f${m.id || i}` : `gw${matchday}-f${m.id || i}`;
+    const base = { id, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
+    if (isWC) {
+      base.stage = m.stage || null;
+      base.homeCrest = m.homeTeam?.crest || null;
+      base.awayCrest = m.awayTeam?.crest || null;
+    }
+    return base;
   });
 }
 
