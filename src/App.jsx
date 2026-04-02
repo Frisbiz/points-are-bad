@@ -1899,20 +1899,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
-  const focusNextPickInput = (fixtureId) => {
-    const idx = gwFixtures.findIndex(f => f.id === fixtureId);
-    if (idx === -1) return;
-    for (let i = idx + 1; i < gwFixtures.length; i++) {
-      const nextFixture = gwFixtures[i];
-      const nextEl = pickInputRefs.current[nextFixture.id];
-      if (nextEl && !nextEl.disabled && nextEl.offsetParent !== null) {
-        nextEl.focus();
-        nextEl.select?.();
-        return;
-      }
-    }
-  };
-
   const saveResult = async (fixtureId) => {
     const val = resultDraft[fixtureId];
     if (!val||!/^\d+-\d+$/.test(val)) return;
@@ -2281,6 +2267,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
+        const [draftHome, draftAway] = String(myPred).split("-");
         const pts = calcPts(myPreds[f.id],f.result);
         const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?MISSED_PICK_PTS:null);
         const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
@@ -2340,23 +2327,66 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             waiting for {names[waitingFor]||waitingFor}
           </span>
         ) : (
-          <>
-            <input value={myPred} placeholder="1-1"
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              value={draftHome||""}
+              placeholder="1"
               ref={el => {
-                if (el) pickInputRefs.current[f.id] = el;
-                else delete pickInputRefs.current[f.id];
+                if (el) pickInputRefs.current[`${f.id}:home`] = el;
+                else delete pickInputRefs.current[`${f.id}:home`];
               }}
-              onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
-              onBlur={e=>savePred(f.id,e.target.value)}
+              onChange={e=>{
+                const val = e.target.value.replace(/\D/g, "").slice(0,1);
+                setPredDraft(d=>({...d,[f.id]:`${val}-${draftAway||""}`}));
+                if (val) {
+                  setTimeout(()=>pickInputRefs.current[`${f.id}:away`]?.focus(),0);
+                }
+              }}
+              onBlur={()=>{
+                const combined = `${draftHome||""}-${draftAway||""}`;
+                if (/^\d+-\d+$/.test(combined)) savePred(f.id, combined);
+              }}
               onKeyDown={e=>{
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  savePred(f.id,e.currentTarget.value);
-                  setTimeout(() => focusNextPickInput(f.id), 0);
+                  pickInputRefs.current[`${f.id}:away`]?.focus();
                 }
               }}
-              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
-          </>
+              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
+            />
+            <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              value={draftAway||""}
+              placeholder="1"
+              ref={el => {
+                if (el) pickInputRefs.current[`${f.id}:away`] = el;
+                else delete pickInputRefs.current[`${f.id}:away`];
+              }}
+              onChange={e=>{
+                const val = e.target.value.replace(/\D/g, "").slice(0,1);
+                setPredDraft(d=>({...d,[f.id]:`${draftHome||""}-${val}`}));
+              }}
+              onBlur={()=>{
+                const combined = `${draftHome||""}-${draftAway||""}`;
+                if (/^\d+-\d+$/.test(combined)) savePred(f.id, combined);
+              }}
+              onKeyDown={e=>{
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const combined = `${draftHome||""}-${draftAway||""}`;
+                  if (/^\d+-\d+$/.test(combined)) savePred(f.id, combined);
+                  e.currentTarget.blur();
+                }
+              }}
+              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
+            />
+          </div>
         );
         if (mob) return (
           <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
