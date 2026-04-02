@@ -875,7 +875,7 @@ function LandingPage({onContinue}) {
   );
 }
 
-function AuthScreen({ onLogin, successMsg }) {
+function AuthScreen({ onLogin, onBack, successMsg }) {
   const [mode,setMode]=useState("login");
   const [username,setUsername]=useState("");
   const [password,setPassword]=useState("");
@@ -1007,7 +1007,10 @@ function AuthScreen({ onLogin, successMsg }) {
         >
           {demoLoading?"...":"TRY DEMO"}
         </button>
-        <div style={{textAlign:"center",marginTop:20,color:"var(--border2)",fontSize:11,letterSpacing:1}}>PL &amp; World Cup 2026 Predictions</div>
+        {onBack&&<div style={{textAlign:"center",marginTop:16}}>
+          <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
+        </div>}
+        <div style={{textAlign:"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:1}}>PL &amp; World Cup 2026 Predictions</div>
       </div>
     </div>
   );
@@ -1772,7 +1775,7 @@ export default function App() {
       ):!user&&showLanding?(
         <LandingPage onContinue={()=>setShowLanding(false)}/>
       ):!user?(
-        <AuthScreen onLogin={handleLogin} successMsg={resetDone?"Password updated - please sign in.":null}/>
+        <AuthScreen onLogin={handleLogin} onBack={()=>setShowLanding(true)} successMsg={resetDone?"Password updated - please sign in.":null}/>
       ):!group?(
         <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam}/>
       ):(
