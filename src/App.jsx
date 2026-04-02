@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
@@ -451,6 +451,32 @@ const CLUB_COLORS = {
   "Southampton":"#D71920","Spurs":"#132257","West Ham":"#7A263A","Wolves":"#FDB913"
 };
 
+const COUNTRY_FLAGS = {
+  "Argentina":"🇦🇷","Australia":"🇦🇺","Austria":"🇦🇹","Belgium":"🇧🇪","Bolivia":"🇧🇴",
+  "Bosnia and Herzegovina":"🇧🇦","Bosnia-Herzegovina":"🇧🇦","Brazil":"🇧🇷",
+  "Burkina Faso":"🇧🇫","Cameroon":"🇨🇲","Canada":"🇨🇦","Cape Verde":"🇨🇻",
+  "Chile":"🇨🇱","China":"🇨🇳","Colombia":"🇨🇴","Costa Rica":"🇨🇷","Croatia":"🇭🇷",
+  "Cuba":"🇨🇺","Czech Republic":"🇨🇿","Czechia":"🇨🇿","Denmark":"🇩🇰","DR Congo":"🇨🇩",
+  "Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  "France":"🇫🇷","Gabon":"🇬🇦","Germany":"🇩🇪","Ghana":"🇬🇭","Greece":"🇬🇷",
+  "Guatemala":"🇬🇹","Haiti":"🇭🇹","Honduras":"🇭🇳","Hungary":"🇭🇺","India":"🇮🇳",
+  "Indonesia":"🇮🇩","Iran":"🇮🇷","IR Iran":"🇮🇷","Iraq":"🇮🇶","Israel":"🇮🇱",
+  "Italy":"🇮🇹","Ivory Coast":"🇨🇮","Côte d'Ivoire":"🇨🇮","Jamaica":"🇯🇲",
+  "Japan":"🇯🇵","Jordan":"🇯🇴","Korea Republic":"🇰🇷","South Korea":"🇰🇷",
+  "Kuwait":"🇰🇼","Lebanon":"🇱🇧","Mali":"🇲🇱","Mexico":"🇲🇽","Montenegro":"🇲🇪",
+  "Morocco":"🇲🇦","Mozambique":"🇲🇿","Netherlands":"🇳🇱","New Zealand":"🇳🇿",
+  "Nigeria":"🇳🇬","North Macedonia":"🇲🇰","Norway":"🇳🇴","Oman":"🇴🇲",
+  "Panama":"🇵🇦","Paraguay":"🇵🇾","Peru":"🇵🇪","Poland":"🇵🇱","Portugal":"🇵🇹",
+  "Qatar":"🇶🇦","Romania":"🇷🇴","Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  "Senegal":"🇸🇳","Serbia":"🇷🇸","Slovakia":"🇸🇰","Slovenia":"🇸🇮",
+  "South Africa":"🇿🇦","Spain":"🇪🇸","Sweden":"🇸🇪","Switzerland":"🇨🇭",
+  "Tanzania":"🇹🇿","Thailand":"🇹🇭","Trinidad and Tobago":"🇹🇹","Tunisia":"🇩🇿",
+  "Turkey":"🇹🇷","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Uganda":"🇺🇬",
+  "Ukraine":"🇺🇦","Uruguay":"🇺🇾","USA":"🇺🇸","United States":"🇺🇸",
+  "Uzbekistan":"🇺🇿","Venezuela":"🇻🇪","Vietnam":"🇻🇳","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+  "Zambia":"🇿🇲","Zimbabwe":"🇿🇼","Albania":"🇦🇱","Algeria":"🇩🇿","Bahrain":"🇧🇭",
+};
+
 const TEAM_BADGES = {
   "Arsenal": "https://resources.premierleague.com/premierleague/badges/t3.png",
   "Aston Villa": "https://resources.premierleague.com/premierleague/badges/t7.png",
@@ -479,7 +505,11 @@ const TEAM_BADGES = {
 
 function TeamBadge({ team, crest, size = 22, style = {} }) {
   const src = crest || TEAM_BADGES[team];
+  const flag = COUNTRY_FLAGS[team];
   const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
+  if (!src && flag) {
+    return <span style={{fontSize:size*0.9,lineHeight:1,flexShrink:0,display:"inline-flex",alignItems:"center",...style}}>{flag}</span>;
+  }
   if (!src) {
     return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
   }
@@ -504,16 +534,17 @@ function makeWCRounds() {
 }
 
 function stageLabel(stage, matchday) {
-  const map = {
+  const stageMap = {
     GROUP_STAGE: `Matchday ${matchday}`,
-    LAST_32: "R32",
-    ROUND_OF_16: "R16",
-    QUARTER_FINAL: "QF",
-    SEMI_FINAL: "SF",
+    LAST_32: "Round of 32",
+    ROUND_OF_16: "Round of 16",
+    QUARTER_FINAL: "Quarter-Finals",
+    SEMI_FINAL: "Semi-Finals",
     THIRD_PLACE: "3rd Place",
     FINAL: "Final",
   };
-  return map[stage] || `Round ${matchday}`;
+  const gwFallback = {1:"Matchday 1",2:"Matchday 2",3:"Matchday 3",4:"Round of 32",5:"Round of 16",6:"Quarter-Finals",7:"Semi-Finals",8:"Final"};
+  return stageMap[stage] || gwFallback[matchday] || `Round ${matchday}`;
 }
 
 function gwLabel(group, gwNum) {
@@ -1808,6 +1839,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     }, 0);
     recapContent = { gwNum, winners, minPts, totalGoals };
   }
+  const isWCGroup = (group.competition || "PL") === "WC";
+  const nav = isWCGroup ? [...NAV.slice(0,2), "Bracket", ...NAV.slice(2)] : NAV;
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
@@ -1822,7 +1855,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
-            {NAV.map(t=>(
+            {nav.map(t=>(
               <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
           </nav>
@@ -1874,7 +1907,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   document.body
 )}
       <nav className="bot-nav">
-        {NAV.map(t=>(
+        {nav.map(t=>(
           <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
       </nav>
@@ -1892,10 +1925,157 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
+        {tab==="Bracket"&&<WCBracketTab group={group}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names}/>}
       </main>
+    </div>
+  );
+}
+
+/* ── WC BRACKET ──────────────────────────────────── */
+function WCBracketTab({ group }) {
+  const SLOT_H = 56;
+  const CARD_H = 46;
+  const COL_W = 152;
+  const CONN_W = 22;
+  const TOTAL_H = 16 * SLOT_H;
+
+  const getGWFixtures = (gwNum) =>
+    (group.gameweeks || []).find(g => g.gw === gwNum)?.fixtures || [];
+
+  const winnerSide = (f) => {
+    if (!f?.result) return null;
+    const [h, a] = f.result.split("-").map(Number);
+    return h > a ? "home" : a > h ? "away" : null;
+  };
+
+  const gw8 = getGWFixtures(8);
+  const finalMatch = gw8.find(f => f.stage === "FINAL") || gw8[0] || null;
+  const thirdMatch = gw8.find(f => f.stage === "THIRD_PLACE") || (gw8.length > 1 ? gw8[1] : null);
+
+  const MatchCard = ({ f, blockH }) => {
+    const winner = winnerSide(f);
+    return (
+      <div style={{
+        position:"absolute",
+        top:Math.max(0,(blockH-CARD_H)/2),
+        left:4,right:4,
+        height:CARD_H,
+        background:"var(--card)",
+        border:"1px solid var(--border)",
+        borderRadius:6,
+        overflow:"hidden",
+        display:"flex",
+        flexDirection:"column",
+      }}>
+        {["home","away"].map(side => {
+          const team = f?.[side] || null;
+          const crest = f?.[`${side}Crest`] || null;
+          const score = f?.result ? f.result.split("-")[side==="home"?0:1] : null;
+          const wins = winner === side;
+          const loses = winner && winner !== side;
+          return (
+            <div key={side} style={{
+              flex:1,display:"flex",alignItems:"center",gap:5,padding:"0 7px",
+              borderBottom:side==="home"?"1px solid var(--border3)":"none",
+              opacity:loses?0.38:1,
+              background:wins?"var(--card-hi)":"transparent",
+            }}>
+              <TeamBadge team={team||"?"} crest={crest} size={16} />
+              <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
+              {score!=null&&<span style={{fontSize:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:14,textAlign:"right"}}>{score}</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const BracketConnector = ({ fromCount }) => {
+    const slotH = TOTAL_H / fromCount;
+    const pairCount = fromCount / 2;
+    const lines = [];
+    for (let i = 0; i < pairCount; i++) {
+      const y0 = (2*i+0.5)*slotH;
+      const y1 = (2*i+1.5)*slotH;
+      const yMid = (y0+y1)/2;
+      lines.push(
+        <line key={`a${i}`} x1={0} y1={y0} x2={CONN_W/2} y2={y0} stroke="var(--border2)" strokeWidth={1}/>,
+        <line key={`b${i}`} x1={0} y1={y1} x2={CONN_W/2} y2={y1} stroke="var(--border2)" strokeWidth={1}/>,
+        <line key={`c${i}`} x1={CONN_W/2} y1={y0} x2={CONN_W/2} y2={y1} stroke="var(--border2)" strokeWidth={1}/>,
+        <line key={`d${i}`} x1={CONN_W/2} y1={yMid} x2={CONN_W} y2={yMid} stroke="var(--border2)" strokeWidth={1}/>,
+      );
+    }
+    return (
+      <svg width={CONN_W} height={TOTAL_H} style={{flexShrink:0,display:"block",marginTop:24}}>
+        {lines}
+      </svg>
+    );
+  };
+
+  const ROUNDS = [
+    {gw:4,label:"ROUND OF 32",count:16},
+    {gw:5,label:"ROUND OF 16",count:8},
+    {gw:6,label:"QUARTER-FINALS",count:4},
+    {gw:7,label:"SEMI-FINALS",count:2},
+    {gw:8,label:"FINAL",count:1},
+  ];
+
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:24}}>
+        <div>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Bracket</h1>
+          <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>WORLD CUP 2026 · KNOCKOUT STAGE</p>
+        </div>
+      </div>
+      <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:16}}>
+        <div style={{display:"flex",alignItems:"flex-start",paddingBottom:8}}>
+          {ROUNDS.map(({gw,label,count},ri) => {
+            const isLast = ri === ROUNDS.length - 1;
+            const allFixtures = getGWFixtures(gw);
+            const displayFixtures = gw === 8 ? [finalMatch] : allFixtures;
+            const blockH = TOTAL_H / count;
+            return [
+              <div key={`col-${gw}`} style={{width:COL_W,flexShrink:0}}>
+                <div style={{fontSize:8,color:"var(--text-dim)",letterSpacing:2,textAlign:"center",marginBottom:6,height:18}}>{label}</div>
+                <div style={{height:TOTAL_H,position:"relative"}}>
+                  {Array.from({length:count},(_,i)=>(
+                    <div key={i} style={{position:"absolute",top:i*blockH,left:0,right:0,height:blockH}}>
+                      <MatchCard f={displayFixtures[i]||null} blockH={blockH}/>
+                    </div>
+                  ))}
+                </div>
+              </div>,
+              !isLast && <BracketConnector key={`conn-${gw}`} fromCount={count}/>,
+            ];
+          })}
+        </div>
+      </div>
+      {thirdMatch && (
+        <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border3)"}}>
+          <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:8}}>3RD PLACE PLAYOFF</div>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",display:"flex",flexDirection:"column",maxWidth:COL_W,height:CARD_H}}>
+            {["home","away"].map(side=>{
+              const team = thirdMatch[side]||null;
+              const crest = thirdMatch[`${side}Crest`]||null;
+              const score = thirdMatch.result ? thirdMatch.result.split("-")[side==="home"?0:1] : null;
+              const winner = winnerSide(thirdMatch);
+              const wins = winner===side;
+              const loses = winner && winner!==side;
+              return (
+                <div key={side} style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderBottom:side==="home"?"1px solid var(--border3)":"none",opacity:loses?0.38:1,background:wins?"var(--card-hi)":"transparent"}}>
+                  <TeamBadge team={team||"?"} crest={crest} size={16}/>
+                  <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
+                  {score!=null&&<span style={{fontSize:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace"}}>{score}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2482,7 +2662,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                     textAlign:"center",
                     opacity:adminHidden?0.4:1,
                   }}>
-                    {adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{gwLabel(group,g.gw)}
+                    {adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{isWC?`R${g.gw}`:gwLabel(group,g.gw)}
                   </button>
                 );
               })}
