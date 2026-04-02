@@ -266,18 +266,52 @@ function makeDemoPick(username, fixture, gw, season) {
   const base = {
     faris: [1.5, 1.1],
     damon: [1.8, 1.4],
-    vall: [1.2, 0.9],
-    aamer: [1.6, 1.2],
+    vall: [1.6, 1.0],
+    aamer: [1.9, 1.1],
     demo: [1.4, 1.0],
   }[username] || [1.4, 1.1];
   const homeAdv = fixture.home === "Man City" || fixture.home === "Liverpool" || fixture.home === "Arsenal" ? 0.45 : 0;
   const awayAdv = fixture.away === "Man City" || fixture.away === "Liverpool" || fixture.away === "Arsenal" ? 0.25 : 0;
-  let h = Math.max(0, Math.min(5, Math.round(base[0] + homeAdv - awayAdv * 0.35 + (rng() - 0.5) * 2.2)));
-  let a = Math.max(0, Math.min(5, Math.round(base[1] + awayAdv - homeAdv * 0.2 + (rng() - 0.5) * 2.2)));
-  if (rng() < 0.18) {
+  const volatility = {
+    faris: 2.6,
+    damon: 3.0,
+    vall: 3.8,
+    aamer: 3.7,
+    demo: 2.8,
+  }[username] || 2.8;
+  let h = Math.max(0, Math.min(5, Math.round(base[0] + homeAdv - awayAdv * 0.35 + (rng() - 0.5) * volatility)));
+  let a = Math.max(0, Math.min(5, Math.round(base[1] + awayAdv - homeAdv * 0.2 + (rng() - 0.5) * volatility)));
+
+  if (rng() < 0.24) {
     const d = Math.max(0, Math.min(4, Math.round((h + a) / 2 + (rng() - 0.5))));
     h = d; a = d;
   }
+
+  if (rng() < 0.16) {
+    if (rng() < 0.5) h = Math.max(0, Math.min(5, h + 1));
+    else a = Math.max(0, Math.min(5, a + 1));
+  }
+
+  if ((username === "vall" || username === "aamer") && rng() < 0.22) {
+    const homeBlowout = rng() < 0.62;
+    const wild = rng();
+    const bigWin = wild < 0.08 ? 5 : wild < 0.4 ? 4 : 3;
+    const loser = wild < 0.25 ? 0 : 1;
+    if (homeBlowout) {
+      h = bigWin;
+      a = loser;
+    } else {
+      h = loser;
+      a = bigWin;
+    }
+  }
+
+  if (rng() < 0.1) {
+    const swap = h;
+    h = a;
+    a = swap;
+  }
+
   return `${h}-${a}`;
 }
 
