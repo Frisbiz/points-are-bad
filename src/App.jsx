@@ -477,6 +477,30 @@ function makeAllGWs(season) {
   return Array.from({length:38}, (_,i) => ({gw:i+1, season, fixtures:makeFixturesFallback(i+1, season)}));
 }
 
+function makeWCRounds() {
+  return Array.from({length:8}, (_,i) => ({gw:i+1, season:2026, fixtures:[]}));
+}
+
+function stageLabel(stage, matchday) {
+  const map = {
+    GROUP_STAGE: `Matchday ${matchday}`,
+    LAST_32: "R32",
+    ROUND_OF_16: "R16",
+    QUARTER_FINAL: "QF",
+    SEMI_FINAL: "SF",
+    THIRD_PLACE: "3rd Place",
+    FINAL: "Final",
+  };
+  return map[stage] || `Round ${matchday}`;
+}
+
+function gwLabel(group, gwNum) {
+  if ((group.competition || "PL") === "PL") return `GW${gwNum}`;
+  const gwObj = (group.gameweeks || []).find(g => g.gw === gwNum);
+  const stage = (gwObj?.fixtures || []).find(f => f.stage)?.stage;
+  return stageLabel(stage, gwNum);
+}
+
 const Avatar = ({ name, size = 36, color }) => {
   const ini = (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   const hue = [...(name||"")].reduce((a,c)=>a+c.charCodeAt(0),0)%360;
