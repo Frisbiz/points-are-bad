@@ -513,7 +513,7 @@ function TeamBadge({ team, crest, size = 22, style = {} }) {
   const flagSrc = !src && countryCode ? `https://flagcdn.com/w40/${countryCode}.png` : null;
   const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
   if (flagSrc) {
-    return <img src={flagSrc} alt={team} style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:2,flexShrink:0,...style}} />;
+    return <img src={flagSrc} alt={team} style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:"50%",flexShrink:0,...style}} />;
   }
   if (!src) {
     return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
