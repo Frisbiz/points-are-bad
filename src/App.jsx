@@ -664,8 +664,9 @@ function computeStats(group) {
 
 /* ── AUTH ─────────────────────────────────────────── */
 /* ── LANDING PAGE ─────────────────────────────────── */
-function LandingPage({onContinue}) {
+function LandingPage({onContinue, onDemo}) {
   const [thumbs,setThumbs]=useState([]);
+  const [demoLoading,setDemoLoading]=useState(false);
   const [phase,setPhase]=useState("open");
   const phaseIdx=useRef(0);
   const PHASES=["open","locked","result","score"];
@@ -744,6 +745,9 @@ function LandingPage({onContinue}) {
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"12px 28px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
               <button onClick={onContinue} style={{background:"transparent",color:"var(--text-mid)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"12px 28px",borderRadius:8,fontWeight:400,fontFamily:"inherit",border:"1px solid var(--border2)",cursor:"pointer"}}>Sign in</button>
             </div>
+            {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{marginTop:8,background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
+              {demoLoading?"loading...":"→ Try the live demo"}
+            </button>}
           </div>
           <div style={{display:"flex",justifyContent:"flex-end"}}>
             {/* prediction demo */}
@@ -862,7 +866,12 @@ function LandingPage({onContinue}) {
           <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:16}}>Play</div>
           <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:-2,lineHeight:1.1,marginBottom:16}}>Start a group.</h2>
           <p style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.3,marginBottom:36}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
-          <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"13px 36px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
+            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"13px 36px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
+            {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
+              {demoLoading?"loading...":"→ Try the live demo"}
+            </button>}
+          </div>
         </section>
 
       </div>
@@ -1692,6 +1701,11 @@ export default function App() {
 
   useEffect(()=>{runBoot();},[]);
 
+  const handleDemoLogin = async () => {
+    const u = await sget(`user:${DEMO_SHARED_USERNAME}`);
+    await handleLogin(u || { username: DEMO_SHARED_USERNAME, displayName: "Demo", password: "demo", email: "", groupIds: [] });
+  };
+
   const handleLogin = async (u) => {
     let nextUser = u;
     let nextSession = { username: u.username };
@@ -1773,7 +1787,7 @@ export default function App() {
           setResetDone(true);
         }}/>
       ):!user&&showLanding?(
-        <LandingPage onContinue={()=>setShowLanding(false)}/>
+        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin}/>
       ):!user?(
         <AuthScreen onLogin={handleLogin} onBack={()=>setShowLanding(true)} successMsg={resetDone?"Password updated - please sign in.":null}/>
       ):!group?(
