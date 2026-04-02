@@ -171,6 +171,12 @@ function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return {...gwObj,fixtures:[...working,...toAdd]};
   });
+  // WC groups skip cross-GW dedup: team names change from TBD to real names after pairings,
+  // which would break the home|away key lookup. Global doc is authoritative per matchday for WC.
+  if ((g.competition || "PL") === "WC") {
+    return {...g, gameweeks:updatedGameweeks, lastAutoSync:Date.now()};
+  }
+
   // Build index: "home|away" -> GW number from global doc
   const globalPairToGW = {};
   (globalDoc.gameweeks||[]).forEach(gwObj=>{
