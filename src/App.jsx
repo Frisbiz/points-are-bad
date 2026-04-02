@@ -1882,7 +1882,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {recapContent && (
           <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
-              <span style={{opacity:0.6,marginRight:10}}>GW{recapContent.gwNum} RECAP</span>
+              <span style={{opacity:0.6,marginRight:10}}>{gwLabel(group,recapContent.gwNum)} RECAP</span>
               {recapContent.winners.length > 0 && <span style={{marginRight:8}}>{recapContent.winners.map(w => names[w.username] || w.username).join(" & ")} won the week <span style={{opacity:0.7}}>({recapContent.minPts} pts)</span></span>}
               {recapContent.totalGoals > 0 && <span style={{opacity:0.7}}>· {recapContent.totalGoals} goals total</span>}
             </div>
@@ -2422,7 +2422,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {showWizard&&wizardFixture&&createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
-            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>GW{currentGW} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
+            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
               <div style={{textAlign:"right",flex:1}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
@@ -2459,7 +2459,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         document.body
       )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
-        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Gameweek {currentGW}</h1>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
@@ -2482,7 +2482,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                     textAlign:"center",
                     opacity:adminHidden?0.4:1,
                   }}>
-                    {adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}GW{g.gw}
+                    {adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{gwLabel(group,g.gw)}
                   </button>
                 );
               })}
@@ -2491,23 +2491,23 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
           {isAdmin&&deleteGWStep===0&&removeGWStep===0&&<Btn variant="danger" small onClick={()=>setDeleteGWStep(1)}>Clear GW</Btn>}
           {isAdmin&&deleteGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Clear GW{currentGW}?</span>
+            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Clear {gwLabel(group,currentGW)}?</span>
             <Btn variant="danger" small onClick={()=>setDeleteGWStep(2)}>Confirm</Btn>
             <Btn variant="muted" small onClick={()=>setDeleteGWStep(0)}>Cancel</Btn>
           </div>}
           {isAdmin&&deleteGWStep===2&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Really clear GW{currentGW}? All picks lost.</span>
+            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Really clear {gwLabel(group,currentGW)}? All picks lost.</span>
             <Btn variant="danger" small onClick={deleteGW}>Yes, clear</Btn>
             <Btn variant="muted" small onClick={()=>setDeleteGWStep(0)}>Cancel</Btn>
           </div>}
           {isAdmin&&removeGWStep===0&&deleteGWStep===0&&<Btn variant="danger" small onClick={()=>setRemoveGWStep(1)}>Delete GW</Btn>}
           {isAdmin&&removeGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Delete GW{currentGW}?</span>
+            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Delete {gwLabel(group,currentGW)}?</span>
             <Btn variant="danger" small onClick={()=>setRemoveGWStep(2)}>Confirm</Btn>
             <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
           </div>}
           {isAdmin&&removeGWStep===2&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Permanently remove GW{currentGW}?</span>
+            <span style={{fontSize:11,color:"#ef4444",letterSpacing:1}}>Permanently remove {gwLabel(group,currentGW)}?</span>
             <Btn variant="danger" small onClick={removeGW}>Yes, delete</Btn>
             <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
           </div>}
