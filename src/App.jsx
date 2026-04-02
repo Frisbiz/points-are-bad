@@ -1831,7 +1831,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
-  const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>!!f.result);
+  const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
+    const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
+    return !!f.result || hiddenPostponed;
+  });
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
   const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
