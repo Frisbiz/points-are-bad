@@ -1771,9 +1771,15 @@ function NextMatchCountdown({ group, myPreds = {} }) {
         {timerEl}
       </div>
       <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"var(--text-mid)"}}>
-        <span style={{flex:1,textAlign:"right",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,flex:1,minWidth:0}}>
+          <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+          <TeamBadge team={next.home} size={22} />
+        </div>
         <span style={{color:"var(--text-dim)",flexShrink:0}}>vs</span>
-        <span style={{flex:1,textAlign:"left",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:6,flex:1,minWidth:0}}>
+          <TeamBadge team={next.away} size={22} />
+          <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+        </div>
       </div>
     </div>
   );
@@ -1781,9 +1787,15 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   return (
     <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18,display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,alignItems:"center"}}>
       <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
-      <div style={{textAlign:"right",fontSize:13,color:"var(--text-mid)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:13,color:"var(--text-mid)"}}>
+        <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+        <TeamBadge team={next.home} size={22} />
+      </div>
       <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)"}}>vs</div>
-      <div style={{fontSize:13,color:"var(--text-mid)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0,fontSize:13,color:"var(--text-mid)"}}>
+        <TeamBadge team={next.away} size={22} />
+        <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+      </div>
       <div style={{gridColumn:"5/7"}}>{timerEl}</div>
     </div>
   );
