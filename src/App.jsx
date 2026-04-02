@@ -455,14 +455,17 @@ const CLUB_COLORS = {
 const COUNTRY_CODES = {
   "Albania":"al","Algeria":"dz","Argentina":"ar","Australia":"au","Austria":"at",
   "Bahrain":"bh","Belgium":"be","Bolivia":"bo","Bosnia and Herzegovina":"ba","Bosnia-Herzegovina":"ba",
-  "Brazil":"br","Burkina Faso":"bf","Cameroon":"cm","Canada":"ca","Cape Verde":"cv",
+  "Brazil":"br","Burkina Faso":"bf","Cameroon":"cm","Canada":"ca",
+  "Cape Verde":"cv","Cape Verde Islands":"cv",
   "Chile":"cl","China":"cn","Colombia":"co","Costa Rica":"cr","Croatia":"hr",
-  "Cuba":"cu","Czech Republic":"cz","Czechia":"cz","Denmark":"dk","DR Congo":"cd",
+  "Cuba":"cu","Curaçao":"cw","Curacao":"cw",
+  "Czech Republic":"cz","Czechia":"cz","Denmark":"dk",
+  "DR Congo":"cd","Congo DR":"cd","Congo, DR":"cd",
   "Ecuador":"ec","Egypt":"eg","El Salvador":"sv","England":"gb-eng",
   "France":"fr","Gabon":"ga","Germany":"de","Ghana":"gh","Greece":"gr",
   "Guatemala":"gt","Haiti":"ht","Honduras":"hn","Hungary":"hu","India":"in",
   "Indonesia":"id","Iran":"ir","IR Iran":"ir","Iraq":"iq","Israel":"il",
-  "Italy":"it","Ivory Coast":"ci","Côte d'Ivoire":"ci","Jamaica":"jm",
+  "Italy":"it","Ivory Coast":"ci","Côte d'Ivoire":"ci","Cote d'Ivoire":"ci","Jamaica":"jm",
   "Japan":"jp","Jordan":"jo","Korea Republic":"kr","South Korea":"kr",
   "Kuwait":"kw","Lebanon":"lb","Mali":"ml","Mexico":"mx","Montenegro":"me",
   "Morocco":"ma","Mozambique":"mz","Netherlands":"nl","New Zealand":"nz",
@@ -510,7 +513,7 @@ function TeamBadge({ team, crest, size = 22, style = {} }) {
   const flagSrc = !src && countryCode ? `https://flagcdn.com/w40/${countryCode}.png` : null;
   const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
   if (flagSrc) {
-    return <img src={flagSrc} alt={team} style={{height:size,width:"auto",objectFit:"contain",flexShrink:0,...style}} />;
+    return <img src={flagSrc} alt={team} style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:2,flexShrink:0,...style}} />;
   }
   if (!src) {
     return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
