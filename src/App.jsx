@@ -3865,7 +3865,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
         </div>
       </Section>
 
-      {isAdmin&&(
+      {isAdmin&&(group.competition||"PL")==="PL"&&(
         <Section title="Seasons">
           {(()=>{
             const activeSeason=group.season||2025;
@@ -3951,7 +3951,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                     textAlign:"center",
                     opacity:hidden?0.45:1,
                     transition:"all 0.15s",
-                  }}>GW{g.gw}</button>
+                  }}>{gwLabel(group,g.gw)}</button>
                 );
               })}
           </div>
