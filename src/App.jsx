@@ -2215,6 +2215,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const [wizardPred, setWizardPred] = useState("");
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
   const activeSeason = group.season||2025;
+  const isWC = (group.competition||"PL") === "WC";
   const [viewGW, setViewGW] = useState(()=>{
     const now = new Date();
     const seas = group.season||2025;
