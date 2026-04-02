@@ -2340,11 +2340,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
-              <TeamBadge team={f.home} size={18} />
+              <TeamBadge team={f.home} size={24} />
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <TeamBadge team={f.away} size={18} />
+              <TeamBadge team={f.away} size={24} />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{pickBlock}</div>
