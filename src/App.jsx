@@ -313,7 +313,7 @@ const TEAM_BADGES = {
   "Wolves": "https://resources.premierleague.com/premierleague/badges/t39.png",
 };
 
-function TeamBadge({ team, size = 22, style = {} }) {
+function TeamBadge({ team, size = 24, style = {} }) {
   const badge = TEAM_BADGES[team];
   const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
   if (!badge) {
@@ -2317,13 +2317,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <TeamBadge team={f.home} size={22} />
+                <TeamBadge team={f.home} size={24} />
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
-                <TeamBadge team={f.away} size={22} />
+                <TeamBadge team={f.away} size={24} />
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -2468,16 +2468,12 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               return (
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
                 <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",columnGap:10,width:"100%"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0}}>
-                      <TeamBadge team={f.home} size={20} />
-                      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</span>
-                    </div>
-                    <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:1,justifySelf:"center"}}>vs</span>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0}}>
-                      <TeamBadge team={f.away} size={20} />
-                      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</span>
-                    </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,justifyContent:"flex-start",flexWrap:"nowrap",whiteSpace:"nowrap",overflow:"hidden"}}>
+                    <TeamBadge team={f.home} size={24} />
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</span>
+                    <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:1,flexShrink:0}}>vs</span>
+                    <TeamBadge team={f.away} size={24} />
+                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</span>
                   </div>
                 </td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{f.result?f.result:f.liveScore?<span style={{color:"#f59e0b"}}>{f.liveScore}</span>:f.status==="POSTPONED"?<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>:null}</td>
