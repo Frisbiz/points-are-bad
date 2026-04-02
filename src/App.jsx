@@ -339,33 +339,79 @@ function makeDemoPick(username, fixture, gw, season) {
 }
 
 async function ensureDemoWCGroup() {
+  const F = (id,home,away,result,date,stage) => ({id,home,away,result,status:result?"FINISHED":"SCHEDULED",date,stage});
   const WC_GWS = [
-    { gw: 1, fixtures: [
-      { id:"wc-gw1-f1", home:"Brazil",    away:"Morocco",  result:null, status:"SCHEDULED", date:"2026-06-12T15:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw1-f2", home:"Germany",   away:"Japan",    result:null, status:"SCHEDULED", date:"2026-06-12T18:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw1-f3", home:"France",    away:"Mexico",   result:null, status:"SCHEDULED", date:"2026-06-13T15:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw1-f4", home:"England",   away:"USA",      result:null, status:"SCHEDULED", date:"2026-06-13T18:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw1-f5", home:"Argentina", away:"Canada",   result:null, status:"SCHEDULED", date:"2026-06-14T15:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw1-f6", home:"Spain",     away:"Portugal", result:null, status:"SCHEDULED", date:"2026-06-14T18:00:00Z", stage:"GROUP_STAGE" },
+    { gw:1, fixtures:[
+      F("wc-gw1-f1","Qatar","Ecuador","0-2","2026-06-12T16:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f2","England","Iran","6-2","2026-06-13T13:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f3","Argentina","Saudi Arabia","1-2","2026-06-13T16:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f4","France","Australia","4-1","2026-06-14T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f5","Morocco","Croatia","0-0","2026-06-14T10:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f6","Germany","Japan","1-2","2026-06-14T13:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f7","Brazil","Serbia","2-0","2026-06-15T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw1-f8","Portugal","Ghana","3-2","2026-06-15T16:00:00Z","GROUP_STAGE"),
     ]},
-    { gw: 2, fixtures: [
-      { id:"wc-gw2-f1", home:"Brazil",   away:"Japan",    result:null, status:"SCHEDULED", date:"2026-06-16T15:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw2-f2", home:"Morocco",  away:"Germany",  result:null, status:"SCHEDULED", date:"2026-06-16T18:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw2-f3", home:"France",   away:"USA",      result:null, status:"SCHEDULED", date:"2026-06-17T15:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw2-f4", home:"Mexico",   away:"England",  result:null, status:"SCHEDULED", date:"2026-06-17T18:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw2-f5", home:"Canada",   away:"Spain",    result:null, status:"SCHEDULED", date:"2026-06-18T15:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw2-f6", home:"Portugal", away:"Argentina",result:null, status:"SCHEDULED", date:"2026-06-18T18:00:00Z", stage:"GROUP_STAGE" },
+    { gw:2, fixtures:[
+      F("wc-gw2-f1","Netherlands","Ecuador","1-1","2026-06-19T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f2","England","USA","0-0","2026-06-19T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f3","Argentina","Mexico","2-0","2026-06-20T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f4","France","Denmark","2-1","2026-06-20T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f5","Belgium","Morocco","0-2","2026-06-21T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f6","Croatia","Canada","4-1","2026-06-21T16:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f7","Brazil","Switzerland","1-0","2026-06-22T13:00:00Z","GROUP_STAGE"),
+      F("wc-gw2-f8","Portugal","Uruguay","2-0","2026-06-22T19:00:00Z","GROUP_STAGE"),
     ]},
-    { gw: 3, fixtures: [
-      { id:"wc-gw3-f1", home:"Japan",    away:"Morocco",  result:null, status:"SCHEDULED", date:"2026-06-21T19:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw3-f2", home:"Germany",  away:"Brazil",   result:null, status:"SCHEDULED", date:"2026-06-21T19:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw3-f3", home:"USA",      away:"Mexico",   result:null, status:"SCHEDULED", date:"2026-06-22T19:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw3-f4", home:"England",  away:"France",   result:null, status:"SCHEDULED", date:"2026-06-22T19:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw3-f5", home:"Argentina",away:"Spain",    result:null, status:"SCHEDULED", date:"2026-06-23T19:00:00Z", stage:"GROUP_STAGE" },
-      { id:"wc-gw3-f6", home:"Canada",   away:"Portugal", result:null, status:"SCHEDULED", date:"2026-06-23T19:00:00Z", stage:"GROUP_STAGE" },
+    { gw:3, fixtures:[
+      F("wc-gw3-f1","Netherlands","Qatar","2-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f2","England","Wales","3-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f3","Argentina","Poland","2-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f4","Tunisia","France","1-0","2026-06-25T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f5","Japan","Spain","2-1","2026-06-25T19:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f6","Morocco","Canada","2-1","2026-06-25T16:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f7","South Korea","Portugal","2-1","2026-06-26T15:00:00Z","GROUP_STAGE"),
+      F("wc-gw3-f8","Cameroon","Brazil","1-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
     ]},
-    { gw: 4, fixtures: [] }, { gw: 5, fixtures: [] },
-    { gw: 6, fixtures: [] }, { gw: 7, fixtures: [] }, { gw: 8, fixtures: [] },
+    { gw:4, fixtures:[
+      F("wc-gw4-f1", "Netherlands","Scotland",  "2-0","2026-07-05T15:00:00Z","LAST_32"),
+      F("wc-gw4-f2", "USA",        "Jamaica",   "3-0","2026-07-05T18:00:00Z","LAST_32"),
+      F("wc-gw4-f3", "Argentina",  "El Salvador","3-1","2026-07-06T15:00:00Z","LAST_32"),
+      F("wc-gw4-f4", "Australia",  "Indonesia", "2-1","2026-07-06T18:00:00Z","LAST_32"),
+      F("wc-gw4-f5", "France",     "Algeria",   "3-0","2026-07-07T15:00:00Z","LAST_32"),
+      F("wc-gw4-f6", "Poland",     "Slovakia",  "2-1","2026-07-07T18:00:00Z","LAST_32"),
+      F("wc-gw4-f7", "England",    "Panama",    "4-1","2026-07-07T21:00:00Z","LAST_32"),
+      F("wc-gw4-f8", "Senegal",    "Ivory Coast","2-0","2026-07-08T15:00:00Z","LAST_32"),
+      F("wc-gw4-f9", "Japan",      "Vietnam",   "2-0","2026-07-08T18:00:00Z","LAST_32"),
+      F("wc-gw4-f10","Croatia",    "Romania",   "3-1","2026-07-08T21:00:00Z","LAST_32"),
+      F("wc-gw4-f11","Brazil",     "Venezuela", "5-1","2026-07-09T15:00:00Z","LAST_32"),
+      F("wc-gw4-f12","South Korea","Thailand",  "2-1","2026-07-09T18:00:00Z","LAST_32"),
+      F("wc-gw4-f13","Morocco",    "Cameroon",  "1-0","2026-07-09T21:00:00Z","LAST_32"),
+      F("wc-gw4-f14","Spain",      "Costa Rica","3-0","2026-07-10T15:00:00Z","LAST_32"),
+      F("wc-gw4-f15","Portugal",   "Ghana",     "4-1","2026-07-10T18:00:00Z","LAST_32"),
+      F("wc-gw4-f16","Switzerland","Hungary",   "2-1","2026-07-10T21:00:00Z","LAST_32"),
+    ]},
+    { gw:5, fixtures:[
+      F("wc-gw5-f1","Netherlands","USA",        "3-1","2026-07-13T15:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f2","Argentina",  "Australia",  "2-1","2026-07-13T19:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f3","France",     "Poland",     "3-1","2026-07-14T15:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f4","England",    "Senegal",    "3-0","2026-07-14T19:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f5","Japan",      "Croatia",    "1-1","2026-07-15T15:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f6","Brazil",     "South Korea","4-1","2026-07-15T19:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f7","Morocco",    "Spain",      "0-0","2026-07-16T15:00:00Z","ROUND_OF_16"),
+      F("wc-gw5-f8","Portugal",   "Switzerland","6-1","2026-07-16T19:00:00Z","ROUND_OF_16"),
+    ]},
+    { gw:6, fixtures:[
+      F("wc-gw6-f1","Argentina","Netherlands","2-2","2026-07-18T19:00:00Z","QUARTER_FINAL"),
+      F("wc-gw6-f2","Croatia",  "Brazil",     "1-1","2026-07-18T15:00:00Z","QUARTER_FINAL"),
+      F("wc-gw6-f3","Morocco",  "Portugal",   "1-0","2026-07-19T19:00:00Z","QUARTER_FINAL"),
+      F("wc-gw6-f4","England",  "France",     "1-2","2026-07-19T15:00:00Z","QUARTER_FINAL"),
+    ]},
+    { gw:7, fixtures:[
+      F("wc-gw7-f1","Argentina","Croatia","3-0","2026-07-22T19:00:00Z","SEMI_FINAL"),
+      F("wc-gw7-f2","France",   "Morocco","2-0","2026-07-23T19:00:00Z","SEMI_FINAL"),
+    ]},
+    { gw:8, fixtures:[
+      F("wc-gw8-f1","Argentina","France",null,"2026-07-26T20:00:00Z","FINAL"),
+    ]},
   ];
 
   const wcGroupId_lookup = await sget(`groupcode:${DEMO_WC_GROUP_CODE}`);
@@ -378,7 +424,7 @@ async function ensureDemoWCGroup() {
   const baseGroup = existing || {
     id: wcGroupId, name: "World Cup 2026", code: DEMO_WC_GROUP_CODE,
     creatorUsername: DEMO_SHARED_USERNAME, competition: "WC", season: 2026,
-    currentGW: 1, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
+    currentGW: 8, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
     hiddenGWs: [], hiddenFixtures: [], adminLog: [], dibsSkips: {},
     memberOrder: memberNames,
     gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
@@ -387,10 +433,14 @@ async function ensureDemoWCGroup() {
   const nextPredictions = { ...(baseGroup.predictions || {}) };
   memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
 
-  WC_GWS.slice(0, 3).forEach(({ gw, fixtures }) => {
+  WC_GWS.forEach(({ gw, fixtures }) => {
     fixtures.forEach(fixture => {
       DEMO_MEMBERS.forEach(member => {
-        nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
+        if (fixture.result || member.username !== DEMO_SHARED_USERNAME) {
+          nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
+        } else {
+          delete nextPredictions[member.username][fixture.id];
+        }
       });
     });
   });
@@ -399,11 +449,9 @@ async function ensureDemoWCGroup() {
     ...baseGroup,
     members: memberNames,
     memberOrder: memberNames,
+    currentGW: 8,
     admins: Array.from(new Set([...(baseGroup.admins || []), DEMO_SHARED_USERNAME])),
-    gameweeks: baseGroup.gameweeks.map(gwObj => {
-      const seeded = WC_GWS.find(g => g.gw === gwObj.gw);
-      return seeded && seeded.fixtures.length ? { ...gwObj, fixtures: seeded.fixtures } : gwObj;
-    }),
+    gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
     predictions: nextPredictions,
   };
 
