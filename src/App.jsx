@@ -313,7 +313,7 @@ const TEAM_BADGES = {
   "Wolves": "https://resources.premierleague.com/premierleague/badges/t39.png",
 };
 
-function TeamBadge({ team, size = 24, style = {} }) {
+function TeamBadge({ team, size = 22, style = {} }) {
   const badge = TEAM_BADGES[team];
   const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
   if (!badge) {
@@ -2317,13 +2317,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <TeamBadge team={f.home} size={24} />
+                <TeamBadge team={f.home} size={22} />
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
-                <TeamBadge team={f.away} size={24} />
+                <TeamBadge team={f.away} size={22} />
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -2340,11 +2340,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
-              <TeamBadge team={f.home} size={24} />
+              <TeamBadge team={f.home} size={22} />
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <TeamBadge team={f.away} size={24} />
+              <TeamBadge team={f.away} size={22} />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{pickBlock}</div>
@@ -2469,10 +2469,10 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
                 <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,justifyContent:"flex-start",flexWrap:"nowrap",whiteSpace:"nowrap",overflow:"hidden"}}>
-                    <TeamBadge team={f.home} size={24} />
+                    <TeamBadge team={f.home} size={22} />
                     <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</span>
                     <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:1,flexShrink:0}}>vs</span>
-                    <TeamBadge team={f.away} size={24} />
+                    <TeamBadge team={f.away} size={22} />
                     <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</span>
                   </div>
                 </td>
