@@ -2805,6 +2805,8 @@ function TrendsTab({group,names}) {
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
   const CC=({title,sub,children})=>(<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:"var(--text-dim3)",textTransform:"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
+  const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
+  const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
   const filteredGWs = gws;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const inScopeFixtureIds = useMemo(() => {
@@ -3090,8 +3092,8 @@ function TrendsTab({group,names}) {
       <SH label="Season Story"/>
       <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek">
         <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?160:200)}>
-          <LineChart data={rankData} margin={{top:20,right:8,left:-10,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
+          <LineChart data={rankData} margin={{top:20,right:20,left:-10,bottom:mob?0:12}}>
+            <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis reversed domain={[1,ds.length]} allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} ticks={ds.map((_,i)=>i+1)}/>
             <Tooltip contentStyle={tt} formatter={(val,name,props)=>{const pts=props.payload[`${name}_pts`];return [`#${val} (${pts}pts)`,name];}}/>
             {ds.map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={selectedPlayer===p.username?3:2} strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1} dot={{r:mob?3:4,fill:memberColor(p.username)}} activeDot={{r:6}}/>)}
@@ -3100,8 +3102,8 @@ function TrendsTab({group,names}) {
       </CC>
       <CC title="Cumulative Points Race" sub="Running total — lower is winning">
         <ResponsiveContainer width="100%" height={mob?160:200}>
-          <LineChart data={cumLine} margin={{top:4,right:8,left:-22,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
+          <LineChart data={cumLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
+            <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>
             {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}
@@ -3112,8 +3114,8 @@ function TrendsTab({group,names}) {
       <SH label="Gameweek Performance"/>
       <CC title="Points Per Gameweek">
         <ResponsiveContainer width="100%" height={mob?200:260}>
-          <LineChart data={gwLine} margin={{top:4,right:8,left:-22,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
+          <LineChart data={gwLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
+            <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>
             {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:mob?2:3}} activeDot={{r:5}}/>)}
@@ -3122,8 +3124,8 @@ function TrendsTab({group,names}) {
       </CC>
       <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
         <ResponsiveContainer width="100%" height={mob?170:220}>
-          <ComposedChart data={swingData} margin={{top:4,right:8,left:-22,bottom:0}}>
-            <XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} interval={mob?"preserveStartEnd":0}/>
+          <ComposedChart data={swingData} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
+            <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/>
             <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
