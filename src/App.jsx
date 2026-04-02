@@ -881,6 +881,7 @@ function AuthScreen({ onLogin, successMsg }) {
   const [password,setPassword]=useState("");
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [demoLoading,setDemoLoading]=useState(false);
   const [email,setEmail]=useState("");
   const [confirmPassword,setConfirmPassword]=useState("");
   const [thumbs,setThumbs]=useState([]);
@@ -909,6 +910,12 @@ function AuthScreen({ onLogin, successMsg }) {
     } catch {}
     setForgotMsg("If that email is registered, a reset link has been sent.");
     setForgotLoading(false);
+  };
+
+  const handleDemo = async () => {
+    setDemoLoading(true);
+    const u = await sget(`user:${DEMO_SHARED_USERNAME}`);
+    onLogin(u || { username: DEMO_SHARED_USERNAME, displayName: "Demo", password: "demo", email: "", groupIds: [] });
   };
 
   const handle = async () => {
@@ -988,7 +995,19 @@ function AuthScreen({ onLogin, successMsg }) {
             </>
           )}
         </div>
-        <div style={{textAlign:"center",marginTop:20,color:"var(--border2)",fontSize:11,letterSpacing:1}}>Premier League Prediction Game</div>
+        <button
+          onClick={handleDemo}
+          disabled={demoLoading}
+          style={{width:"100%",marginTop:16,padding:"11px 0",display:"block",textAlign:"center",
+            letterSpacing:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:8,
+            color:"var(--text-dim)",cursor:"pointer",fontSize:11,fontFamily:"'DM Mono',monospace",
+            transition:"border-color 0.2s,color 0.2s"}}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--text-dim)";e.currentTarget.style.color="var(--text)";}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text-dim)";}}
+        >
+          {demoLoading?"...":"TRY DEMO"}
+        </button>
+        <div style={{textAlign:"center",marginTop:20,color:"var(--border2)",fontSize:11,letterSpacing:1}}>PL &amp; World Cup 2026 Predictions</div>
       </div>
     </div>
   );
@@ -3908,12 +3927,14 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   };
   const leaveGroup=async()=>{
     if(isCreator)return;
+    if(group.code===DEMO_GROUP_CODE)return;
     const fresh=await sget(`user:${user.username}`);
     if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
     const ok=await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
     if(ok)onLeave();
   };
   const deleteGroup = async () => {
+    if (group.code === DEMO_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }
     if (!deletePw) { setDeleteError("Enter your password."); return; }
     setDeleteLoading(true); setDeleteError("");
     const fresh = await sget(`user:${user.username}`);
