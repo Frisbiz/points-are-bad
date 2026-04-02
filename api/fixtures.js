@@ -1,8 +1,9 @@
 export default async function handler(req, res) {
-  const { matchday, season, live } = req.query;
+  const { matchday, season, live, competition } = req.query;
+  const comp = competition || "PL";
   let url = live === "true"
     ? `https://api.football-data.org/v4/competitions/PL/matches?status=LIVE`
-    : `https://api.football-data.org/v4/competitions/PL/matches?season=${season}`;
+    : `https://api.football-data.org/v4/competitions/${comp}/matches?season=${season}`;
   if (!live && matchday) url += `&matchday=${matchday}`;
 
   const response = await fetch(url, {
