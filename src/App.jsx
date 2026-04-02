@@ -1893,6 +1893,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       p[user.username] = {...(p[user.username] || {}), [fixtureId]: val};
       return {...g, predictions: p};
     });
+    setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
@@ -2258,7 +2259,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
         <div>Away</div>
-        <div style={{textAlign:"center"}}>{picksLocked?"Your Locked Pick":"Your Pick"}</div>
+        <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
 
