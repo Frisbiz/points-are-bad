@@ -2306,7 +2306,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
   useEffect(()=>{
     const seas = group.season||2025;
-    const globalKey = `fixtures:PL:${seas}`;
+    const isWC = (group.competition||"PL") === "WC";
+    const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
     const incompleteGWs=(group.gameweeks||[])
       .filter(gw=>(gw.season||seas)===seas&&(gw.fixtures||[]).some(f=>!f.result));
     if(!incompleteGWs.length) return;
@@ -2317,33 +2318,70 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const now=Date.now();
         const existingGWNums=new Set((globalDoc.gameweeks||[]).map(g=>g.gw));
         const missingPast=Array.from({length:targetGW-1},(_,i)=>i+1).some(n=>!existingGWNums.has(n));
-        const fullSyncKey=`fixtures-full-sync:${seas}`;
-        if(missingPast){
-          const lastFull=lget(fullSyncKey);
-          if(!lastFull||(now-lastFull)>86_400_000){
-            const allMatches=await fetchMatchweek(group.apiKey,null,seas);
-            if(!allMatches.length) return;
-            lset(fullSyncKey,now);
-            const byGW={};
-            allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
-            let updated={...globalDoc};
-            Object.entries(byGW).forEach(([gw,ms])=>{
-              const gwNum=Number(gw);
-              updated=regroupGlobalDoc(updated,gwNum,parseMatchesToFixtures(ms,gwNum));
-            });
-            globalDoc=updated;
-            await sset(globalKey,globalDoc);
+        if(isWC){
+          // WC: direct replacement (no regroupGlobalDoc), separate cooldown keys
+          const fullSyncKey=`fixtures-full-sync:WC:2026`;
+          if(missingPast){
+            const lastFull=lget(fullSyncKey);
+            if(!lastFull||(now-lastFull)>86_400_000){
+              const allMatches=await fetchMatchweek(group.apiKey,null,2026,"WC");
+              if(!allMatches.length) return;
+              lset(fullSyncKey,now);
+              const byGW={};
+              allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
+              let updated={...globalDoc};
+              const otherGWs=(updated.gameweeks||[]).filter(g=>!byGW[g.gw]);
+              const newGWs=Object.entries(byGW).map(([gw,ms])=>{
+                const gwNum=Number(gw);
+                return {gw:gwNum,fixtures:parseMatchesToFixtures(ms,gwNum,"WC")};
+              });
+              updated={...updated,updatedAt:now,gameweeks:[...otherGWs,...newGWs]};
+              globalDoc=updated;
+              await sset(globalKey,globalDoc);
+            }
+          } else {
+            const cooldownKey=`gw-api-sync:WC:2026:${targetGW}`;
+            const lastSync=lget(cooldownKey);
+            if(!lastSync||(now-lastSync)>3_600_000){
+              const matches=await fetchMatchweek(group.apiKey,targetGW,2026,"WC");
+              if(!matches.length) return;
+              const apiFixtures=parseMatchesToFixtures(matches,targetGW,"WC");
+              lset(cooldownKey,now);
+              const otherGWs=(globalDoc.gameweeks||[]).filter(g=>g.gw!==targetGW);
+              globalDoc={...globalDoc,updatedAt:now,gameweeks:[...otherGWs,{gw:targetGW,fixtures:apiFixtures}]};
+              await sset(globalKey,globalDoc);
+            }
           }
         } else {
-          const cooldownKey=`gw-api-sync:${seas}:${targetGW}`;
-          const lastSync=lget(cooldownKey);
-          if(!lastSync||(now-lastSync)>3_600_000){
-            const matches=await fetchMatchweek(group.apiKey,targetGW,seas);
-            if(!matches.length) return;
-            const apiFixtures=parseMatchesToFixtures(matches,targetGW);
-            lset(cooldownKey,now);
-            globalDoc=regroupGlobalDoc(globalDoc,targetGW,apiFixtures);
-            await sset(globalKey,globalDoc);
+          // PL: unchanged path
+          const fullSyncKey=`fixtures-full-sync:${seas}`;
+          if(missingPast){
+            const lastFull=lget(fullSyncKey);
+            if(!lastFull||(now-lastFull)>86_400_000){
+              const allMatches=await fetchMatchweek(group.apiKey,null,seas);
+              if(!allMatches.length) return;
+              lset(fullSyncKey,now);
+              const byGW={};
+              allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
+              let updated={...globalDoc};
+              Object.entries(byGW).forEach(([gw,ms])=>{
+                const gwNum=Number(gw);
+                updated=regroupGlobalDoc(updated,gwNum,parseMatchesToFixtures(ms,gwNum));
+              });
+              globalDoc=updated;
+              await sset(globalKey,globalDoc);
+            }
+          } else {
+            const cooldownKey=`gw-api-sync:${seas}:${targetGW}`;
+            const lastSync=lget(cooldownKey);
+            if(!lastSync||(now-lastSync)>3_600_000){
+              const matches=await fetchMatchweek(group.apiKey,targetGW,seas);
+              if(!matches.length) return;
+              const apiFixtures=parseMatchesToFixtures(matches,targetGW);
+              lset(cooldownKey,now);
+              globalDoc=regroupGlobalDoc(globalDoc,targetGW,apiFixtures);
+              await sset(globalKey,globalDoc);
+            }
           }
         }
         if(globalDoc.updatedAt<=(group.lastAutoSync||0)) return;
