@@ -234,6 +234,114 @@ function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
 }
 
 const MISSED_PICK_PTS = 4;
+const DEMO_GROUP_CODE = "M65Y4R";
+const DEMO_SHARED_USERNAME = "demo";
+const DEMO_MEMBERS = [
+  { username: "demo", displayName: "Demo" },
+  { username: "faris", displayName: "Faris" },
+  { username: "damon", displayName: "Damon" },
+  { username: "vall", displayName: "Vall" },
+  { username: "aamer", displayName: "Aamer" },
+];
+
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function seededRng(seedStr) {
+  let state = hashSeed(seedStr) || 1;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function makeDemoPick(username, fixture, gw, season) {
+  const rng = seededRng(`${username}|${fixture.id}|${fixture.home}|${fixture.away}|${gw}|${season}`);
+  const base = {
+    faris: [1.5, 1.1],
+    damon: [1.8, 1.4],
+    vall: [1.2, 0.9],
+    aamer: [1.6, 1.2],
+    demo: [1.4, 1.0],
+  }[username] || [1.4, 1.1];
+  const homeAdv = fixture.home === "Man City" || fixture.home === "Liverpool" || fixture.home === "Arsenal" ? 0.45 : 0;
+  const awayAdv = fixture.away === "Man City" || fixture.away === "Liverpool" || fixture.away === "Arsenal" ? 0.25 : 0;
+  let h = Math.max(0, Math.min(5, Math.round(base[0] + homeAdv - awayAdv * 0.35 + (rng() - 0.5) * 2.2)));
+  let a = Math.max(0, Math.min(5, Math.round(base[1] + awayAdv - homeAdv * 0.2 + (rng() - 0.5) * 2.2)));
+  if (rng() < 0.18) {
+    const d = Math.max(0, Math.min(4, Math.round((h + a) / 2 + (rng() - 0.5))));
+    h = d; a = d;
+  }
+  return `${h}-${a}`;
+}
+
+async function ensureDemoExperience() {
+  const groupId = await sget(`groupcode:${DEMO_GROUP_CODE}`);
+  if (!groupId) return null;
+  const demoGroup = await sget(`group:${groupId}`);
+  if (!demoGroup) return null;
+
+  for (const member of DEMO_MEMBERS) {
+    const key = `user:${member.username}`;
+    const existing = await sget(key);
+    const userDoc = existing || {
+      username: member.username,
+      displayName: member.displayName,
+      password: member.username === DEMO_SHARED_USERNAME ? "demo" : "password123",
+      email: "",
+      groupIds: [],
+    };
+    const nextUser = {
+      ...userDoc,
+      username: member.username,
+      displayName: member.displayName,
+      groupIds: Array.from(new Set([...(userDoc.groupIds || []), groupId])),
+    };
+    await sset(key, nextUser);
+  }
+
+  const memberNames = DEMO_MEMBERS.map(m => m.username);
+  const now = new Date();
+  const nextPredictions = { ...(demoGroup.predictions || {}) };
+  memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
+
+  const nextGroup = {
+    ...demoGroup,
+    members: memberNames,
+    memberOrder: memberNames,
+    admins: Array.from(new Set([...(demoGroup.admins || []), DEMO_SHARED_USERNAME])),
+    predictions: nextPredictions,
+  };
+
+  (nextGroup.gameweeks || []).forEach(gwObj => {
+    const season = gwObj.season || nextGroup.season || 2025;
+    (gwObj.fixtures || []).forEach(fixture => {
+      const fixtureDone = !!fixture.result || fixture.status === "POSTPONED" || fixture.status === "FINISHED";
+      const isOpen = !fixtureDone && fixture.status !== "IN_PLAY" && fixture.status !== "PAUSED" && (!fixture.date || new Date(fixture.date) > now);
+      DEMO_MEMBERS.forEach(member => {
+        if (member.username === DEMO_SHARED_USERNAME) return;
+        if (fixtureDone || isOpen) {
+          nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gwObj.gw, season);
+        }
+      });
+      if (isOpen) {
+        delete nextPredictions[DEMO_SHARED_USERNAME][fixture.id];
+      } else if (fixtureDone && !nextPredictions[DEMO_SHARED_USERNAME][fixture.id]) {
+        nextPredictions[DEMO_SHARED_USERNAME][fixture.id] = makeDemoPick(DEMO_SHARED_USERNAME, fixture, gwObj.gw, season);
+      }
+    });
+  });
+
+  await sset(`group:${groupId}`, nextGroup);
+  const refreshedDemoUser = await sget(`user:${DEMO_SHARED_USERNAME}`);
+  return { groupId, group: nextGroup, user: refreshedDemoUser };
+}
 
 function calcPts(pred, result) {
   if (!pred || !result) return null;
@@ -1424,9 +1532,16 @@ export default function App() {
   useEffect(()=>{runBoot();},[]);
 
   const handleLogin = async (u) => {
-    lset("session", {username: u.username});
-    setUser(u);
-    setNeedsSetup(!u.email || u.password === "password123");
+    let nextUser = u;
+    let nextSession = { username: u.username };
+    if (u.username === DEMO_SHARED_USERNAME) {
+      const demoState = await ensureDemoExperience();
+      if (demoState?.user) nextUser = demoState.user;
+      if (demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
+    }
+    lset("session", nextSession);
+    setUser(nextUser);
+    setNeedsSetup(false);
   };
   const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
