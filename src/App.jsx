@@ -1838,7 +1838,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
     : {};
   const unpickedUnlocked = gwAdminLocked ? [] : gwFixtures.filter(f=>{
-    const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+    const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
+    const locked=hiddenPostponed||!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
     if (locked) return false;
     if (myPreds[f.id]) return false;
     if (group.mode==="dibs" && dibsTurnFor[f.id] !== user.username) return false;
@@ -2330,7 +2331,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               onBlur={e=>savePred(f.id,e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
               style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
-            {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
           </>
         );
         if (mob) return (
