@@ -2258,7 +2258,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
         <div>Away</div>
-        <div style={{textAlign:"center"}}>Your Pick</div>
+        <div style={{textAlign:"center"}}>{picksLocked?"Your Locked Pick":"Your Pick"}</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
 
@@ -2266,8 +2266,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const pts = calcPts(myPreds[f.id],f.result);
         const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?MISSED_PICK_PTS:null);
-        const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
-        const lockReason = !locked?null:gwAdminLocked?"admin locked":picksLocked?"picks locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off";
+        const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
+        const locked = hardLocked || picksLocked;
+        const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
@@ -2301,7 +2302,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
-        const pickBlock = locked?(
+        const pickBlock = picksLocked && !hardLocked ? (
+          <span style={{display:"flex",alignItems:"center",gap:6}}>
+            <span title="picks locked" style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>
+            {myPreds[f.id]
+              ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
+              : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
+          </span>
+        ) : locked?(
           <span style={{display:"flex",alignItems:"center",gap:6}}>
             {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
             {myPreds[f.id]
@@ -2325,7 +2333,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </>
         );
         if (mob) return (
-          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:locked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -2348,7 +2356,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
         );
         return (
-          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2,opacity:locked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
