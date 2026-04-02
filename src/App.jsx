@@ -1804,6 +1804,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
 function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const mob = useMobile();
   const gwStripRef = useRef(null);
+  const pickInputRefs = useRef({});
   const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
   const [saving,setSaving]=useState({});
@@ -1896,6 +1897,20 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     });
     setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
+  };
+
+  const focusNextPickInput = (fixtureId) => {
+    const idx = gwFixtures.findIndex(f => f.id === fixtureId);
+    if (idx === -1) return;
+    for (let i = idx + 1; i < gwFixtures.length; i++) {
+      const nextFixture = gwFixtures[i];
+      const nextEl = pickInputRefs.current[nextFixture.id];
+      if (nextEl && !nextEl.disabled && nextEl.offsetParent !== null) {
+        nextEl.focus();
+        nextEl.select?.();
+        return;
+      }
+    }
   };
 
   const saveResult = async (fixtureId) => {
@@ -2327,9 +2342,19 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ) : (
           <>
             <input value={myPred} placeholder="1-1"
+              ref={el => {
+                if (el) pickInputRefs.current[f.id] = el;
+                else delete pickInputRefs.current[f.id];
+              }}
               onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
               onBlur={e=>savePred(f.id,e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
+              onKeyDown={e=>{
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  savePred(f.id,e.currentTarget.value);
+                  setTimeout(() => focusNextPickInput(f.id), 0);
+                }
+              }}
               style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
           </>
         );
