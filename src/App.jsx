@@ -1919,6 +1919,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
 function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const mob = useMobile();
   const gwStripRef = useRef(null);
+  const pickInputRefs = useRef({});
   const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
   const [saving,setSaving]=useState({});
@@ -1945,7 +1946,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const currentGW = viewGW;
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
-  const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>!!f.result);
+  const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
+    const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
+    return !!f.result || hiddenPostponed;
+  });
   const myPreds = group.predictions?.[user.username]||{};
   const hasApiKey = true; // Global API key always active
   const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
@@ -1953,7 +1957,8 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
     ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
     : {};
   const unpickedUnlocked = gwAdminLocked ? [] : gwFixtures.filter(f=>{
-    const locked=!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||(f.date&&new Date(f.date)<=new Date()));
+    const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
+    const locked=hiddenPostponed||!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
     if (locked) return false;
     if (myPreds[f.id]) return false;
     if (group.mode==="dibs" && dibsTurnFor[f.id] !== user.username) return false;
@@ -2008,6 +2013,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       p[user.username] = {...(p[user.username] || {}), [fixtureId]: val};
       return {...g, predictions: p};
     });
+    setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
@@ -2379,10 +2385,12 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
+        const [draftHome, draftAway] = String(myPred).split("-");
         const pts = calcPts(myPreds[f.id],f.result);
         const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?MISSED_PICK_PTS:null);
-        const locked = gwAdminLocked || picksLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
-        const lockReason = !locked?null:gwAdminLocked?"admin locked":picksLocked?"picks locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off";
+        const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
+        const locked = hardLocked || picksLocked;
+        const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
@@ -2416,7 +2424,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
-        const pickBlock = locked?(
+        const pickBlock = picksLocked && !hardLocked ? (
+          <span style={{display:"flex",alignItems:"center",gap:6}}>
+            <span title="picks locked" style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>
+            {myPreds[f.id]
+              ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
+              : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
+          </span>
+        ) : locked?(
           <span style={{display:"flex",alignItems:"center",gap:6}}>
             {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
             {myPreds[f.id]
@@ -2430,17 +2445,69 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             waiting for {names[waitingFor]||waitingFor}
           </span>
         ) : (
-          <>
-            <input value={myPred} placeholder="1-1"
-              onChange={e=>setPredDraft(d=>({...d,[f.id]:e.target.value}))}
-              onBlur={e=>savePred(f.id,e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&savePred(f.id,e.target.value)}
-              style={{width:mob?58:66,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 6px",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}/>
-            {saving[f.id]&&<span style={{fontSize:10,color:"var(--text-dim3)",marginLeft:4}}>…</span>}
-          </>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              value={draftHome||""}
+              placeholder="1"
+              ref={el => {
+                if (el) pickInputRefs.current[`${f.id}:home`] = el;
+                else delete pickInputRefs.current[`${f.id}:home`];
+              }}
+              onChange={e=>{
+                const val = e.target.value.replace(/\D/g, "").slice(0,1);
+                setPredDraft(d=>({...d,[f.id]:`${val}-${draftAway||""}`}));
+                if (val) {
+                  setTimeout(()=>pickInputRefs.current[`${f.id}:away`]?.focus(),0);
+                }
+              }}
+              onBlur={()=>{
+                const combined = `${draftHome||""}-${draftAway||""}`;
+                if (/^\d+-\d+$/.test(combined)) savePred(f.id, combined);
+              }}
+              onKeyDown={e=>{
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  pickInputRefs.current[`${f.id}:away`]?.focus();
+                }
+              }}
+              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
+            />
+            <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              value={draftAway||""}
+              placeholder="1"
+              ref={el => {
+                if (el) pickInputRefs.current[`${f.id}:away`] = el;
+                else delete pickInputRefs.current[`${f.id}:away`];
+              }}
+              onChange={e=>{
+                const val = e.target.value.replace(/\D/g, "").slice(0,1);
+                setPredDraft(d=>({...d,[f.id]:`${draftHome||""}-${val}`}));
+              }}
+              onBlur={()=>{
+                const combined = `${draftHome||""}-${draftAway||""}`;
+                if (/^\d+-\d+$/.test(combined)) savePred(f.id, combined);
+              }}
+              onKeyDown={e=>{
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const combined = `${draftHome||""}-${draftAway||""}`;
+                  if (/^\d+-\d+$/.test(combined)) savePred(f.id, combined);
+                  e.currentTarget.blur();
+                }
+              }}
+              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
+            />
+          </div>
         );
         if (mob) return (
-          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:locked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -2463,7 +2530,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
         );
         return (
-          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2,opacity:locked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
