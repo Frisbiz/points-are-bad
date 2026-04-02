@@ -2149,7 +2149,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   };
 
   const fetchFromAPI = async () => {
-    setFetching(true); setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
+    const isWC = (group.competition||"PL") === "WC";
+    const roundLabel = gwLabel(group, currentGW);
+    setFetching(true); setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
     try {
       const seas = group.season||2025;
       const liveFixtures = gwFixtures.filter(f=>f.status==="IN_PLAY"||f.status==="PAUSED");
@@ -2172,14 +2174,23 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
             })};
           });
         }
-        setFetchMsg("Syncing GW" + currentGW + " from football-data.org...");
+        setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
       }
-      const matches = await fetchMatchweek(group.apiKey, currentGW, seas);
-      if (!matches.length) { setFetchMsg("No matches found for this gameweek."); setFetching(false); return; }
-      const apiFixtures = parseMatchesToFixtures(matches, currentGW);
-      const globalKey = `fixtures:PL:${seas}`;
-      const existingGlobal = await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
-      const updatedGlobal = regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
+      const comp = isWC ? "WC" : "PL";
+      const fetchSeason = isWC ? 2026 : seas;
+      const matches = await fetchMatchweek(group.apiKey, currentGW, fetchSeason, comp);
+      if (!matches.length) { setFetchMsg("No matches found for this round."); setFetching(false); return; }
+      const apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
+      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
+      const existingGlobal = await sget(globalKey)||{season:fetchSeason,updatedAt:0,gameweeks:[]};
+      let updatedGlobal;
+      if (isWC) {
+        // WC: direct replacement, no regroupGlobalDoc
+        const otherGWs = (existingGlobal.gameweeks||[]).filter(g=>g.gw!==currentGW);
+        updatedGlobal = {...existingGlobal, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:currentGW,fixtures:apiFixtures}]};
+      } else {
+        updatedGlobal = regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
+      }
       await sset(globalKey, updatedGlobal);
       await updateGroup(g => {
         const s = g.season || 2025;
