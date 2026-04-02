@@ -451,30 +451,31 @@ const CLUB_COLORS = {
   "Southampton":"#D71920","Spurs":"#132257","West Ham":"#7A263A","Wolves":"#FDB913"
 };
 
-const COUNTRY_FLAGS = {
-  "Argentina":"🇦🇷","Australia":"🇦🇺","Austria":"🇦🇹","Belgium":"🇧🇪","Bolivia":"🇧🇴",
-  "Bosnia and Herzegovina":"🇧🇦","Bosnia-Herzegovina":"🇧🇦","Brazil":"🇧🇷",
-  "Burkina Faso":"🇧🇫","Cameroon":"🇨🇲","Canada":"🇨🇦","Cape Verde":"🇨🇻",
-  "Chile":"🇨🇱","China":"🇨🇳","Colombia":"🇨🇴","Costa Rica":"🇨🇷","Croatia":"🇭🇷",
-  "Cuba":"🇨🇺","Czech Republic":"🇨🇿","Czechia":"🇨🇿","Denmark":"🇩🇰","DR Congo":"🇨🇩",
-  "Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-  "France":"🇫🇷","Gabon":"🇬🇦","Germany":"🇩🇪","Ghana":"🇬🇭","Greece":"🇬🇷",
-  "Guatemala":"🇬🇹","Haiti":"🇭🇹","Honduras":"🇭🇳","Hungary":"🇭🇺","India":"🇮🇳",
-  "Indonesia":"🇮🇩","Iran":"🇮🇷","IR Iran":"🇮🇷","Iraq":"🇮🇶","Israel":"🇮🇱",
-  "Italy":"🇮🇹","Ivory Coast":"🇨🇮","Côte d'Ivoire":"🇨🇮","Jamaica":"🇯🇲",
-  "Japan":"🇯🇵","Jordan":"🇯🇴","Korea Republic":"🇰🇷","South Korea":"🇰🇷",
-  "Kuwait":"🇰🇼","Lebanon":"🇱🇧","Mali":"🇲🇱","Mexico":"🇲🇽","Montenegro":"🇲🇪",
-  "Morocco":"🇲🇦","Mozambique":"🇲🇿","Netherlands":"🇳🇱","New Zealand":"🇳🇿",
-  "Nigeria":"🇳🇬","North Macedonia":"🇲🇰","Norway":"🇳🇴","Oman":"🇴🇲",
-  "Panama":"🇵🇦","Paraguay":"🇵🇾","Peru":"🇵🇪","Poland":"🇵🇱","Portugal":"🇵🇹",
-  "Qatar":"🇶🇦","Romania":"🇷🇴","Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-  "Senegal":"🇸🇳","Serbia":"🇷🇸","Slovakia":"🇸🇰","Slovenia":"🇸🇮",
-  "South Africa":"🇿🇦","Spain":"🇪🇸","Sweden":"🇸🇪","Switzerland":"🇨🇭",
-  "Tanzania":"🇹🇿","Thailand":"🇹🇭","Trinidad and Tobago":"🇹🇹","Tunisia":"🇩🇿",
-  "Turkey":"🇹🇷","UAE":"🇦🇪","United Arab Emirates":"🇦🇪","Uganda":"🇺🇬",
-  "Ukraine":"🇺🇦","Uruguay":"🇺🇾","USA":"🇺🇸","United States":"🇺🇸",
-  "Uzbekistan":"🇺🇿","Venezuela":"🇻🇪","Vietnam":"🇻🇳","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-  "Zambia":"🇿🇲","Zimbabwe":"🇿🇼","Albania":"🇦🇱","Algeria":"🇩🇿","Bahrain":"🇧🇭",
+// ISO 3166-1 alpha-2 codes for flagcdn.com images (works on all platforms)
+const COUNTRY_CODES = {
+  "Albania":"al","Algeria":"dz","Argentina":"ar","Australia":"au","Austria":"at",
+  "Bahrain":"bh","Belgium":"be","Bolivia":"bo","Bosnia and Herzegovina":"ba","Bosnia-Herzegovina":"ba",
+  "Brazil":"br","Burkina Faso":"bf","Cameroon":"cm","Canada":"ca","Cape Verde":"cv",
+  "Chile":"cl","China":"cn","Colombia":"co","Costa Rica":"cr","Croatia":"hr",
+  "Cuba":"cu","Czech Republic":"cz","Czechia":"cz","Denmark":"dk","DR Congo":"cd",
+  "Ecuador":"ec","Egypt":"eg","El Salvador":"sv","England":"gb-eng",
+  "France":"fr","Gabon":"ga","Germany":"de","Ghana":"gh","Greece":"gr",
+  "Guatemala":"gt","Haiti":"ht","Honduras":"hn","Hungary":"hu","India":"in",
+  "Indonesia":"id","Iran":"ir","IR Iran":"ir","Iraq":"iq","Israel":"il",
+  "Italy":"it","Ivory Coast":"ci","Côte d'Ivoire":"ci","Jamaica":"jm",
+  "Japan":"jp","Jordan":"jo","Korea Republic":"kr","South Korea":"kr",
+  "Kuwait":"kw","Lebanon":"lb","Mali":"ml","Mexico":"mx","Montenegro":"me",
+  "Morocco":"ma","Mozambique":"mz","Netherlands":"nl","New Zealand":"nz",
+  "Nigeria":"ng","North Macedonia":"mk","Norway":"no","Oman":"om",
+  "Panama":"pa","Paraguay":"py","Peru":"pe","Poland":"pl","Portugal":"pt",
+  "Qatar":"qa","Romania":"ro","Saudi Arabia":"sa","Scotland":"gb-sct",
+  "Senegal":"sn","Serbia":"rs","Slovakia":"sk","Slovenia":"si",
+  "South Africa":"za","Spain":"es","Sweden":"se","Switzerland":"ch",
+  "Tanzania":"tz","Thailand":"th","Trinidad and Tobago":"tt","Tunisia":"tn",
+  "Turkey":"tr","UAE":"ae","United Arab Emirates":"ae","Uganda":"ug",
+  "Ukraine":"ua","Uruguay":"uy","USA":"us","United States":"us",
+  "Uzbekistan":"uz","Venezuela":"ve","Vietnam":"vn","Wales":"gb-wls",
+  "Zambia":"zm","Zimbabwe":"zw",
 };
 
 const TEAM_BADGES = {
@@ -505,10 +506,11 @@ const TEAM_BADGES = {
 
 function TeamBadge({ team, crest, size = 22, style = {} }) {
   const src = crest || TEAM_BADGES[team];
-  const flag = COUNTRY_FLAGS[team];
+  const countryCode = COUNTRY_CODES[team];
+  const flagSrc = !src && countryCode ? `https://flagcdn.com/w40/${countryCode}.png` : null;
   const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
-  if (!src && flag) {
-    return <span style={{fontSize:size*0.9,lineHeight:1,flexShrink:0,display:"inline-flex",alignItems:"center",...style}}>{flag}</span>;
+  if (flagSrc) {
+    return <img src={flagSrc} alt={team} style={{height:size,width:"auto",objectFit:"contain",flexShrink:0,...style}} />;
   }
   if (!src) {
     return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
