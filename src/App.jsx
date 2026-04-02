@@ -1243,6 +1243,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   };
   const [creating,setCreating]=useState(false);
   const [setupMode,setSetupMode]=useState(false);
+  const [setupCompetition,setSetupCompetition]=useState("PL");
   const [setupGW,setSetupGW]=useState("1");
   const [setupLimit,setSetupLimit]=useState("unlimited");
   const [setupGWLoading,setSetupGWLoading]=useState(false);
@@ -1297,21 +1298,33 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     setCreating(true);
     const id = Date.now().toString();
     const code = genCode();
-    const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
-    const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
-    let newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
-    try {
-      const globalDoc = await sget("fixtures:PL:2025");
-      if (globalDoc&&(globalDoc.gameweeks||[]).length) {
-        newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
-      }
-    } catch(e){ console.error("createGroup global seed failed",e); }
+    const isWC = setupCompetition === "WC";
+    let newGroup;
+    if (isWC) {
+      newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeWCRounds(),currentGW:1,apiKey:"",season:2026,competition:"WC",hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
+      try {
+        const globalDoc = await sget("fixtures:WC:2026");
+        if (globalDoc&&(globalDoc.gameweeks||[]).length) {
+          newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
+        }
+      } catch(e){ console.error("createGroup WC global seed failed",e); }
+    } else {
+      const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
+      const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
+      newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
+      try {
+        const globalDoc = await sget("fixtures:PL:2025");
+        if (globalDoc&&(globalDoc.gameweeks||[]).length) {
+          newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
+        }
+      } catch(e){ console.error("createGroup global seed failed",e); }
+    }
     await sset(`group:${id}`,newGroup);
     await sset(`groupcode:${code}`,id);
     const fresh = await sget(`user:${user.username}`);
     const updated = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
     await sset(`user:${user.username}`,updated);
-    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setCreating(false);
+    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");setCreating(false);
     onEnterGroup(newGroup);
   };
 
@@ -1420,7 +1433,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
                 onMouseEnter={e=>e.currentTarget.style.borderColor="var(--text-dim)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
                   <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
-                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{g.members.length} MEMBER{g.members.length!==1?"S":""} · GW{(()=>{const seas=g.season||2025;const next=(g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).sort((a,b)=>a.gw-b.gw).find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));return next?.gw||g.currentGW;})()} · {(g.mode||"open").toUpperCase()}</div>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{(g.competition||"PL")==="WC"?"WC 2026 · ":""}{g.members.length} MEMBER{g.members.length!==1?"S":""} · {(()=>{const seas=g.season||2025;const next=(g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).sort((a,b)=>a.gw-b.gw).find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));const gwNum=next?.gw||g.currentGW;return gwLabel(g,gwNum);})()} · {(g.mode||"open").toUpperCase()}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {g.creatorUsername===user.username&&<span style={{fontSize:10,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"2px 8px"}}>CREATOR</span>}
@@ -1442,9 +1455,19 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
               <div style={{display:"flex",flexDirection:"column",gap:14}}>
                 <div style={{fontSize:13,color:"var(--text-bright)",fontFamily:"'Playfair Display',serif",fontWeight:700,marginBottom:2}}>{createName}</div>
                 <div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>COMPETITION</div>
+                  <div style={{display:"flex",gap:5}}>
+                    {[["PL","Premier League"],["WC","World Cup 2026"]].map(([val,label])=>(
+                      <button key={val} onClick={()=>setSetupCompetition(val)} style={{background:setupCompetition===val?"var(--btn-bg)":"var(--card)",color:setupCompetition===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                {setupCompetition === "PL" && (
+                <div>
                   <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
                   <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
                 </div>
+                )}
                 <div>
                   <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON MODE</div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -1469,7 +1492,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
                   </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
-                  <Btn variant="ghost" small onClick={()=>{setSetupMode(false);setSetupPickMode("open");}}>← Back</Btn>
+                  <Btn variant="ghost" small onClick={()=>{setSetupMode(false);setSetupPickMode("open");setSetupCompetition("PL");}}>← Back</Btn>
                   <Btn onClick={createGroup} disabled={creating} style={{flex:1,textAlign:"center"}}>{creating?"...":"Create Group →"}</Btn>
                 </div>
               </div>
