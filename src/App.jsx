@@ -257,6 +257,7 @@ function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
 
 const MISSED_PICK_PTS = 4;
 const DEMO_GROUP_CODE = "M65Y4R";
+const DEMO_WC_GROUP_CODE = "WCDEM0";
 const DEMO_SHARED_USERNAME = "demo";
 const DEMO_MEMBERS = [
   { username: "demo", displayName: "Demo" },
@@ -337,11 +338,86 @@ function makeDemoPick(username, fixture, gw, season) {
   return `${h}-${a}`;
 }
 
+async function ensureDemoWCGroup() {
+  const WC_GWS = [
+    { gw: 1, fixtures: [
+      { id:"wc-gw1-f1", home:"Brazil",    away:"Morocco",  result:null, status:"SCHEDULED", date:"2026-06-12T15:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw1-f2", home:"Germany",   away:"Japan",    result:null, status:"SCHEDULED", date:"2026-06-12T18:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw1-f3", home:"France",    away:"Mexico",   result:null, status:"SCHEDULED", date:"2026-06-13T15:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw1-f4", home:"England",   away:"USA",      result:null, status:"SCHEDULED", date:"2026-06-13T18:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw1-f5", home:"Argentina", away:"Canada",   result:null, status:"SCHEDULED", date:"2026-06-14T15:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw1-f6", home:"Spain",     away:"Portugal", result:null, status:"SCHEDULED", date:"2026-06-14T18:00:00Z", stage:"GROUP_STAGE" },
+    ]},
+    { gw: 2, fixtures: [
+      { id:"wc-gw2-f1", home:"Brazil",   away:"Japan",    result:null, status:"SCHEDULED", date:"2026-06-16T15:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw2-f2", home:"Morocco",  away:"Germany",  result:null, status:"SCHEDULED", date:"2026-06-16T18:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw2-f3", home:"France",   away:"USA",      result:null, status:"SCHEDULED", date:"2026-06-17T15:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw2-f4", home:"Mexico",   away:"England",  result:null, status:"SCHEDULED", date:"2026-06-17T18:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw2-f5", home:"Canada",   away:"Spain",    result:null, status:"SCHEDULED", date:"2026-06-18T15:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw2-f6", home:"Portugal", away:"Argentina",result:null, status:"SCHEDULED", date:"2026-06-18T18:00:00Z", stage:"GROUP_STAGE" },
+    ]},
+    { gw: 3, fixtures: [
+      { id:"wc-gw3-f1", home:"Japan",    away:"Morocco",  result:null, status:"SCHEDULED", date:"2026-06-21T19:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw3-f2", home:"Germany",  away:"Brazil",   result:null, status:"SCHEDULED", date:"2026-06-21T19:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw3-f3", home:"USA",      away:"Mexico",   result:null, status:"SCHEDULED", date:"2026-06-22T19:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw3-f4", home:"England",  away:"France",   result:null, status:"SCHEDULED", date:"2026-06-22T19:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw3-f5", home:"Argentina",away:"Spain",    result:null, status:"SCHEDULED", date:"2026-06-23T19:00:00Z", stage:"GROUP_STAGE" },
+      { id:"wc-gw3-f6", home:"Canada",   away:"Portugal", result:null, status:"SCHEDULED", date:"2026-06-23T19:00:00Z", stage:"GROUP_STAGE" },
+    ]},
+    { gw: 4, fixtures: [] }, { gw: 5, fixtures: [] },
+    { gw: 6, fixtures: [] }, { gw: 7, fixtures: [] }, { gw: 8, fixtures: [] },
+  ];
+
+  const wcGroupId_lookup = await sget(`groupcode:${DEMO_WC_GROUP_CODE}`);
+  const wcGroupId = wcGroupId_lookup || "demo-wc-2026";
+  if (!wcGroupId_lookup) await sset(`groupcode:${DEMO_WC_GROUP_CODE}`, wcGroupId);
+
+  const existing = await sget(`group:${wcGroupId}`);
+  const memberNames = DEMO_MEMBERS.map(m => m.username);
+
+  const baseGroup = existing || {
+    id: wcGroupId, name: "World Cup 2026", code: DEMO_WC_GROUP_CODE,
+    creatorUsername: DEMO_SHARED_USERNAME, competition: "WC", season: 2026,
+    currentGW: 1, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
+    hiddenGWs: [], hiddenFixtures: [], adminLog: [], dibsSkips: {},
+    memberOrder: memberNames,
+    gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
+  };
+
+  const nextPredictions = { ...(baseGroup.predictions || {}) };
+  memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
+
+  WC_GWS.slice(0, 3).forEach(({ gw, fixtures }) => {
+    fixtures.forEach(fixture => {
+      DEMO_MEMBERS.forEach(member => {
+        nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
+      });
+    });
+  });
+
+  const nextGroup = {
+    ...baseGroup,
+    members: memberNames,
+    memberOrder: memberNames,
+    admins: Array.from(new Set([...(baseGroup.admins || []), DEMO_SHARED_USERNAME])),
+    gameweeks: baseGroup.gameweeks.map(gwObj => {
+      const seeded = WC_GWS.find(g => g.gw === gwObj.gw);
+      return seeded && seeded.fixtures.length ? { ...gwObj, fixtures: seeded.fixtures } : gwObj;
+    }),
+    predictions: nextPredictions,
+  };
+
+  await sset(`group:${wcGroupId}`, nextGroup);
+  return wcGroupId;
+}
+
 async function ensureDemoExperience() {
   const groupId = await sget(`groupcode:${DEMO_GROUP_CODE}`);
   if (!groupId) return null;
   const demoGroup = await sget(`group:${groupId}`);
   if (!demoGroup) return null;
+
+  const wcGroupId = await ensureDemoWCGroup();
 
   for (const member of DEMO_MEMBERS) {
     const key = `user:${member.username}`;
@@ -357,7 +433,7 @@ async function ensureDemoExperience() {
       ...userDoc,
       username: member.username,
       displayName: member.displayName,
-      groupIds: Array.from(new Set([...(userDoc.groupIds || []), groupId])),
+      groupIds: Array.from(new Set([...(userDoc.groupIds || []), groupId, ...(wcGroupId ? [wcGroupId] : [])])),
     };
     await sset(key, nextUser);
   }
@@ -3944,14 +4020,14 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   };
   const leaveGroup=async()=>{
     if(isCreator)return;
-    if(group.code===DEMO_GROUP_CODE)return;
+    if(group.code===DEMO_GROUP_CODE||group.code===DEMO_WC_GROUP_CODE)return;
     const fresh=await sget(`user:${user.username}`);
     if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
     const ok=await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
     if(ok)onLeave();
   };
   const deleteGroup = async () => {
-    if (group.code === DEMO_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }
+    if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }
     if (!deletePw) { setDeleteError("Enter your password."); return; }
     setDeleteLoading(true); setDeleteError("");
     const fresh = await sget(`user:${user.username}`);
