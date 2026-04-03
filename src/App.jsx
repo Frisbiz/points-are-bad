@@ -2008,6 +2008,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
+          {user.username === DEMO_SHARED_USERNAME && (
+            <button onClick={onLogout} className="mob-hide" style={{fontSize:10,letterSpacing:1.5,marginRight:10,background:"#8888cc18",border:"1px solid #8888cc35",borderRadius:4,padding:"3px 10px",flexShrink:0,color:"#8888cc",cursor:"pointer",fontFamily:"inherit"}}>EXIT DEMO</button>
+          )}
           <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
@@ -2025,10 +2028,14 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               )}
             </button>
             {profileOpen&&(
-              <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:100,boxShadow:"0 4px 16px #00000030"}}>
-                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>{user.displayName}</div>
-                <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
-                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
+              <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:120,boxShadow:"0 4px 16px #00000030"}}>
+                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:150}}>{user.displayName}</div>
+                {user.username === DEMO_SHARED_USERNAME ? (
+                  <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#8888cc",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+                ) : (<>
+                  <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
+                  <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
+                </>)}
               </div>
             )}
           </div>
