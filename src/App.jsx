@@ -2787,19 +2787,19 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {showWizard&&wizardFixture&&createPortal(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
-            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
+            <div style={{fontSize:13,color:"var(--text-dim)",letterSpacing:2,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
-              <div style={{textAlign:"right",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-                <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
-                <TeamBadge team={wizardFixture.home} crest={wizardFixture.homeCrest} size={30}/>
+              <div style={{textAlign:"right",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8}}>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
+                <TeamBadge team={wizardFixture.home} crest={wizardFixture.homeCrest} size={22}/>
               </div>
-              <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
-              <div style={{textAlign:"left",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-start",gap:10}}>
-                <TeamBadge team={wizardFixture.away} crest={wizardFixture.awayCrest} size={30}/>
-                <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
+              <span style={{fontSize:12,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
+              <div style={{textAlign:"left",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8}}>
+                <TeamBadge team={wizardFixture.away} crest={wizardFixture.awayCrest} size={22}/>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
               </div>
             </div>
-            {wizardFixture.date&&<div style={{fontSize:11,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
+            {wizardFixture.date&&<div style={{fontSize:13,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
             <Input key={wizardStep} value={wizardPred} onChange={setWizardPred} placeholder="e.g. 2-1" autoFocus
               onKeyDown={e=>e.key==="Enter"&&wizardPred&&/^\d+-\d+$/.test(wizardPred)&&handleWizardSubmit()}
               style={{textAlign:"center",fontSize:22,marginBottom:18,letterSpacing:6}}/>
