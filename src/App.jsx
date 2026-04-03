@@ -2031,9 +2031,6 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          {user.username === DEMO_SHARED_USERNAME && (
-            <button onClick={onLogout} className="mob-hide" style={{fontSize:10,letterSpacing:1.5,marginRight:10,background:"#8888cc18",border:"1px solid #8888cc35",borderRadius:4,padding:"3px 10px",flexShrink:0,color:"#8888cc",cursor:"pointer",fontFamily:"inherit"}}>EXIT DEMO</button>
-          )}
           <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
@@ -2041,6 +2038,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
             ))}
           </nav>
+          {user.username===DEMO_SHARED_USERNAME ? (
+            <button onClick={onLogout} style={{marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%",background:"none",border:"none",borderLeft:"1px solid var(--border)",paddingLeft:20,cursor:"pointer",color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,flexShrink:0}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+          ) : (
           <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
             <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
               <Avatar name={user.displayName} size={26}/>
@@ -2053,15 +2053,12 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
             {profileOpen&&(
               <div style={{position:"absolute",top:"calc(100% + 4px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:120,boxShadow:"0 4px 16px #00000030"}}>
                 <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:150}}>{user.displayName}</div>
-                {user.username === DEMO_SHARED_USERNAME ? (
-                  <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#8888cc",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
-                ) : (<>
-                  <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
-                  <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
-                </>)}
+                <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
+                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
               </div>
             )}
           </div>
+          )}
         </div>
       </header>
       {accountOpen&&createPortal(
@@ -2096,9 +2093,6 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {nav.map(t=>(
           <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
-        {user.username===DEMO_SHARED_USERNAME&&(
-          <button onClick={onLogout} style={{background:"none",border:"none",borderLeft:"1px solid var(--border)",color:"#8888cc",cursor:"pointer",fontSize:8,letterSpacing:1,padding:"6px 8px 0",fontFamily:"inherit",flexShrink:0}}>EXIT</button>
-        )}
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
