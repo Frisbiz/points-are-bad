@@ -1984,7 +1984,19 @@ export default function App() {
       ):!user&&showLanding&&!joinParam?(
         <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin}/>
       ):!user?(
-        <AuthScreen onLogin={handleLogin} onBack={()=>setShowLanding(true)} successMsg={resetDone?"Password updated - please sign in.":null} joinCode={joinParam}/>
+        <AuthScreen
+          onLogin={handleLogin}
+          onBack={()=>{
+            if(joinParam){
+              window.history.replaceState({},"","/");
+              window.location.reload();
+              return;
+            }
+            setShowLanding(true);
+          }}
+          successMsg={resetDone?"Password updated - please sign in.":null}
+          joinCode={joinParam}
+        />
       ):!group?(
         <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam}/>
       ):(
