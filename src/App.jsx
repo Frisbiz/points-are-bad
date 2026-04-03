@@ -1838,7 +1838,10 @@ export default function App() {
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
-  const [showLanding,setShowLanding]=useState(true);
+  const [showLanding,setShowLanding]=useState(()=>{
+    const p=new URLSearchParams(window.location.search);
+    return !p.get("join");
+  });
   const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return THEMES.includes(t)?t:"dark";});
   const [toast,setToast]=useState(null);
   const [bootError,setBootError]=useState(false);
