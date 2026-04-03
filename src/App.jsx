@@ -260,11 +260,11 @@ const DEMO_GROUP_CODE = "M65Y4R";
 const DEMO_WC_GROUP_CODE = "WCDEM0";
 const DEMO_SHARED_USERNAME = "demo";
 const DEMO_MEMBERS = [
-  { username: "demo", displayName: "Demo" },
-  { username: "faris", displayName: "Faris" },
-  { username: "damon", displayName: "Damon" },
-  { username: "vall", displayName: "Vall" },
-  { username: "aamer", displayName: "Aamer" },
+  { username: "demo",      displayName: "Demo"  },
+  { username: "farisdemo", displayName: "Faris" },
+  { username: "damondemo", displayName: "Damon" },
+  { username: "valldemo",  displayName: "Vall"  },
+  { username: "aamerdemo", displayName: "Aamer" },
 ];
 
 function hashSeed(str) {
@@ -287,53 +287,53 @@ function seededRng(seedStr) {
 function makeDemoPick(username, fixture, gw, season) {
   const rng = seededRng(`${username}|${fixture.id}|${fixture.home}|${fixture.away}|${gw}|${season}`);
   const base = {
-    faris: [1.5, 1.1],
-    damon: [1.8, 1.4],
-    vall: [1.6, 1.0],
-    aamer: [1.9, 1.1],
-    demo: [1.4, 1.0],
+    farisdemo: [1.5, 1.1],
+    damondemo: [1.8, 1.4],
+    valldemo:  [1.6, 1.0],
+    aamerdemo: [1.9, 1.1],
+    demo:      [1.4, 1.0],
   }[username] || [1.4, 1.1];
-  const homeAdv = fixture.home === "Man City" || fixture.home === "Liverpool" || fixture.home === "Arsenal" ? 0.45 : 0;
-  const awayAdv = fixture.away === "Man City" || fixture.away === "Liverpool" || fixture.away === "Arsenal" ? 0.25 : 0;
+  const isWC = !!fixture.stage;
+  const WC_FAV = ["Argentina","Brazil","France","England","Spain","Portugal","Netherlands","Germany","Croatia","Morocco"];
+  const homeAdv = isWC
+    ? (WC_FAV.includes(fixture.home) ? 0.4 : 0)
+    : (fixture.home === "Man City" || fixture.home === "Liverpool" || fixture.home === "Arsenal" ? 0.45 : 0);
+  const awayAdv = isWC
+    ? (WC_FAV.includes(fixture.away) ? 0.2 : 0)
+    : (fixture.away === "Man City" || fixture.away === "Liverpool" || fixture.away === "Arsenal" ? 0.25 : 0);
   const volatility = {
-    faris: 2.6,
-    damon: 3.0,
-    vall: 3.8,
-    aamer: 3.7,
-    demo: 2.8,
+    farisdemo: 2.6,
+    damondemo: 3.0,
+    valldemo:  3.8,
+    aamerdemo: 3.7,
+    demo:      2.8,
   }[username] || 2.8;
-  let h = Math.max(0, Math.min(5, Math.round(base[0] + homeAdv - awayAdv * 0.35 + (rng() - 0.5) * volatility)));
-  let a = Math.max(0, Math.min(5, Math.round(base[1] + awayAdv - homeAdv * 0.2 + (rng() - 0.5) * volatility)));
+  const cap = isWC ? 4 : 5;
+  const bh = isWC ? Math.max(0.8, base[0] - 0.3) : base[0];
+  const ba = isWC ? Math.max(0.6, base[1] - 0.2) : base[1];
+  let h = Math.max(0, Math.min(cap, Math.round(bh + homeAdv - awayAdv * 0.35 + (rng() - 0.5) * volatility)));
+  let a = Math.max(0, Math.min(cap, Math.round(ba + awayAdv - homeAdv * 0.2 + (rng() - 0.5) * volatility)));
 
   if (rng() < 0.24) {
-    const d = Math.max(0, Math.min(4, Math.round((h + a) / 2 + (rng() - 0.5))));
+    const d = Math.max(0, Math.min(cap - 1, Math.round((h + a) / 2 + (rng() - 0.5))));
     h = d; a = d;
   }
 
   if (rng() < 0.16) {
-    if (rng() < 0.5) h = Math.max(0, Math.min(5, h + 1));
-    else a = Math.max(0, Math.min(5, a + 1));
+    if (rng() < 0.5) h = Math.max(0, Math.min(cap, h + 1));
+    else a = Math.max(0, Math.min(cap, a + 1));
   }
 
-  if ((username === "vall" || username === "aamer") && rng() < 0.22) {
+  if ((username === "valldemo" || username === "aamerdemo") && rng() < 0.22) {
     const homeBlowout = rng() < 0.62;
     const wild = rng();
-    const bigWin = wild < 0.08 ? 5 : wild < 0.4 ? 4 : 3;
+    const bigWin = wild < 0.08 ? cap : wild < 0.4 ? cap - 1 : cap - 2;
     const loser = wild < 0.25 ? 0 : 1;
-    if (homeBlowout) {
-      h = bigWin;
-      a = loser;
-    } else {
-      h = loser;
-      a = bigWin;
-    }
+    if (homeBlowout) { h = bigWin; a = loser; }
+    else { h = loser; a = bigWin; }
   }
 
-  if (rng() < 0.1) {
-    const swap = h;
-    h = a;
-    a = swap;
-  }
+  if (rng() < 0.1) { const sw = h; h = a; a = sw; }
 
   return `${h}-${a}`;
 }
@@ -418,41 +418,33 @@ async function ensureDemoWCGroup() {
   const wcGroupId = wcGroupId_lookup || "demo-wc-2026";
   if (!wcGroupId_lookup) await sset(`groupcode:${DEMO_WC_GROUP_CODE}`, wcGroupId);
 
-  const existing = await sget(`group:${wcGroupId}`);
   const memberNames = DEMO_MEMBERS.map(m => m.username);
 
-  const baseGroup = existing || {
-    id: wcGroupId, name: "World Cup 2026", code: DEMO_WC_GROUP_CODE,
-    creatorUsername: DEMO_SHARED_USERNAME, competition: "WC", season: 2026,
-    currentGW: 8, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
-    hiddenGWs: [], hiddenFixtures: [], adminLog: [], dibsSkips: {},
-    memberOrder: memberNames,
-    gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
-  };
-
-  const nextPredictions = { ...(baseGroup.predictions || {}) };
-  memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
-
+  const predictions = {};
+  memberNames.forEach(u => { predictions[u] = {}; });
   WC_GWS.forEach(({ gw, fixtures }) => {
     fixtures.forEach(fixture => {
       DEMO_MEMBERS.forEach(member => {
-        if (fixture.result || member.username !== DEMO_SHARED_USERNAME) {
-          nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
-        } else {
-          delete nextPredictions[member.username][fixture.id];
+        if (fixture.result) {
+          predictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
+        } else if (member.username !== DEMO_SHARED_USERNAME) {
+          predictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
         }
       });
     });
   });
 
   const nextGroup = {
-    ...baseGroup,
+    id: wcGroupId, name: "World Cup 2026", code: DEMO_WC_GROUP_CODE,
+    creatorUsername: DEMO_SHARED_USERNAME, competition: "WC", season: 2026,
+    currentGW: 8, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
+    hiddenGWs: [], hiddenFixtures: [], adminLog: [], dibsSkips: {},
+    lastAutoSync: Date.now(),
     members: memberNames,
     memberOrder: memberNames,
-    currentGW: 8,
-    admins: Array.from(new Set([...(baseGroup.admins || []), DEMO_SHARED_USERNAME])),
+    admins: [DEMO_SHARED_USERNAME],
     gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
-    predictions: nextPredictions,
+    predictions,
   };
 
   await sset(`group:${wcGroupId}`, nextGroup);
