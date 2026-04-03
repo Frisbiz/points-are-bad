@@ -1833,15 +1833,21 @@ function RadarTick({x, y, payload, textAnchor}) {
   );
 }
 
+function getInviteCodeFromLocation() {
+  const search = new URLSearchParams(window.location.search);
+  const queryCode = search.get("join");
+  if (queryCode) return queryCode;
+
+  const match = window.location.pathname.match(/^\/join\/([A-Za-z0-9_-]+)$/i);
+  return match ? match[1] : null;
+}
+
 export default function App() {
   const [user,setUser]=useState(null);
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
-  const [showLanding,setShowLanding]=useState(()=>{
-    const p=new URLSearchParams(window.location.search);
-    return !p.get("join");
-  });
+  const [showLanding,setShowLanding]=useState(()=>!getInviteCodeFromLocation());
   const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return THEMES.includes(t)?t:"dark";});
   const [toast,setToast]=useState(null);
   const [bootError,setBootError]=useState(false);
@@ -1850,10 +1856,7 @@ export default function App() {
     const p=new URLSearchParams(window.location.search);
     return p.get("reset")||null;
   });
-  const [joinParam]=useState(()=>{
-    const p=new URLSearchParams(window.location.search);
-    return p.get("join")||null;
-  });
+  const [joinParam]=useState(()=>getInviteCodeFromLocation());
   const [resetDone,setResetDone]=useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
   const handleSetupDone = useCallback((updatedUser) => {
