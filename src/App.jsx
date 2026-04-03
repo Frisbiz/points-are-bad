@@ -1352,6 +1352,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const [createName,setCreateName]=useState("");
   const [joinCode,setJoinCode]=useState(initialJoinCode||"");
   const [error,setError]=useState("");
+  const [inviteGroup,setInviteGroup]=useState(null);
+  const [inviteLoading,setInviteLoading]=useState(false);
   const [thumbs,setThumbs]=useState([]);
   const spawnThumb = (e) => {
     const id = Date.now() + Math.random();
@@ -1454,12 +1456,28 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
       await loadGroups();
       if (cancelled || !initialJoinCode) return;
       try {
-        const fresh = await sget(`user:${user.username}`);
-        if (!fresh) return;
-        if ((fresh.groupIds||[]).length > 0) {
-          await joinGroup(initialJoinCode);
+        const code = initialJoinCode.trim().toUpperCase();
+        const id = await sget(`groupcode:${code}`);
+        if (!id) {
+          if (!cancelled) setError("Invite link is invalid or expired.");
+          return;
         }
-      } catch {}
+        const group = await sget(`group:${id}`);
+        if (!group) {
+          if (!cancelled) setError("Invite link is invalid or expired.");
+          return;
+        }
+        if (!cancelled) {
+          setJoinCode(code);
+          if (group.members.includes(user.username)) {
+            setError("You're already in this group.");
+          } else {
+            setInviteGroup(group);
+          }
+        }
+      } catch {
+        if (!cancelled) setError("Couldn't load invite link.");
+      }
     })();
     return ()=>{ cancelled = true; };
   },[]);
@@ -1544,23 +1562,28 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const joinGroup = async (codeOverride=null) => {
     const code = (codeOverride ?? joinCode).trim().toUpperCase();
     if (code.length!==6){setError("Enter a 6-character code.");return;}
-    const id = await sget(`groupcode:${code}`);
-    if (!id){setError("Group not found.");return;}
-    const group = await sget(`group:${id}`);
-    if (!group){setError("Group not found.");return;}
-    if (group.members.includes(user.username)){setError("Already in this group!");return;}
-    const currentOrder = group.memberOrder || group.members || [];
-    const updated = {
-      ...group,
-      members:[...group.members,user.username],
-      memberOrder: currentOrder.includes(user.username) ? currentOrder : [...currentOrder, user.username],
-    };
-    await sset(`group:${id}`,updated);
-    const fresh = await sget(`user:${user.username}`);
-    const updatedUser = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
-    await sset(`user:${user.username}`,updatedUser);
-    onUpdateUser(updatedUser);setJoinCode("");setError("");
-    onEnterGroup(updated);
+    setInviteLoading(true);
+    try {
+      const id = await sget(`groupcode:${code}`);
+      if (!id){setError("Group not found.");return;}
+      const group = await sget(`group:${id}`);
+      if (!group){setError("Group not found.");return;}
+      if (group.members.includes(user.username)){setError("You're already in this group.");setInviteGroup(null);return;}
+      const currentOrder = group.memberOrder || group.members || [];
+      const updated = {
+        ...group,
+        members:[...group.members,user.username],
+        memberOrder: currentOrder.includes(user.username) ? currentOrder : [...currentOrder, user.username],
+      };
+      await sset(`group:${id}`,updated);
+      const fresh = await sget(`user:${user.username}`);
+      const updatedUser = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
+      await sset(`user:${user.username}`,updatedUser);
+      onUpdateUser(updatedUser);setJoinCode("");setError("");setInviteGroup(null);
+      onEnterGroup(updated);
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   return (
@@ -1585,6 +1608,25 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
           </div>
         </div>
       </header>
+      {inviteGroup&&createPortal(
+  <div onClick={()=>setInviteGroup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420}}>
+      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>GROUP INVITE</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:10}}>{inviteGroup.name}</div>
+      <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
+      <div style={{background:"var(--surface)",border:"1px solid var(--border3)",borderRadius:10,padding:"12px 14px",marginBottom:20,fontSize:11,color:"var(--text-mid)",lineHeight:1.8}}>
+        <div>{inviteGroup.members?.length||0} member{inviteGroup.members?.length===1?"":"s"}</div>
+        <div>{(inviteGroup.competition||"PL")==="WC"?"World Cup 2026":"Premier League"}</div>
+        <div>{(inviteGroup.mode||"open").toUpperCase()} mode</div>
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <Btn variant="ghost" onClick={()=>setInviteGroup(null)} style={{flex:1,textAlign:"center"}}>Cancel</Btn>
+        <Btn onClick={()=>joinGroup(inviteGroup.code)} disabled={inviteLoading} style={{flex:1,textAlign:"center"}}>{inviteLoading?"...":"Join Group"}</Btn>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
       {accountOpen&&createPortal(
   <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
     <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
