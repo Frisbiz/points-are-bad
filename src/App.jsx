@@ -1448,7 +1448,21 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const [setupGWLoading,setSetupGWLoading]=useState(false);
   const [setupPickMode,setSetupPickMode]=useState("open");
 
-  useEffect(()=>{loadGroups().then(()=>{if(initialJoinCode)joinGroup();});},[]);
+  useEffect(()=>{
+    let cancelled = false;
+    (async()=>{
+      await loadGroups();
+      if (cancelled || !initialJoinCode) return;
+      try {
+        const fresh = await sget(`user:${user.username}`);
+        if (!fresh) return;
+        if ((fresh.groupIds||[]).length > 0) {
+          await joinGroup(initialJoinCode);
+        }
+      } catch {}
+    })();
+    return ()=>{ cancelled = true; };
+  },[]);
 
   useEffect(()=>{
     if (!setupMode) return;
@@ -1527,8 +1541,8 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     onEnterGroup(newGroup);
   };
 
-  const joinGroup = async () => {
-    const code = joinCode.trim();
+  const joinGroup = async (codeOverride=null) => {
+    const code = (codeOverride ?? joinCode).trim().toUpperCase();
     if (code.length!==6){setError("Enter a 6-character code.");return;}
     const id = await sget(`groupcode:${code}`);
     if (!id){setError("Group not found.");return;}
