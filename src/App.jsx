@@ -1016,7 +1016,7 @@ function LandingPage({onContinue, onDemo}) {
   );
 }
 
-function AuthScreen({ onLogin, onBack, successMsg }) {
+function AuthScreen({ onLogin, onBack, successMsg, joinCode=null }) {
   const [mode,setMode]=useState("login");
   const [username,setUsername]=useState("");
   const [password,setPassword]=useState("");
@@ -1100,6 +1100,7 @@ function AuthScreen({ onLogin, onBack, successMsg }) {
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
         <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
+          {joinCode&&<div style={{background:"#8888cc12",border:"1px solid #8888cc35",borderRadius:8,padding:"10px 12px",marginBottom:18,fontSize:11,color:"#b8b8ff",lineHeight:1.6}}>You're signing in from an invite link. After login, you'll be able to join the group.</div>}
           {forgotMode ? (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <div style={{fontSize:12,color:"var(--text-dim)",letterSpacing:1}}>Enter your email and we'll send a reset link.</div>
@@ -1974,10 +1975,10 @@ export default function App() {
           window.history.replaceState({},"","/");
           setResetDone(true);
         }}/>
-      ):!user&&showLanding?(
+      ):!user&&showLanding&&!joinParam?(
         <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin}/>
       ):!user?(
-        <AuthScreen onLogin={handleLogin} onBack={()=>setShowLanding(true)} successMsg={resetDone?"Password updated - please sign in.":null}/>
+        <AuthScreen onLogin={handleLogin} onBack={()=>setShowLanding(true)} successMsg={resetDone?"Password updated - please sign in.":null} joinCode={joinParam}/>
       ):!group?(
         <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam}/>
       ):(
