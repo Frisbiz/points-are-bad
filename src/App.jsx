@@ -2789,13 +2789,13 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:3,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
-              <div style={{textAlign:"right",flex:1}}>
+              <div style={{textAlign:"right",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
-                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.home]||"var(--text-dim)",display:"inline-block",marginLeft:6,verticalAlign:"middle"}}/>
+                <TeamBadge team={wizardFixture.home} crest={wizardFixture.homeCrest} size={30}/>
               </div>
               <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
-              <div style={{textAlign:"left",flex:1}}>
-                <div style={{width:8,height:8,borderRadius:"50%",background:CLUB_COLORS[wizardFixture.away]||"var(--text-dim)",display:"inline-block",marginRight:6,verticalAlign:"middle"}}/>
+              <div style={{textAlign:"left",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-start",gap:10}}>
+                <TeamBadge team={wizardFixture.away} crest={wizardFixture.awayCrest} size={30}/>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
               </div>
             </div>
