@@ -417,6 +417,14 @@ async function ensureDemoWCGroup() {
   const wcGroupId_lookup = await sget(`groupcode:${DEMO_WC_GROUP_CODE}`);
   const wcGroupId = wcGroupId_lookup || "demo-wc-2026";
   if (!wcGroupId_lookup) await sset(`groupcode:${DEMO_WC_GROUP_CODE}`, wcGroupId);
+  // clean up old demo usernames from any real accounts they contaminated
+  const OLD_DEMO_NAMES = ["faris","damon","vall","aamer"];
+  for (const old of OLD_DEMO_NAMES) {
+    const doc = await sget(`user:${old}`);
+    if (!doc) continue;
+    const cleaned = (doc.groupIds||[]).filter(id=>id!==wcGroupId&&id!=="demo-wc-2026");
+    if (cleaned.length !== (doc.groupIds||[]).length) await sset(`user:${old}`,{...doc,groupIds:cleaned});
+  }
 
   const memberNames = DEMO_MEMBERS.map(m => m.username);
 
@@ -458,6 +466,15 @@ async function ensureDemoExperience() {
   if (!demoGroup) return null;
 
   const wcGroupId = await ensureDemoWCGroup();
+
+  // strip demo group IDs from any real accounts that were contaminated by old demo usernames
+  const OLD_DEMO_NAMES_PL = ["faris","damon","vall","aamer"];
+  for (const old of OLD_DEMO_NAMES_PL) {
+    const doc = await sget(`user:${old}`);
+    if (!doc) continue;
+    const cleaned = (doc.groupIds||[]).filter(id=>id!==groupId&&id!==wcGroupId&&id!=="demo-wc-2026");
+    if (cleaned.length !== (doc.groupIds||[]).length) await sset(`user:${old}`,{...doc,groupIds:cleaned});
+  }
 
   for (const member of DEMO_MEMBERS) {
     const key = `user:${member.username}`;
@@ -1921,7 +1938,13 @@ export default function App() {
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
-  const [names,setNames]=useState(()=>{const init={};(group.members||[]).forEach(u=>{init[u]=u[0].toUpperCase()+u.slice(1);});init[user.username]=user.displayName;return init;});
+  const [names,setNames]=useState(()=>{
+    const demoMap=Object.fromEntries(DEMO_MEMBERS.map(m=>[m.username,m.displayName]));
+    const init={};
+    (group.members||[]).forEach(u=>{init[u]=demoMap[u]||(u[0].toUpperCase()+u.slice(1));});
+    init[user.username]=user.displayName;
+    return init;
+  });
   const [profileOpen,setProfileOpen]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
   const [pwCurrent,setPwCurrent]=useState("");
@@ -2073,6 +2096,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {nav.map(t=>(
           <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
+        {user.username===DEMO_SHARED_USERNAME&&(
+          <button onClick={onLogout} style={{background:"none",border:"none",borderLeft:"1px solid var(--border)",color:"#8888cc",cursor:"pointer",fontSize:8,letterSpacing:1,padding:"6px 8px 0",fontFamily:"inherit",flexShrink:0}}>EXIT</button>
+        )}
       </nav>
       <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
@@ -2099,10 +2125,11 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
 
 /* ── WC BRACKET ──────────────────────────────────── */
 function WCBracketTab({ group }) {
-  const SLOT_H = 56;
-  const CARD_H = 46;
-  const COL_W = 152;
-  const CONN_W = 22;
+  const mob = useMobile();
+  const SLOT_H = mob ? 36 : 56;
+  const CARD_H = mob ? 28 : 46;
+  const COL_W  = mob ? 108 : 152;
+  const CONN_W = mob ? 12 : 22;
   const TOTAL_H = 16 * SLOT_H;
 
   const getGWFixtures = (gwNum) =>
@@ -2141,14 +2168,14 @@ function WCBracketTab({ group }) {
           const loses = winner && winner !== side;
           return (
             <div key={side} style={{
-              flex:1,display:"flex",alignItems:"center",gap:5,padding:"0 7px",
+              flex:1,display:"flex",alignItems:"center",gap:mob?3:5,padding:mob?"0 4px":"0 7px",
               borderBottom:side==="home"?"1px solid var(--border3)":"none",
               opacity:loses?0.38:1,
               background:wins?"var(--card-hi)":"transparent",
             }}>
-              <TeamBadge team={team||"?"} crest={crest} size={16} />
-              <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
-              {score!=null&&<span style={{fontSize:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:14,textAlign:"right"}}>{score}</span>}
+              <TeamBadge team={team||"?"} crest={crest} size={mob?11:16} />
+              <span style={{fontSize:mob?9:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
+              {score!=null&&<span style={{fontSize:mob?9:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:mob?10:14,textAlign:"right"}}>{score}</span>}
             </div>
           );
         })}
@@ -2203,7 +2230,7 @@ function WCBracketTab({ group }) {
             const blockH = TOTAL_H / count;
             return [
               <div key={`col-${gw}`} style={{width:COL_W,flexShrink:0}}>
-                <div style={{fontSize:8,color:"var(--text-dim)",letterSpacing:2,textAlign:"center",marginBottom:6,height:18}}>{label}</div>
+                <div style={{fontSize:mob?6:8,color:"var(--text-dim)",letterSpacing:mob?1:2,textAlign:"center",marginBottom:6,height:18}}>{label}</div>
                 <div style={{height:TOTAL_H,position:"relative"}}>
                   {Array.from({length:count},(_,i)=>(
                     <div key={i} style={{position:"absolute",top:i*blockH,left:0,right:0,height:blockH}}>
