@@ -823,7 +823,6 @@ function LandingPage({onContinue, onDemo, onAreBadTap}) {
   const [thumbs,setThumbs]=useState([]);
   const [demoLoading,setDemoLoading]=useState(false);
   const [phase,setPhase]=useState("open");
-  const [badTapCount,setBadTapCount]=useState(0);
   const phaseIdx=useRef(0);
   const PHASES=["open","locked","result","score"];
   const PHASE_MS={open:2800,locked:1200,result:2000,score:3200};
@@ -847,14 +846,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap}) {
     const y=r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
-    setBadTapCount(c=>{
-      const next = c + 1;
-      if (next >= 7) {
-        onAreBadTap?.();
-        return 0;
-      }
-      return next;
-    });
+    onAreBadTap?.();
   };
 
   const statusLabel={open:"OPEN",locked:"LOCKED",result:"FINAL",score:"FINAL"}[phase];
@@ -1388,7 +1380,6 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const [inviteGroup,setInviteGroup]=useState(null);
   const [inviteLoading,setInviteLoading]=useState(false);
   const [thumbs,setThumbs]=useState([]);
-  const [badTapCount,setBadTapCount]=useState(0);
   const spawnThumb = (e) => {
     const id = Date.now() + Math.random();
     const r = e.currentTarget.getBoundingClientRect();
@@ -1396,14 +1387,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     const y = r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
-    setBadTapCount(c=>{
-      const next = c + 1;
-      if (next >= 7) {
-        onAreBadTap?.();
-        return 0;
-      }
-      return next;
-    });
+    onAreBadTap?.();
   };
   const [profileOpen,setProfileOpen]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
@@ -2309,7 +2293,6 @@ export default function App() {
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme,unlockSecretTheme}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
-  const [badTapCount,setBadTapCount]=useState(0);
   const [names,setNames]=useState(()=>{
     const demoMap=Object.fromEntries(DEMO_MEMBERS.map(m=>[m.username,m.displayName]));
     const init={};
@@ -2346,14 +2329,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     const y = r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
-    setBadTapCount(c=>{
-      const next = c + 1;
-      if (next >= 7) {
-        unlockSecretTheme?.();
-        return 0;
-      }
-      return next;
-    });
+    unlockSecretTheme?.();
   };
   const updateNickname = async (targetUsername, newName) => {
     const fresh = await sget(`user:${targetUsername}`);
