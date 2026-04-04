@@ -777,7 +777,13 @@ const CSS = `
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
   @keyframes ballspin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes ptsGlitch{0%{transform:translateX(0)}20%{transform:translateX(-0.5px)}40%{transform:translateX(0.8px)}60%{transform:translateX(-0.7px)}100%{transform:translateX(0)}}
+  @keyframes ptsPulse{0%,100%{opacity:1}50%{opacity:.72}}
+  @keyframes ptsShimmer{0%{background-position:200% center}100%{background-position:-200% center}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
+  .pts-label-glitch{animation:ptsGlitch 1.1s ease-in-out infinite alternate;display:inline-block}
+  .pts-label-pulse{animation:ptsPulse 1.6s ease-in-out infinite;display:inline-block}
+  .pts-label-shimmer{background:linear-gradient(90deg,currentColor 0%, #fff 45%, currentColor 90%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ptsShimmer 1.8s linear infinite;display:inline-block}
   .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
   .bot-nav .nb{height:54px;border-top:none!important;}
   .bot-nav .nb.active{border-bottom-color:var(--text)!important;}
@@ -1850,13 +1856,18 @@ function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
   return null;
 }
 
-function getPointsSynonym(totalPoints) {
-  if (totalPoints === 69) return "nice. still bad.";
-  if (totalPoints === 100) return "triple digits. embarrassing.";
-  if (totalPoints === 404) return "points not found";
-  if (totalPoints === 666) return "comically evil total";
-  if (totalPoints === 1000) return "briefly impressed. immediately disappointed.";
-  const words = ["tokens", "sins", "regrets", "little lies"];
+function getPointsLabelMeta(totalPoints) {
+  if (totalPoints === 69) return { label: "nice. still bad.", color: "#d9f99d", glow: "0 0 10px rgba(163,230,53,.28)", effect: "none" };
+  if (totalPoints === 100) return { label: "triple digits. embarrassing.", color: "#fcd34d", glow: "0 0 10px rgba(252,211,77,.22)", effect: "none" };
+  if (totalPoints === 404) return { label: "points not found", color: "#93c5fd", glow: "0 0 10px rgba(96,165,250,.24)", effect: "glitch" };
+  if (totalPoints === 666) return { label: "comically evil total", color: "#f87171", glow: "0 0 12px rgba(239,68,68,.35)", effect: "pulse" };
+  if (totalPoints === 1000) return { label: "briefly impressed. immediately disappointed.", color: "#fde68a", glow: "0 0 12px rgba(250,204,21,.26)", effect: "shimmer" };
+  const words = [
+    { label: "tokens", color: "var(--text-dim)", glow: "none", effect: "none" },
+    { label: "sins", color: "#fca5a5", glow: "0 0 8px rgba(239,68,68,.18)", effect: "none" },
+    { label: "regrets", color: "#d8b4fe", glow: "0 0 8px rgba(168,85,247,.16)", effect: "none" },
+    { label: "damage", color: "#fdba74", glow: "0 0 8px rgba(249,115,22,.15)", effect: "none" },
+  ];
   return words[Math.abs(totalPoints || 0) % words.length];
 }
 
@@ -2649,6 +2660,8 @@ function LeagueTab({group,user,names}) {
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>{
             const title = titles[p.username];
+            const pointsMeta = getPointsLabelMeta(p.total);
+            const pointsLabelClass = pointsMeta.effect === "glitch" ? "pts-label-glitch" : pointsMeta.effect === "pulse" ? "pts-label-pulse" : pointsMeta.effect === "shimmer" ? "pts-label-shimmer" : "";
             return (
             <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
@@ -2665,7 +2678,7 @@ function LeagueTab({group,user,names}) {
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
-              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>{getPointsSynonym(p.total).toUpperCase()}</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":"none"}}>{p.total}</div></div>
+              <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:10,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
             </div>
           )})}
         </div>
