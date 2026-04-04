@@ -1872,15 +1872,19 @@ function TitleBadge({ title }) {
       minWidth:0,
       maxWidth:"100%",
       marginTop:4,
+      paddingLeft:2,
+      paddingRight:2,
+      position:"relative",
+      zIndex:2,
       fontSize:10,
       fontWeight:700,
       letterSpacing:1.1,
       textTransform:"uppercase",
       color:style.text,
-      textShadow:`-1px 0 rgba(0,0,0,.32), 1px 0 rgba(0,0,0,.32), 0 -1px rgba(0,0,0,.32), 0 1px rgba(0,0,0,.32), 0 0 6px rgba(255,255,255,.05), ${style.glow}`,
+      textShadow:`-1px 0 rgba(0,0,0,.26), 1px 0 rgba(0,0,0,.26), 0 -1px rgba(0,0,0,.26), 0 1px rgba(0,0,0,.26), 0 0 6px rgba(255,255,255,.05), ${style.glow}`,
       whiteSpace:"nowrap",
-      overflow:"hidden",
-      textOverflow:"ellipsis"
+      overflow:"visible",
+      textOverflow:"clip"
     }}>
       {title}
     </div>
@@ -2604,7 +2608,7 @@ function LeagueTab({group,user,names}) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
-                <div style={{display:"flex",flexDirection:"column",justifyContent:"center",minWidth:0,flex:1}}>
+                <div style={{display:"flex",flexDirection:"column",justifyContent:"center",minWidth:0,flex:1,overflow:"visible",position:"relative",zIndex:1}}>
                   <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",lineHeight:1.2}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
                   <TitleBadge title={title} />
                 </div>
