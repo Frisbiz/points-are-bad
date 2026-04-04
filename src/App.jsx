@@ -628,7 +628,7 @@ const TEAM_BADGES = {
   "Ipswich": "https://resources.premierleague.com/premierleague/badges/t40.png",
   "Leeds": "https://resources.premierleague.com/premierleague/badges/t2.png",
   "Leicester": "https://resources.premierleague.com/premierleague/badges/t13.png",
-  "Liverpool": "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
+  "Liverpool": "/badges/liverpool-red.svg",
   "Man City": "https://resources.premierleague.com/premierleague/badges/t43.png",
   "Man Utd": "https://resources.premierleague.com/premierleague/badges/t1.png",
   "Newcastle": "https://resources.premierleague.com/premierleague/badges/t4.png",
