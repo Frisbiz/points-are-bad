@@ -1840,12 +1840,12 @@ function getPickFlavor(pred) {
 }
 
 function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
-  if (winnerCount > 1) return "Shared custody of competence.";
-  if (minPts === 0) return "A clinically unnecessary flex.";
-  if (minPts <= 2) return "Disturbingly locked in.";
-  if (totalGoals >= 30) return "Won during absolute football nonsense.";
-  if (minPts >= 10) return "Nobody had a good time, but someone had the least bad one.";
-  return "A tidy little week.";
+  if (winnerCount > 1) return "Shared honours.";
+  if (minPts === 0) return "Perfect week.";
+  if (minPts <= 2) return "Locked in.";
+  if (totalGoals >= 30) return "Chaotic week.";
+  if (minPts >= 10) return "Rough week.";
+  return null;
 }
 
 const TITLE_STYLES = {
@@ -2646,9 +2646,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   const urgent = !hasPick && diff < 3 * 3600000;
   const warning = !hasPick && diff < 24 * 3600000;
   const label = warning ? "Picks due" : "Next kick-off";
-  const deadpanLine = warning
-    ? ["time to pretend you know ball", "administratively urgent", "your future regret is forming"][Math.abs((group.currentGW||1) + (group.members?.length||0)) % 3]
-    : ["football is approaching", "calm before the spreadsheet", "another opportunity to be slightly wrong"][Math.abs((group.currentGW||1) + (group.name||"").length) % 3];
+  const deadpanLine = null;
   const borderColor = urgent ? "#ef444435" : warning ? "#f59e0b35" : "var(--border3)";
   const bgColor = urgent ? "#ef444408" : warning ? "#f59e0b08" : "var(--card)";
   const textColor = urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-dim)";
