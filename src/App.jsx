@@ -1856,7 +1856,8 @@ function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
   return null;
 }
 
-function getPointsLabelMeta(totalPoints) {
+function getPointsLabelMeta(totalPoints, theme) {
+  if (theme !== "clarity") return { label: "PTS", color: "var(--text-dim)", glow: "none", effect: "none" };
   if (totalPoints === 69) return { label: "nice. still bad.", color: "#d9f99d", glow: "0 0 10px rgba(163,230,53,.28)", effect: "none" };
   if (totalPoints === 100) return { label: "triple digits. embarrassing.", color: "#fcd34d", glow: "0 0 10px rgba(252,211,77,.22)", effect: "none" };
   if (totalPoints === 404) return { label: "points not found", color: "#93c5fd", glow: "0 0 10px rgba(96,165,250,.24)", effect: "glitch" };
@@ -2662,7 +2663,7 @@ function LeagueTab({group,user,names}) {
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>{
             const title = titles[p.username];
-            const pointsMeta = getPointsLabelMeta(p.total);
+            const pointsMeta = getPointsLabelMeta(p.total, theme);
             const pointsLabelClass = pointsMeta.effect === "glitch" ? "pts-label-glitch" : pointsMeta.effect === "pulse" ? "pts-label-pulse" : pointsMeta.effect === "shimmer" ? "pts-label-shimmer" : "";
             return (
             <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
