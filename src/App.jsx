@@ -763,6 +763,7 @@ const CSS = `
   [data-theme="nord"]{--bg:#2e3440;--surface:#3b4252;--card:#353c4a;--card-hi:#3b4357;--card-hover:#404858;--input-bg:#2e3440;--border:#434c5e;--border2:#4c566a;--border3:#3a4154;--text:#eceff4;--text-dim:#616e88;--text-dim2:#555f73;--text-dim3:#4a5368;--text-mid:#d8dee9;--text-bright:#eceff4;--text-inv:#2e3440;--scrollbar:#434c5e;--btn-bg:#88c0d0;--btn-text:#2e3440;--font-mono:'DM Mono',monospace;}
   [data-theme="pitch"]{--bg:#0d1f0d;--surface:#122012;--card:#0f1c0f;--card-hi:#142214;--card-hover:#162516;--input-bg:#0a180a;--border:rgba(255,255,255,0.22);--border2:rgba(255,255,255,0.32);--border3:rgba(255,255,255,0.1);--text:#d4ecd4;--text-dim:#3a6a3a;--text-dim2:#2e562e;--text-dim3:#264426;--text-mid:#7ab87a;--text-bright:#e8f5e8;--text-inv:#0d1f0d;--scrollbar:rgba(255,255,255,0.15);--btn-bg:#4caf50;--btn-text:#0d1f0d;--font-mono:'DM Mono',monospace;}
   [data-theme="velvet"]{--bg:#120816;--surface:#1a0f1f;--card:#180d1d;--card-hi:#221229;--card-hover:#291631;--input-bg:#140a18;--border:#3a2344;--border2:#4a2d58;--border3:#26132d;--text:#f7d6ea;--text-dim:#7a5a71;--text-dim2:#8f6d84;--text-dim3:#62485c;--text-mid:#d6adc7;--text-bright:#fff2fa;--text-inv:#120816;--scrollbar:#4a2d58;--btn-bg:#f472b6;--btn-text:#1b0d18;--font-mono:'DM Mono',monospace;}
+  [data-theme="clarity"]{--bg:#111;--surface:#1a1a1a;--card:#171717;--card-hi:#222;--card-hover:#252525;--input-bg:#141414;--border:#444;--border2:#555;--border3:#2a2a2a;--text:#f1f1f1;--text-dim:#999;--text-dim2:#888;--text-dim3:#777;--text-mid:#d0d0d0;--text-bright:#fff;--text-inv:#111;--scrollbar:#555;--btn-bg:#d7d7d7;--btn-text:#111;--font-mono:'DM Mono',monospace;filter:grayscale(1);}
   html,body{background:var(--bg);}
   *{box-sizing:border-box;margin:0;padding:0;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
@@ -1802,8 +1803,9 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
 
 /* ── MAIN APP ────────────────────────────────────── */
 const NAV = ["League","Fixtures","Trends","Members","Group"];
-const SECRET_THEME_KEY = "pab-secret-theme-unlocked";
 const SECRET_THEME = "velvet";
+const SECRET_THEME_CLICKS_REQUIRED = 99;
+const KONAMI_SEQUENCE = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
 const THEMES=["dark","light","excel","terminal","nord","pitch",SECRET_THEME];
 const THEME_META=[
   {key:"dark",   label:"Dark",     swatches:["#080810","#0e0e1a","#e8e4d9"]},
@@ -1815,16 +1817,16 @@ const THEME_META=[
   {key:SECRET_THEME,label:"Velvet",  swatches:["#120816","#1d1024","#f7d6ea"],secret:true},
 ];
 
-function isSecretThemeUnlocked() {
-  try { return localStorage.getItem(SECRET_THEME_KEY) === "1"; } catch { return false; }
+function isSecretThemeUnlockedForUser(user) {
+  return !!user?.unlockedThemes?.includes(SECRET_THEME);
 }
 
-function getAvailableThemes() {
-  return THEMES.filter(t => t !== SECRET_THEME || isSecretThemeUnlocked());
+function getAvailableThemes(user) {
+  return THEMES.filter(t => t !== SECRET_THEME || isSecretThemeUnlockedForUser(user));
 }
 
-function getSecretThemeMeta() {
-  return THEME_META.filter(t => t.key !== SECRET_THEME || isSecretThemeUnlocked());
+function getSecretThemeMeta(user) {
+  return THEME_META.filter(t => t.key !== SECRET_THEME || isSecretThemeUnlockedForUser(user));
 }
 
 function getPickFlavor(pred) {
@@ -1846,6 +1848,16 @@ function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
   if (totalGoals >= 30) return "Chaotic week.";
   if (minPts >= 25) return "Rough week.";
   return null;
+}
+
+function getPointsSynonym(totalPoints) {
+  if (totalPoints === 69) return "nice. still bad.";
+  if (totalPoints === 100) return "triple digits. embarrassing.";
+  if (totalPoints === 404) return "points not found";
+  if (totalPoints === 666) return "comically evil total";
+  if (totalPoints === 1000) return "briefly impressed. immediately disappointed.";
+  const words = ["tokens", "sins", "regrets", "little lies"];
+  return words[Math.abs(totalPoints || 0) % words.length];
 }
 
 const TITLE_STYLES = {
@@ -2066,9 +2078,9 @@ export default function App() {
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
   const [showLanding,setShowLanding]=useState(()=>!getInviteCodeFromLocation());
-  const [secretThemeUnlocked,setSecretThemeUnlocked]=useState(()=>isSecretThemeUnlocked());
-  const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return getAvailableThemes().includes(t)?t:"dark";});
+  const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"dark");
   const [toast,setToast]=useState(null);
+  const [konamiIndex,setKonamiIndex]=useState(0);
   const [bootError,setBootError]=useState(false);
   const toastTimer=useRef(null);
   const [resetToken]=useState(()=>{
@@ -2089,22 +2101,60 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
-    if (theme === SECRET_THEME && !secretThemeUnlocked) setTheme("dark");
-  },[theme,secretThemeUnlocked]);
+    const available = [...getAvailableThemes(user), "clarity"];
+    if (!available.includes(theme)) setTheme("dark");
+  },[theme,user]);
 
   useEffect(()=>{
     document.documentElement.setAttribute("data-theme",theme);
     localStorage.setItem("theme",theme);
   },[theme]);
 
-  const unlockSecretTheme = useCallback(()=>{
-    if (secretThemeUnlocked) return false;
-    try { localStorage.setItem(SECRET_THEME_KEY, "1"); } catch {}
-    setSecretThemeUnlocked(true);
-    setTheme(SECRET_THEME);
-    showToast("Velvet theme unlocked.");
-    return true;
-  },[secretThemeUnlocked,showToast]);
+  useEffect(()=>{
+    console.log("stop inspecting the app and go build something");
+    console.log("points detected. opinion lowered.");
+    window.destroyPoints = () => {
+      showToast("Points destroyed. For now.");
+      return 0;
+    };
+    const onKey = (e) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const expected = KONAMI_SEQUENCE[konamiIndex];
+      const next = KONAMI_SEQUENCE[konamiIndex + 1];
+      if (key === expected) {
+        if (konamiIndex === KONAMI_SEQUENCE.length - 1) {
+          setTheme("clarity");
+          showToast("Post-Optimization Clarity unlocked.");
+          setKonamiIndex(0);
+          return;
+        }
+        setKonamiIndex(konamiIndex + 1);
+      } else {
+        setKonamiIndex(key === KONAMI_SEQUENCE[0] ? 1 : 0);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  },[konamiIndex, showToast]);
+
+  const unlockSecretTheme = useCallback(async()=>{
+    if (!user) return false;
+    const alreadyUnlocked = isSecretThemeUnlockedForUser(user);
+    const clicks = (user.badClicks || 0) + 1;
+    const unlockedThemes = alreadyUnlocked || clicks >= SECRET_THEME_CLICKS_REQUIRED
+      ? Array.from(new Set([...(user.unlockedThemes || []), SECRET_THEME]))
+      : (user.unlockedThemes || []);
+    const updatedUser = { ...user, badClicks: clicks, unlockedThemes };
+    await sset(`user:${user.username}`, updatedUser);
+    setUser(updatedUser);
+    if (!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME)) {
+      setTheme(SECRET_THEME);
+      showToast("Velvet theme unlocked.");
+      return true;
+    }
+    if (!alreadyUnlocked && clicks % 11 === 0) showToast(`${clicks}/${SECRET_THEME_CLICKS_REQUIRED}`);
+    return false;
+  },[user,showToast]);
 
   const runBoot=useCallback(async()=>{
     setBootError(false);
@@ -2615,7 +2665,7 @@ function LeagueTab({group,user,names}) {
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
-              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
+              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>{getPointsSynonym(p.total).toUpperCase()}</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":"none"}}>{p.total}</div></div>
             </div>
           )})}
         </div>
@@ -4555,7 +4605,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       <Section title="Appearance">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-          {getSecretThemeMeta().map(t=>(
+          {[...getSecretThemeMeta(user), ...(theme==="clarity" ? [{key:"clarity",label:"Post-Optimization Clarity",swatches:["#111","#666","#fff"],secret:true}] : [])].map(t=>(
             <button key={t.key} onClick={()=>setTheme(t.key)}
               style={{background:"var(--card)",border:`2px solid ${theme===t.key?"var(--btn-bg)":"var(--border)"}`,borderRadius:10,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8,transition:"border-color 0.15s",fontFamily:"inherit"}}>
               <div style={{display:"flex",gap:4}}>
@@ -4567,7 +4617,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
             </button>
           ))}
         </div>
-        {isSecretThemeUnlocked() && <div style={{fontSize:11,color:"var(--text-dim)",marginTop:10}}>Secret theme unlocked. Tiny reward for aggressively agreeing that points are, in fact, bad.</div>}
+        {isSecretThemeUnlockedForUser(user) && <div style={{fontSize:11,color:"var(--text-dim)",marginTop:10}}>Secret theme unlocked. Tiny reward for aggressively agreeing that points are, in fact, bad.</div>}
       </Section>
 
       {isAdmin&&(group.competition||"PL")==="PL"&&(
