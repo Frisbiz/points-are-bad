@@ -1869,18 +1869,22 @@ function TitleBadge({ title }) {
     <div style={{
       display:"inline-flex",
       alignItems:"center",
-      marginTop:5,
-      padding:"3px 8px",
+      justifyContent:"center",
+      height:18,
+      minWidth:0,
+      maxWidth:"100%",
+      padding:"0 10px",
       borderRadius:999,
       fontSize:9,
-      letterSpacing:1.2,
+      fontWeight:700,
+      letterSpacing:1,
       textTransform:"uppercase",
       color:style.text,
-      background:style.bg,
+      background:`linear-gradient(180deg, rgba(86,145,201,.95) 0%, rgba(37,77,120,.98) 52%, rgba(22,48,79,1) 100%)`,
       border:`1px solid ${style.border}`,
-      boxShadow:style.glow,
+      boxShadow:`inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.35), ${style.glow}`,
+      textShadow:"0 1px 0 rgba(0,0,0,.55)",
       whiteSpace:"nowrap",
-      maxWidth:"100%",
       overflow:"hidden",
       textOverflow:"ellipsis"
     }}>
@@ -2606,8 +2610,8 @@ function LeagueTab({group,user,names}) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
-                <div style={{minWidth:0}}>
-                  <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexWrap:"wrap"}}>
+                  <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
                   <TitleBadge title={title} />
                 </div>
               </div>
@@ -3605,7 +3609,6 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 function TrendsTab({group,names}) {
   const mob = useMobile();
   const stats = useMemo(()=>computeStats(group),[group]);
-  const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const members = group.members||[];
   const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
   const activeSeason = group.season || 2025;
@@ -3885,17 +3888,15 @@ function TrendsTab({group,names}) {
           const medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":null;
           const color=memberColor(p.username);
           const isSelected=selectedPlayer===p.username;
-          const title = titles[p.username];
           return (
             <div key={p.username} onClick={()=>setSelectedPlayer(prev=>prev===p.username?null:p.username)}
               style={{background:"var(--surface)",border:`1px solid ${isSelected?color:"var(--border)"}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",opacity:selectedPlayer&&!isSelected?0.35:1,transition:"opacity 0.15s,border-color 0.15s",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:color,borderRadius:"12px 12px 0 0"}}/>
-              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8,marginTop:4}}>
+              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,marginTop:4}}>
                 <span style={{fontSize:11,fontWeight:700,color:"var(--text-dim3)",minWidth:20}}>{medal||`#${rank}`}</span>
                 <Avatar name={p.dn} size={21} color={color}/>
                 <span style={{fontSize:11,fontWeight:600,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{p.dn}</span>
               </div>
-              <div style={{marginBottom:10}}><TitleBadge title={title} /></div>
               <div style={{display:"flex",justifyContent:"space-between",gap:2}}>
                 {[["PTS",p.total,color,"'Playfair Display',serif",17],["AVG",p.avg,"var(--text-mid)","inherit",13],["PERF",p.perfects,"#22c55e","inherit",13]].map(([l,v,c,ff,fs])=>(
                   <div key={l} style={{textAlign:"center",flex:1}}>
@@ -4165,7 +4166,6 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const members=group.members||[];
   const admins=group.admins||[];
   const stats = useMemo(()=>computeStats(group),[group]);
-  const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
   const [logCount,setLogCount]=useState(20);
@@ -4194,7 +4194,6 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
           const mIsAdmin=admins.includes(username);
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
-          const title = titles[username];
           return (
             <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
@@ -4215,7 +4214,6 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                   <div style={{display:"flex",gap:6,marginTop:4}}>
                     {mIsCreator&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"1px 6px"}}>CREATOR</span>}
                     {isAdmin&&mIsAdmin&&!mIsCreator&&<span style={{fontSize:9,color:"#60a5fa",letterSpacing:2,background:"#60a5fa15",border:"1px solid #60a5fa30",borderRadius:4,padding:"1px 6px"}}>ADMIN</span>}
-                    <TitleBadge title={title} />
                   </div>
                 </div>
               </div>
