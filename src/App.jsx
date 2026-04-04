@@ -1877,7 +1877,7 @@ function TitleBadge({ title }) {
       letterSpacing:1.1,
       textTransform:"uppercase",
       color:style.text,
-      textShadow:`0 1px 2px rgba(0,0,0,.22), 0 0 6px rgba(255,255,255,.06), ${style.glow}`,
+      textShadow:`-1px 0 rgba(0,0,0,.32), 1px 0 rgba(0,0,0,.32), 0 -1px rgba(0,0,0,.32), 0 1px rgba(0,0,0,.32), 0 0 6px rgba(255,255,255,.05), ${style.glow}`,
       whiteSpace:"nowrap",
       overflow:"hidden",
       textOverflow:"ellipsis"
