@@ -2465,7 +2465,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
           </div>
         )}
-        {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
+        {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
         {tab==="Bracket"&&<WCBracketTab group={group}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
@@ -2624,7 +2624,7 @@ function WCBracketTab({ group }) {
 }
 
 /* ── LEAGUE ──────────────────────────────────────── */
-function LeagueTab({group,user,names}) {
+function LeagueTab({group,user,names,theme}) {
   const mob = useMobile();
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
