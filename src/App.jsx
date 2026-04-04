@@ -2135,23 +2135,25 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   },[showToast]);
 
-  const unlockSecretTheme = useCallback(async()=>{
-    if (!user) return false;
+  const unlockSecretTheme = useCallback(()=>{
+    if (!user) return Promise.resolve(false);
     const alreadyUnlocked = isSecretThemeUnlockedForUser(user);
     const clicks = (user.badClicks || 0) + 1;
     const unlockedThemes = alreadyUnlocked || clicks >= SECRET_THEME_CLICKS_REQUIRED
       ? Array.from(new Set([...(user.unlockedThemes || []), SECRET_THEME]))
       : (user.unlockedThemes || []);
     const updatedUser = { ...user, badClicks: clicks, unlockedThemes };
-    await sset(`user:${user.username}`, updatedUser);
     setUser(updatedUser);
     if (!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME)) {
       setTheme(SECRET_THEME);
       showToast("Velvet theme unlocked.");
-      return true;
+    } else if (!alreadyUnlocked && clicks % 11 === 0) {
+      showToast(`${clicks}/${SECRET_THEME_CLICKS_REQUIRED}`);
     }
-    if (!alreadyUnlocked && clicks % 11 === 0) showToast(`${clicks}/${SECRET_THEME_CLICKS_REQUIRED}`);
-    return false;
+    return sset(`user:${user.username}`, updatedUser).catch(err=>{
+      console.error("failed to persist hidden counter", err);
+      return false;
+    }).then(()=>!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME));
   },[user,showToast]);
 
   const runBoot=useCallback(async()=>{
