@@ -2091,7 +2091,7 @@ export default function App() {
   const [showLanding,setShowLanding]=useState(()=>!getInviteCodeFromLocation());
   const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"dark");
   const [toast,setToast]=useState(null);
-  const [konamiIndex,setKonamiIndex]=useState(0);
+  const konamiIndexRef=useRef(0);
   const [bootError,setBootError]=useState(false);
   const toastTimer=useRef(null);
   const [resetToken]=useState(()=>{
@@ -2129,24 +2129,26 @@ export default function App() {
       return 0;
     };
     const onKey = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable) return;
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      const expected = KONAMI_SEQUENCE[konamiIndex];
-      const next = KONAMI_SEQUENCE[konamiIndex + 1];
+      const currentIndex = konamiIndexRef.current;
+      const expected = KONAMI_SEQUENCE[currentIndex];
       if (key === expected) {
-        if (konamiIndex === KONAMI_SEQUENCE.length - 1) {
+        if (currentIndex === KONAMI_SEQUENCE.length - 1) {
           setTheme("clarity");
           showToast("Post-Optimization Clarity unlocked.");
-          setKonamiIndex(0);
+          konamiIndexRef.current = 0;
           return;
         }
-        setKonamiIndex(konamiIndex + 1);
-      } else {
-        setKonamiIndex(key === KONAMI_SEQUENCE[0] ? 1 : 0);
+        konamiIndexRef.current = currentIndex + 1;
+        return;
       }
+      konamiIndexRef.current = key === KONAMI_SEQUENCE[0] ? 1 : 0;
     };
-    window.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, { passive: true });
     return () => window.removeEventListener("keydown", onKey);
-  },[konamiIndex, showToast]);
+  },[showToast]);
 
   const unlockSecretTheme = useCallback(async()=>{
     if (!user) return false;
