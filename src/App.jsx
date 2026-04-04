@@ -1848,14 +1848,170 @@ function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
   return "A tidy little week.";
 }
 
-function getMemberAchievement(statsRow, rank, totalMembers) {
-  if (!statsRow) return null;
-  if (rank === 1 && statsRow.perfects >= 3) return "Precision Goblin";
-  if (statsRow.avg !== "–" && Number(statsRow.avg) <= 1.4) return "Spreadsheet Royalty";
-  if (statsRow.perfects >= 5) return "Exact Score Hoarder";
-  if (statsRow.scored >= 10 && statsRow.perfects === 0) return "Near Miss Specialist";
-  if (rank === totalMembers && statsRow.total > 0) return "Chaos Consultant";
-  return null;
+const TITLE_STYLES = {
+  "Least Wrong": { text: "#f8e7a1", border: "#c9a22755", bg: "#1f1a0d", glow: "0 0 10px rgba(248,231,161,.18)" },
+  "Bullseye Bandit": { text: "#b8ffcf", border: "#22c55e55", bg: "#0d1f16", glow: "0 0 12px rgba(34,197,94,.18)" },
+  "Draw Merchant": { text: "#ffd089", border: "#d9770655", bg: "#24170c", glow: "0 0 10px rgba(255,180,90,.16)" },
+  "Chaos Goblin": { text: "#ffb1f2", border: "#d946ef66", bg: "#231028", glow: "0 0 14px rgba(217,70,239,.24)" },
+  Metronome: { text: "#bfe8ff", border: "#38bdf855", bg: "#0f1c24", glow: "0 0 10px rgba(56,189,248,.15)" },
+  "Near Miss Specialist": { text: "#ddd6fe", border: "#8b5cf655", bg: "#171327", glow: "0 0 10px rgba(139,92,246,.14)" },
+  "Public Menace": { text: "#ffb3a8", border: "#ef444455", bg: "#261210", glow: "0 0 9px rgba(239,68,68,.16)" },
+};
+
+function getTitleStyle(title) {
+  return TITLE_STYLES[title] || { text: "var(--text-mid)", border: "var(--border)", bg: "var(--card)", glow: "none" };
+}
+
+function TitleBadge({ title }) {
+  if (!title) return null;
+  const style = getTitleStyle(title);
+  return (
+    <div style={{
+      display:"inline-flex",
+      alignItems:"center",
+      marginTop:5,
+      padding:"3px 8px",
+      borderRadius:999,
+      fontSize:9,
+      letterSpacing:1.2,
+      textTransform:"uppercase",
+      color:style.text,
+      background:style.bg,
+      border:`1px solid ${style.border}`,
+      boxShadow:style.glow,
+      whiteSpace:"nowrap",
+      maxWidth:"100%",
+      overflow:"hidden",
+      textOverflow:"ellipsis"
+    }}>
+      {title}
+    </div>
+  );
+}
+
+function computeGroupRelativeTitles(group, stats) {
+  const preds = group.predictions || {};
+  const activeSeason = group.season || 2025;
+  const scope = group.scoreScope || "all";
+  const filteredGWs = (group.gameweeks || []).filter(g => scope === "all" || (g.season || activeSeason) === activeSeason);
+  const completedGWs = filteredGWs.filter(g => (g.fixtures || []).some(f => f.result));
+  const minimumScoredPicks = 20;
+  const minimumCompletedGWs = 3;
+
+  const profiles = (stats || []).map(s => {
+    const predictions = preds[s.username] || {};
+    let drawPickCount = 0;
+    let predictedGoalsTotal = 0;
+    let submittedPickCount = 0;
+    let nearMissCount = 0;
+    let winnerHits = 0;
+    let winnerScored = 0;
+
+    filteredGWs.forEach(gw => {
+      (gw.fixtures || []).forEach(f => {
+        const pred = predictions[f.id];
+        if (!pred || !/^\d+-\d+$/.test(pred)) return;
+        const [ph, pa] = pred.split("-").map(Number);
+        submittedPickCount++;
+        predictedGoalsTotal += ph + pa;
+        if (ph === pa) drawPickCount++;
+        if (f.result) {
+          const pts = calcPts(pred, f.result);
+          if (pts === 1 || pts === 2) nearMissCount++;
+          const [rh, ra] = f.result.split("-").map(Number);
+          const predResult = ph > pa ? 1 : ph < pa ? -1 : 0;
+          const realResult = rh > ra ? 1 : rh < ra ? -1 : 0;
+          winnerScored++;
+          if (predResult === realResult) winnerHits++;
+        }
+      });
+    });
+
+    const gwCompletedTotals = (s.gwTotals || []).filter(gw => completedGWs.some(c => c.gw === gw.gw && (c.season || activeSeason) === (gw.season || activeSeason)));
+    const gwValues = gwCompletedTotals.map(gw => gw.points);
+    const gwMean = gwValues.length ? gwValues.reduce((a,b)=>a+b,0) / gwValues.length : null;
+    const gwVariance = gwValues.length > 1 ? gwValues.reduce((sum, pts) => sum + Math.pow(pts - gwMean, 2), 0) / gwValues.length : null;
+
+    return {
+      ...s,
+      drawPickCount,
+      drawPickRate: submittedPickCount ? drawPickCount / submittedPickCount : null,
+      predictedGoalsAvg: submittedPickCount ? predictedGoalsTotal / submittedPickCount : null,
+      nearMissCount,
+      winnerRate: winnerScored ? winnerHits / winnerScored : null,
+      gwVariance,
+      eligible: s.scored >= minimumScoredPicks || completedGWs.length >= minimumCompletedGWs,
+    };
+  });
+
+  const candidates = profiles.filter(p => p.eligible);
+  if (!candidates.length) return {};
+
+  const scoreBy = {
+    avg: values => {
+      const min = Math.min(...values), max = Math.max(...values);
+      return v => max === min ? 1 : (max - v) / (max - min);
+    },
+    max: values => {
+      const min = Math.min(...values), max = Math.max(...values);
+      return v => max === min ? 1 : (v - min) / (max - min);
+    }
+  };
+
+  const avgNorm = scoreBy.avg(candidates.map(p => Number(p.avg) || 999));
+  const varianceNorm = scoreBy.avg(candidates.map(p => p.gwVariance ?? Math.max(...candidates.map(x => x.gwVariance ?? 0), 0)));
+  const perfectRateNorm = scoreBy.max(candidates.map(p => p.scored ? p.perfects / p.scored : 0));
+  const winnerRateNorm = scoreBy.max(candidates.map(p => p.winnerRate ?? 0));
+  const menaceBoldNorm = scoreBy.max(candidates.map(p => p.predictedGoalsAvg ?? 0));
+  const menaceBadNorm = scoreBy.max(candidates.map(p => Number(p.avg) || 0));
+  const menaceVarianceNorm = scoreBy.max(candidates.map(p => p.gwVariance ?? 0));
+
+  const leaders = {
+    "Least Wrong": [...candidates].sort((a,b)=>(Number(a.avg)||999)-(Number(b.avg)||999) || b.perfects-a.perfects || b.scored-a.scored)[0]?.username,
+    "Bullseye Bandit": [...candidates].sort((a,b)=>b.perfects-a.perfects || (b.scored?b.perfects/b.scored:0)-(a.scored?a.perfects/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "Draw Merchant": [...candidates].sort((a,b)=>(b.drawPickRate??-1)-(a.drawPickRate??-1) || b.drawPickCount-a.drawPickCount || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "Chaos Goblin": [...candidates].sort((a,b)=>(b.predictedGoalsAvg??-1)-(a.predictedGoalsAvg??-1) || b.nearMissCount-a.nearMissCount || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    Metronome: [...candidates].filter(p => p.gwVariance !== null).sort((a,b)=>(a.gwVariance??999)-(b.gwVariance??999) || (Number(a.avg)||999)-(Number(b.avg)||999) || b.scored-a.scored)[0]?.username,
+    "Near Miss Specialist": [...candidates].sort((a,b)=>b.nearMissCount-a.nearMissCount || (b.scored?b.nearMissCount/b.scored:0)-(a.scored?a.nearMissCount/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "Public Menace": [...candidates].sort((a,b)=>{
+      const menaceA = menaceBoldNorm(a.predictedGoalsAvg ?? 0) * 0.4 + menaceBadNorm(Number(a.avg) || 0) * 0.35 + menaceVarianceNorm(a.gwVariance ?? 0) * 0.25;
+      const menaceB = menaceBoldNorm(b.predictedGoalsAvg ?? 0) * 0.4 + menaceBadNorm(Number(b.avg) || 0) * 0.35 + menaceVarianceNorm(b.gwVariance ?? 0) * 0.25;
+      return menaceB - menaceA;
+    })[0]?.username,
+  };
+
+  const compositeSorted = [...candidates].sort((a,b)=>{
+    const scoreA = avgNorm(Number(a.avg)||999) * 0.4 + varianceNorm(a.gwVariance ?? 999) * 0.25 + perfectRateNorm(a.scored ? a.perfects / a.scored : 0) * 0.2 + winnerRateNorm(a.winnerRate ?? 0) * 0.15;
+    const scoreB = avgNorm(Number(b.avg)||999) * 0.4 + varianceNorm(b.gwVariance ?? 999) * 0.25 + perfectRateNorm(b.scored ? b.perfects / b.scored : 0) * 0.2 + winnerRateNorm(b.winnerRate ?? 0) * 0.15;
+    return scoreB - scoreA;
+  });
+
+  const priority = [
+    { title: "Least Wrong", user: leaders["Least Wrong"] },
+    { title: "Bullseye Bandit", user: leaders["Bullseye Bandit"] },
+    { title: "Draw Merchant", user: leaders["Draw Merchant"] },
+    { title: "Chaos Goblin", user: leaders["Chaos Goblin"] },
+    { title: "Metronome", user: leaders.Metronome },
+    { title: "Near Miss Specialist", user: leaders["Near Miss Specialist"] },
+    { title: "Public Menace", user: leaders["Public Menace"] },
+  ];
+
+  const assigned = {};
+  const used = new Set();
+
+  const compositeLeader = compositeSorted[0]?.username;
+  if (compositeLeader && !used.has(compositeLeader)) {
+    assigned[compositeLeader] = "Least Wrong";
+    used.add(compositeLeader);
+  }
+
+  priority.slice(1).forEach(({ title, user }) => {
+    if (!user || used.has(user)) return;
+    assigned[user] = title;
+    used.add(user);
+  });
+
+  return assigned;
 }
 
 const RADAR_TIPS = {
@@ -2447,6 +2603,7 @@ function WCBracketTab({ group }) {
 function LeagueTab({group,user,names}) {
   const mob = useMobile();
   const stats = useMemo(()=>computeStats(group),[group]);
+  const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
@@ -2459,7 +2616,7 @@ function LeagueTab({group,user,names}) {
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>{
-            const achievement = getMemberAchievement(p, i + 1, stats.length);
+            const title = titles[p.username];
             return (
             <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
@@ -2471,7 +2628,7 @@ function LeagueTab({group,user,names}) {
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
                 <div style={{minWidth:0}}>
                   <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
-                  {achievement && <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1.2,textTransform:"uppercase",marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{achievement}</div>}
+                  <TitleBadge title={title} />
                 </div>
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
@@ -3096,7 +3253,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
-        const pickFlavor = getPickFlavor(myPreds[f.id] || myPred);
         const [draftHome, draftAway] = String(myPred).split("-");
         const pts = calcPts(myPreds[f.id],f.result);
         const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?MISSED_PICK_PTS:null);
@@ -3237,7 +3393,6 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                 <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,flexShrink:0}}>PICK</span>
                 <div style={{minWidth:0}}>
                   {pickBlock}
-                  {pickFlavor && <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",marginTop:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{pickFlavor}</div>}
                 </div>
               </div>
               <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
@@ -3256,7 +3411,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}{pickFlavor && <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",textAlign:"center"}}>{pickFlavor}</div>}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
           </div>
         );
@@ -3470,6 +3625,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 function TrendsTab({group,names}) {
   const mob = useMobile();
   const stats = useMemo(()=>computeStats(group),[group]);
+  const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const members = group.members||[];
   const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
   const activeSeason = group.season || 2025;
@@ -3749,17 +3905,17 @@ function TrendsTab({group,names}) {
           const medal=rank===1?"🥇":rank===2?"🥈":rank===3?"🥉":null;
           const color=memberColor(p.username);
           const isSelected=selectedPlayer===p.username;
-          const achievement = getMemberAchievement(p, rank, ds.length);
+          const title = titles[p.username];
           return (
             <div key={p.username} onClick={()=>setSelectedPlayer(prev=>prev===p.username?null:p.username)}
               style={{background:"var(--surface)",border:`1px solid ${isSelected?color:"var(--border)"}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",opacity:selectedPlayer&&!isSelected?0.35:1,transition:"opacity 0.15s,border-color 0.15s",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:color,borderRadius:"12px 12px 0 0"}}/>
-              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,marginTop:4}}>
+              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8,marginTop:4}}>
                 <span style={{fontSize:11,fontWeight:700,color:"var(--text-dim3)",minWidth:20}}>{medal||`#${rank}`}</span>
                 <Avatar name={p.dn} size={21} color={color}/>
                 <span style={{fontSize:11,fontWeight:600,color:"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>{p.dn}</span>
               </div>
-              {achievement && <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1.4,textTransform:"uppercase",marginBottom:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{achievement}</div>}
+              <div style={{marginBottom:10}}><TitleBadge title={title} /></div>
               <div style={{display:"flex",justifyContent:"space-between",gap:2}}>
                 {[["PTS",p.total,color,"'Playfair Display',serif",17],["AVG",p.avg,"var(--text-mid)","inherit",13],["PERF",p.perfects,"#22c55e","inherit",13]].map(([l,v,c,ff,fs])=>(
                   <div key={l} style={{textAlign:"center",flex:1}}>
@@ -4029,6 +4185,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const members=group.members||[];
   const admins=group.admins||[];
   const stats = useMemo(()=>computeStats(group),[group]);
+  const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
   const [logCount,setLogCount]=useState(20);
@@ -4057,9 +4214,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
           const mIsAdmin=admins.includes(username);
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
-          const memberStats = stats.find(s=>s.username===username);
-          const rank = memberStats ? stats.findIndex(s=>s.username===username)+1 : null;
-          const achievement = memberStats ? getMemberAchievement(memberStats, rank, stats.length) : null;
+          const title = titles[username];
           return (
             <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
@@ -4080,7 +4235,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
                   <div style={{display:"flex",gap:6,marginTop:4}}>
                     {mIsCreator&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"1px 6px"}}>CREATOR</span>}
                     {isAdmin&&mIsAdmin&&!mIsCreator&&<span style={{fontSize:9,color:"#60a5fa",letterSpacing:2,background:"#60a5fa15",border:"1px solid #60a5fa30",borderRadius:4,padding:"1px 6px"}}>ADMIN</span>}
-                    {achievement&&<span style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1.4,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:4,padding:"1px 6px",textTransform:"uppercase"}}>{achievement}</span>}
+                    <TitleBadge title={title} />
                   </div>
                 </div>
               </div>
@@ -4646,7 +4801,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
         <Section title="Season Awards">
           <div style={{background:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>🏆 {names[seasonWinner.username]||seasonWinner.username}</div>
-            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong Person Alive</span></div>
+            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
             <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
             <div style={{color:"var(--text-dim)"}}>A completely meaningless honour. Naturally everyone will care a lot.</div>
           </div>
