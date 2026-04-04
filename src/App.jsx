@@ -1849,17 +1849,17 @@ function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
 }
 
 const TITLE_STYLES = {
-  "Least Wrong": { text: "#f8e7a1", border: "#c9a22755", bg: "#1f1a0d", glow: "0 0 10px rgba(248,231,161,.18)" },
-  "Bullseye Bandit": { text: "#b8ffcf", border: "#22c55e55", bg: "#0d1f16", glow: "0 0 12px rgba(34,197,94,.18)" },
-  "Draw Merchant": { text: "#ffd089", border: "#d9770655", bg: "#24170c", glow: "0 0 10px rgba(255,180,90,.16)" },
-  "Chaos Goblin": { text: "#ffb1f2", border: "#d946ef66", bg: "#231028", glow: "0 0 14px rgba(217,70,239,.24)" },
-  Metronome: { text: "#bfe8ff", border: "#38bdf855", bg: "#0f1c24", glow: "0 0 10px rgba(56,189,248,.15)" },
-  "Near Miss Specialist": { text: "#ddd6fe", border: "#8b5cf655", bg: "#171327", glow: "0 0 10px rgba(139,92,246,.14)" },
-  "Public Menace": { text: "#ffb3a8", border: "#ef444455", bg: "#261210", glow: "0 0 9px rgba(239,68,68,.16)" },
+  "Least Wrong": { text: "#f8e7a1", glow: "0 0 14px rgba(248,231,161,.28)" },
+  "Bullseye Bandit": { text: "#b8ffcf", glow: "0 0 14px rgba(34,197,94,.26)" },
+  "Draw Merchant": { text: "#ffd089", glow: "0 0 13px rgba(255,180,90,.24)" },
+  "Chaos Goblin": { text: "#ffb1f2", glow: "0 0 16px rgba(217,70,239,.34)" },
+  Metronome: { text: "#bfe8ff", glow: "0 0 13px rgba(56,189,248,.24)" },
+  "Near Miss Specialist": { text: "#ddd6fe", glow: "0 0 13px rgba(139,92,246,.22)" },
+  "Public Menace": { text: "#ffb3a8", glow: "0 0 12px rgba(239,68,68,.24)" },
 };
 
 function getTitleStyle(title) {
-  return TITLE_STYLES[title] || { text: "var(--text-mid)", border: "var(--border)", bg: "var(--card)", glow: "none" };
+  return TITLE_STYLES[title] || { text: "var(--text-mid)", glow: "none" };
 }
 
 function TitleBadge({ title }) {
@@ -1869,21 +1869,14 @@ function TitleBadge({ title }) {
     <div style={{
       display:"inline-flex",
       alignItems:"center",
-      justifyContent:"center",
-      height:18,
       minWidth:0,
       maxWidth:"100%",
-      padding:"0 10px",
-      borderRadius:999,
-      fontSize:9,
+      fontSize:10,
       fontWeight:700,
-      letterSpacing:1,
+      letterSpacing:1.1,
       textTransform:"uppercase",
       color:style.text,
-      background:`linear-gradient(180deg, rgba(86,145,201,.95) 0%, rgba(37,77,120,.98) 52%, rgba(22,48,79,1) 100%)`,
-      border:`1px solid ${style.border}`,
-      boxShadow:`inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(0,0,0,.35), ${style.glow}`,
-      textShadow:"0 1px 0 rgba(0,0,0,.55)",
+      textShadow:`0 0 6px rgba(255,255,255,.08), ${style.glow}`,
       whiteSpace:"nowrap",
       overflow:"hidden",
       textOverflow:"ellipsis"
