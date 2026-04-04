@@ -1948,20 +1948,12 @@ function computeGroupRelativeTitles(group, stats) {
   if (!candidates.length) return {};
 
   const scoreBy = {
-    avg: values => {
-      const min = Math.min(...values), max = Math.max(...values);
-      return v => max === min ? 1 : (max - v) / (max - min);
-    },
     max: values => {
       const min = Math.min(...values), max = Math.max(...values);
       return v => max === min ? 1 : (v - min) / (max - min);
     }
   };
 
-  const avgNorm = scoreBy.avg(candidates.map(p => Number(p.avg) || 999));
-  const varianceNorm = scoreBy.avg(candidates.map(p => p.gwVariance ?? Math.max(...candidates.map(x => x.gwVariance ?? 0), 0)));
-  const perfectRateNorm = scoreBy.max(candidates.map(p => p.scored ? p.perfects / p.scored : 0));
-  const winnerRateNorm = scoreBy.max(candidates.map(p => p.winnerRate ?? 0));
   const menaceBoldNorm = scoreBy.max(candidates.map(p => p.predictedGoalsAvg ?? 0));
   const menaceBadNorm = scoreBy.max(candidates.map(p => Number(p.avg) || 0));
   const menaceVarianceNorm = scoreBy.max(candidates.map(p => p.gwVariance ?? 0));
@@ -1980,12 +1972,6 @@ function computeGroupRelativeTitles(group, stats) {
     })[0]?.username,
   };
 
-  const compositeSorted = [...candidates].sort((a,b)=>{
-    const scoreA = avgNorm(Number(a.avg)||999) * 0.4 + varianceNorm(a.gwVariance ?? 999) * 0.25 + perfectRateNorm(a.scored ? a.perfects / a.scored : 0) * 0.2 + winnerRateNorm(a.winnerRate ?? 0) * 0.15;
-    const scoreB = avgNorm(Number(b.avg)||999) * 0.4 + varianceNorm(b.gwVariance ?? 999) * 0.25 + perfectRateNorm(b.scored ? b.perfects / b.scored : 0) * 0.2 + winnerRateNorm(b.winnerRate ?? 0) * 0.15;
-    return scoreB - scoreA;
-  });
-
   const priority = [
     { title: "Least Wrong", user: leaders["Least Wrong"] },
     { title: "Bullseye Bandit", user: leaders["Bullseye Bandit"] },
@@ -1999,13 +1985,7 @@ function computeGroupRelativeTitles(group, stats) {
   const assigned = {};
   const used = new Set();
 
-  const compositeLeader = compositeSorted[0]?.username;
-  if (compositeLeader && !used.has(compositeLeader)) {
-    assigned[compositeLeader] = "Least Wrong";
-    used.add(compositeLeader);
-  }
-
-  priority.slice(1).forEach(({ title, user }) => {
+  priority.forEach(({ title, user }) => {
     if (!user || used.has(user)) return;
     assigned[user] = title;
     used.add(user);
