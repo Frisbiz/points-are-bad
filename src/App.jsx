@@ -1842,9 +1842,9 @@ function getPickFlavor(pred) {
 function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
   if (winnerCount > 1) return "Shared honours.";
   if (minPts === 0) return "Perfect week.";
-  if (minPts <= 2) return "Locked in.";
+  if (minPts < 10) return "Locked in.";
   if (totalGoals >= 30) return "Chaotic week.";
-  if (minPts >= 10) return "Rough week.";
+  if (minPts >= 25) return "Rough week.";
   return null;
 }
 
