@@ -2147,8 +2147,6 @@ export default function App() {
     if (!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME)) {
       setTheme(SECRET_THEME);
       showToast("Velvet theme unlocked.");
-    } else if (!alreadyUnlocked && clicks % 11 === 0) {
-      showToast(`${clicks}/${SECRET_THEME_CLICKS_REQUIRED}`);
     }
     return sset(`user:${user.username}`, updatedUser).catch(err=>{
       console.error("failed to persist hidden counter", err);
