@@ -628,7 +628,7 @@ const TEAM_BADGES = {
   "Ipswich": "https://resources.premierleague.com/premierleague/badges/t40.png",
   "Leeds": "https://resources.premierleague.com/premierleague/badges/t2.png",
   "Leicester": "https://resources.premierleague.com/premierleague/badges/t13.png",
-  "Liverpool": "https://resources.premierleague.com/premierleague/badges/t14.png",
+  "Liverpool": "/badges/liverpool-red.svg",
   "Man City": "https://resources.premierleague.com/premierleague/badges/t43.png",
   "Man Utd": "https://resources.premierleague.com/premierleague/badges/t1.png",
   "Newcastle": "https://resources.premierleague.com/premierleague/badges/t4.png",
@@ -702,7 +702,21 @@ const Avatar = ({ name, size = 36, color }) => {
 const BadgeScore = ({ score, missed=false }) => {
   if (score===null||score===undefined) return <span style={{color:"var(--text-dim2)",fontSize:13}}>—</span>;
   const c = missed?"#6b7280":score===0?"#22c55e":score<=2?"#f59e0b":"#ef4444";
-  return <span style={{background:c+"20",color:c,border:`1px solid ${c}40`,borderRadius:6,padding:"2px 9px",fontSize:12,fontWeight:700,fontFamily:"'DM Mono',monospace",fontStyle:missed?"italic":"normal"}}>{score}</span>;
+  const perfect = !missed && score === 0;
+  return <span style={{
+    background: perfect ? "linear-gradient(135deg, #22c55e24, #a3e63518)" : c+"20",
+    color:c,
+    border:`1px solid ${c}40`,
+    borderRadius:6,
+    padding:"2px 9px",
+    fontSize:12,
+    fontWeight:700,
+    fontFamily:"'DM Mono',monospace",
+    fontStyle:missed?"italic":"normal",
+    boxShadow: perfect ? "0 0 0 1px #22c55e20 inset, 0 0 12px #22c55e22" : "none",
+    position:"relative",
+    overflow:"hidden"
+  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative"}}>{score}</span></span>;
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
@@ -748,10 +762,13 @@ const CSS = `
   [data-theme="terminal"]{--bg:#000000;--surface:#0a0a0a;--card:#050505;--card-hi:#0d0d0d;--card-hover:#111;--input-bg:#000;--border:#1a3a1a;--border2:#1f3f1f;--border3:#0d200d;--text:#00cc44;--text-dim:#005522;--text-dim2:#006622;--text-dim3:#004418;--text-mid:#00aa33;--text-bright:#00ff55;--text-inv:#000;--scrollbar:#003311;--btn-bg:#00cc44;--btn-text:#000;--font-mono:'DM Mono',monospace;}
   [data-theme="nord"]{--bg:#2e3440;--surface:#3b4252;--card:#353c4a;--card-hi:#3b4357;--card-hover:#404858;--input-bg:#2e3440;--border:#434c5e;--border2:#4c566a;--border3:#3a4154;--text:#eceff4;--text-dim:#616e88;--text-dim2:#555f73;--text-dim3:#4a5368;--text-mid:#d8dee9;--text-bright:#eceff4;--text-inv:#2e3440;--scrollbar:#434c5e;--btn-bg:#88c0d0;--btn-text:#2e3440;--font-mono:'DM Mono',monospace;}
   [data-theme="pitch"]{--bg:#0d1f0d;--surface:#122012;--card:#0f1c0f;--card-hi:#142214;--card-hover:#162516;--input-bg:#0a180a;--border:rgba(255,255,255,0.22);--border2:rgba(255,255,255,0.32);--border3:rgba(255,255,255,0.1);--text:#d4ecd4;--text-dim:#3a6a3a;--text-dim2:#2e562e;--text-dim3:#264426;--text-mid:#7ab87a;--text-bright:#e8f5e8;--text-inv:#0d1f0d;--scrollbar:rgba(255,255,255,0.15);--btn-bg:#4caf50;--btn-text:#0d1f0d;--font-mono:'DM Mono',monospace;}
+  [data-theme="velvet"]{--bg:#120816;--surface:#1a0f1f;--card:#180d1d;--card-hi:#221229;--card-hover:#291631;--input-bg:#140a18;--border:#3a2344;--border2:#4a2d58;--border3:#26132d;--text:#f7d6ea;--text-dim:#7a5a71;--text-dim2:#8f6d84;--text-dim3:#62485c;--text-mid:#d6adc7;--text-bright:#fff2fa;--text-inv:#120816;--scrollbar:#4a2d58;--btn-bg:#f472b6;--btn-text:#1b0d18;--font-mono:'DM Mono',monospace;}
+  [data-theme="clarity"]{--bg:#111;--surface:#1a1a1a;--card:#171717;--card-hi:#222;--card-hover:#252525;--input-bg:#141414;--border:#444;--border2:#555;--border3:#2a2a2a;--text:#f1f1f1;--text-dim:#999;--text-dim2:#888;--text-dim3:#777;--text-mid:#d0d0d0;--text-bright:#fff;--text-inv:#111;--scrollbar:#555;--btn-bg:#d7d7d7;--btn-text:#111;--font-mono:'DM Mono',monospace;filter:grayscale(1);}
   html,body{background:var(--bg);}
   *{box-sizing:border-box;margin:0;padding:0;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes perfectShimmer{0%{transform:translateX(-120%);}55%,100%{transform:translateX(130%);}}
   .fade{animation:fadein 0.25s ease forwards;}
   .frow:hover{background:var(--card-hover)!important;}
   .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all 0.18s;}
@@ -760,7 +777,13 @@ const CSS = `
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   @keyframes thumbdown{0%{opacity:1;transform:translateY(0) scale(1);}100%{opacity:0;transform:translateY(-70px) scale(1.5);}}
   @keyframes ballspin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes ptsGlitch{0%{transform:translateX(0)}20%{transform:translateX(-0.5px)}40%{transform:translateX(0.8px)}60%{transform:translateX(-0.7px)}100%{transform:translateX(0)}}
+  @keyframes ptsPulse{0%,100%{opacity:1}50%{opacity:.72}}
+  @keyframes ptsShimmer{0%{background-position:200% center}100%{background-position:-200% center}}
   .thumbdown{position:fixed;pointer-events:none;font-size:26px;animation:thumbdown 0.8s ease-out forwards;z-index:9999;}
+  .pts-label-glitch{animation:ptsGlitch 1.1s ease-in-out infinite alternate;display:inline-block}
+  .pts-label-pulse{animation:ptsPulse 1.6s ease-in-out infinite;display:inline-block}
+  .pts-label-shimmer{background:linear-gradient(90deg,currentColor 0%, #fff 45%, currentColor 90%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ptsShimmer 1.8s linear infinite;display:inline-block}
   .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
   .bot-nav .nb{height:54px;border-top:none!important;}
   .bot-nav .nb.active{border-bottom-color:var(--text)!important;}
@@ -796,7 +819,7 @@ function computeStats(group) {
 
 /* ── AUTH ─────────────────────────────────────────── */
 /* ── LANDING PAGE ─────────────────────────────────── */
-function LandingPage({onContinue, onDemo}) {
+function LandingPage({onContinue, onDemo, onAreBadTap}) {
   const [thumbs,setThumbs]=useState([]);
   const [demoLoading,setDemoLoading]=useState(false);
   const [phase,setPhase]=useState("open");
@@ -823,6 +846,7 @@ function LandingPage({onContinue, onDemo}) {
     const y=r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+    onAreBadTap?.();
   };
 
   const statusLabel={open:"OPEN",locked:"LOCKED",result:"FINAL",score:"FINAL"}[phase];
@@ -1347,7 +1371,7 @@ function AccountSetupModal({ user, onDone, onLogout }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null }) {
+function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap }) {
   const [groups,setGroups]=useState([]);
   const [loading,setLoading]=useState(true);
   const [createName,setCreateName]=useState("");
@@ -1363,6 +1387,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     const y = r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+    onAreBadTap?.();
   };
   const [profileOpen,setProfileOpen]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
@@ -1768,7 +1793,10 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
 
 /* ── MAIN APP ────────────────────────────────────── */
 const NAV = ["League","Fixtures","Trends","Members","Group"];
-const THEMES=["dark","light","excel","terminal","nord","pitch"];
+const SECRET_THEME = "velvet";
+const SECRET_THEME_CLICKS_REQUIRED = 99;
+const KONAMI_SEQUENCE = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+const THEMES=["dark","light","excel","terminal","nord","pitch",SECRET_THEME];
 const THEME_META=[
   {key:"dark",   label:"Dark",     swatches:["#080810","#0e0e1a","#e8e4d9"]},
   {key:"light",  label:"Light",    swatches:["#f4f1e8","#fff","#1a1814"]},
@@ -1776,7 +1804,205 @@ const THEME_META=[
   {key:"terminal",label:"Terminal",swatches:["#000000","#0a0a0a","#00cc44"]},
   {key:"nord",   label:"Nord",     swatches:["#2e3440","#3b4252","#eceff4"]},
   {key:"pitch",  label:"Pitch",    swatches:["#0d1f0d","#122012","#d4ecd4"]},
+  {key:SECRET_THEME,label:"Velvet",  swatches:["#120816","#1d1024","#f7d6ea"],secret:true},
 ];
+
+function isSecretThemeUnlockedForUser(user) {
+  return !!user?.unlockedThemes?.includes(SECRET_THEME);
+}
+
+function getAvailableThemes(user) {
+  return THEMES.filter(t => t !== SECRET_THEME || isSecretThemeUnlockedForUser(user));
+}
+
+function getSecretThemeMeta(user) {
+  return THEME_META.filter(t => t.key !== SECRET_THEME || isSecretThemeUnlockedForUser(user));
+}
+
+function getPickFlavor(pred) {
+  if (!/^\d+-\d+$/.test(pred || "")) return null;
+  const [h, a] = pred.split("-").map(Number);
+  const total = h + a;
+  if (h === 0 && a === 0) return "respectfully cowardly";
+  if (h === 1 && a === 1) return "licensed centrist behaviour";
+  if (total >= 8) return "deeply cursed optimism";
+  if (Math.abs(h - a) >= 4) return "an aggressive thesis";
+  if (total >= 6) return "chaos-friendly";
+  return null;
+}
+
+function getWeeklyWinnerFlavor(minPts, winnerCount, totalGoals) {
+  if (winnerCount > 1) return "Shared honours.";
+  if (minPts === 0) return "Perfect week.";
+  if (minPts < 10) return "Locked in.";
+  if (totalGoals >= 30) return "Chaotic week.";
+  if (minPts >= 25) return "Rough week.";
+  return null;
+}
+
+function getPointsLabelMeta(totalPoints, theme) {
+  if (theme !== "clarity") return { label: "PTS", color: "var(--text-dim)", glow: "none", effect: "none" };
+  if (totalPoints === 69) return { label: "nice. still bad.", color: "#d9f99d", glow: "0 0 10px rgba(163,230,53,.28)", effect: "none" };
+  if (totalPoints === 100) return { label: "triple digits. embarrassing.", color: "#fcd34d", glow: "0 0 10px rgba(252,211,77,.22)", effect: "none" };
+  if (totalPoints === 404) return { label: "points not found", color: "#93c5fd", glow: "0 0 10px rgba(96,165,250,.24)", effect: "glitch" };
+  if (totalPoints === 666) return { label: "comically evil total", color: "#f87171", glow: "0 0 12px rgba(239,68,68,.35)", effect: "pulse" };
+  if (totalPoints === 1000) return { label: "briefly impressed. immediately disappointed.", color: "#fde68a", glow: "0 0 12px rgba(250,204,21,.26)", effect: "shimmer" };
+  const words = [
+    { label: "tokens", color: "var(--text-dim)", glow: "none", effect: "none" },
+    { label: "sins", color: "#fca5a5", glow: "0 0 8px rgba(239,68,68,.18)", effect: "none" },
+    { label: "regrets", color: "#d8b4fe", glow: "0 0 8px rgba(168,85,247,.16)", effect: "none" },
+    { label: "damage", color: "#fdba74", glow: "0 0 8px rgba(249,115,22,.15)", effect: "none" },
+  ];
+  return words[Math.abs(totalPoints || 0) % words.length];
+}
+
+const TITLE_STYLES = {
+  "Least Wrong": { text: "#f8e7a1", glow: "0 0 14px rgba(248,231,161,.28)" },
+  "Bullseye Bandit": { text: "#b8ffcf", glow: "0 0 14px rgba(34,197,94,.26)" },
+  "Draw Merchant": { text: "#ffd089", glow: "0 0 13px rgba(255,180,90,.24)" },
+  "Chaos Goblin": { text: "#ffb1f2", glow: "0 0 16px rgba(217,70,239,.34)" },
+  Metronome: { text: "#bfe8ff", glow: "0 0 13px rgba(56,189,248,.24)" },
+  "Near Miss Specialist": { text: "#ddd6fe", glow: "0 0 13px rgba(139,92,246,.22)" },
+  "Public Menace": { text: "#ffb3a8", glow: "0 0 12px rgba(239,68,68,.24)" },
+};
+
+function getTitleStyle(title) {
+  return TITLE_STYLES[title] || { text: "var(--text-mid)", glow: "none" };
+}
+
+function TitleBadge({ title }) {
+  if (!title) return <div style={{height:14, marginTop:4}} />;
+  const style = getTitleStyle(title);
+  return (
+    <div style={{
+      display:"inline-flex",
+      alignItems:"center",
+      minWidth:0,
+      maxWidth:"100%",
+      marginTop:4,
+      paddingLeft:2,
+      paddingRight:2,
+      position:"relative",
+      zIndex:2,
+      fontSize:10,
+      fontWeight:700,
+      letterSpacing:1.1,
+      textTransform:"uppercase",
+      color:style.text,
+      textShadow:`-1px 0 rgba(0,0,0,.26), 1px 0 rgba(0,0,0,.26), 0 -1px rgba(0,0,0,.26), 0 1px rgba(0,0,0,.26), 0 0 6px rgba(255,255,255,.05), ${style.glow}`,
+      whiteSpace:"nowrap",
+      overflow:"visible",
+      textOverflow:"clip"
+    }}>
+      {title}
+    </div>
+  );
+}
+
+function computeGroupRelativeTitles(group, stats) {
+  const preds = group.predictions || {};
+  const activeSeason = group.season || 2025;
+  const scope = group.scoreScope || "all";
+  const filteredGWs = (group.gameweeks || []).filter(g => scope === "all" || (g.season || activeSeason) === activeSeason);
+  const completedGWs = filteredGWs.filter(g => (g.fixtures || []).some(f => f.result));
+  const minimumScoredPicks = 20;
+  const minimumCompletedGWs = 3;
+
+  const profiles = (stats || []).map(s => {
+    const predictions = preds[s.username] || {};
+    let drawPickCount = 0;
+    let predictedGoalsTotal = 0;
+    let submittedPickCount = 0;
+    let nearMissCount = 0;
+    let winnerHits = 0;
+    let winnerScored = 0;
+
+    filteredGWs.forEach(gw => {
+      (gw.fixtures || []).forEach(f => {
+        const pred = predictions[f.id];
+        if (!pred || !/^\d+-\d+$/.test(pred)) return;
+        const [ph, pa] = pred.split("-").map(Number);
+        submittedPickCount++;
+        predictedGoalsTotal += ph + pa;
+        if (ph === pa) drawPickCount++;
+        if (f.result) {
+          const pts = calcPts(pred, f.result);
+          if (pts === 1 || pts === 2) nearMissCount++;
+          const [rh, ra] = f.result.split("-").map(Number);
+          const predResult = ph > pa ? 1 : ph < pa ? -1 : 0;
+          const realResult = rh > ra ? 1 : rh < ra ? -1 : 0;
+          winnerScored++;
+          if (predResult === realResult) winnerHits++;
+        }
+      });
+    });
+
+    const gwCompletedTotals = (s.gwTotals || []).filter(gw => completedGWs.some(c => c.gw === gw.gw && (c.season || activeSeason) === (gw.season || activeSeason)));
+    const gwValues = gwCompletedTotals.map(gw => gw.points);
+    const gwMean = gwValues.length ? gwValues.reduce((a,b)=>a+b,0) / gwValues.length : null;
+    const gwVariance = gwValues.length > 1 ? gwValues.reduce((sum, pts) => sum + Math.pow(pts - gwMean, 2), 0) / gwValues.length : null;
+
+    return {
+      ...s,
+      drawPickCount,
+      drawPickRate: submittedPickCount ? drawPickCount / submittedPickCount : null,
+      predictedGoalsAvg: submittedPickCount ? predictedGoalsTotal / submittedPickCount : null,
+      nearMissCount,
+      winnerRate: winnerScored ? winnerHits / winnerScored : null,
+      gwVariance,
+      eligible: s.scored >= minimumScoredPicks || completedGWs.length >= minimumCompletedGWs,
+    };
+  });
+
+  const candidates = profiles.filter(p => p.eligible);
+  if (!candidates.length) return {};
+
+  const scoreBy = {
+    max: values => {
+      const min = Math.min(...values), max = Math.max(...values);
+      return v => max === min ? 1 : (v - min) / (max - min);
+    }
+  };
+
+  const menaceBoldNorm = scoreBy.max(candidates.map(p => p.predictedGoalsAvg ?? 0));
+  const menaceBadNorm = scoreBy.max(candidates.map(p => Number(p.avg) || 0));
+  const menaceVarianceNorm = scoreBy.max(candidates.map(p => p.gwVariance ?? 0));
+
+  const leaders = {
+    "Least Wrong": [...candidates].sort((a,b)=>(Number(a.avg)||999)-(Number(b.avg)||999) || b.perfects-a.perfects || b.scored-a.scored)[0]?.username,
+    "Bullseye Bandit": [...candidates].sort((a,b)=>b.perfects-a.perfects || (b.scored?b.perfects/b.scored:0)-(a.scored?a.perfects/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "Draw Merchant": [...candidates].sort((a,b)=>(b.drawPickRate??-1)-(a.drawPickRate??-1) || b.drawPickCount-a.drawPickCount || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "Chaos Goblin": [...candidates].sort((a,b)=>(b.predictedGoalsAvg??-1)-(a.predictedGoalsAvg??-1) || b.nearMissCount-a.nearMissCount || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    Metronome: [...candidates].filter(p => p.gwVariance !== null).sort((a,b)=>(a.gwVariance??999)-(b.gwVariance??999) || (Number(a.avg)||999)-(Number(b.avg)||999) || b.scored-a.scored)[0]?.username,
+    "Near Miss Specialist": [...candidates].sort((a,b)=>b.nearMissCount-a.nearMissCount || (b.scored?b.nearMissCount/b.scored:0)-(a.scored?a.nearMissCount/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "Public Menace": [...candidates].sort((a,b)=>{
+      const menaceA = menaceBoldNorm(a.predictedGoalsAvg ?? 0) * 0.4 + menaceBadNorm(Number(a.avg) || 0) * 0.35 + menaceVarianceNorm(a.gwVariance ?? 0) * 0.25;
+      const menaceB = menaceBoldNorm(b.predictedGoalsAvg ?? 0) * 0.4 + menaceBadNorm(Number(b.avg) || 0) * 0.35 + menaceVarianceNorm(b.gwVariance ?? 0) * 0.25;
+      return menaceB - menaceA;
+    })[0]?.username,
+  };
+
+  const priority = [
+    { title: "Least Wrong", user: leaders["Least Wrong"] },
+    { title: "Bullseye Bandit", user: leaders["Bullseye Bandit"] },
+    { title: "Draw Merchant", user: leaders["Draw Merchant"] },
+    { title: "Chaos Goblin", user: leaders["Chaos Goblin"] },
+    { title: "Metronome", user: leaders.Metronome },
+    { title: "Near Miss Specialist", user: leaders["Near Miss Specialist"] },
+    { title: "Public Menace", user: leaders["Public Menace"] },
+  ];
+
+  const assigned = {};
+  const used = new Set();
+
+  priority.forEach(({ title, user }) => {
+    if (!user || used.has(user)) return;
+    assigned[user] = title;
+    used.add(user);
+  });
+
+  return assigned;
+}
 
 const RADAR_TIPS = {
   Accuracy: "Avg penalty pts per pick. Lower is better.",
@@ -1848,8 +2074,9 @@ export default function App() {
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
   const [showLanding,setShowLanding]=useState(()=>!getInviteCodeFromLocation());
-  const [theme,setTheme]=useState(()=>{const t=localStorage.getItem("theme");return THEMES.includes(t)?t:"dark";});
+  const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"dark");
   const [toast,setToast]=useState(null);
+  const konamiIndexRef=useRef(0);
   const [bootError,setBootError]=useState(false);
   const toastTimer=useRef(null);
   const [resetToken]=useState(()=>{
@@ -1870,9 +2097,62 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
+    const available = [...getAvailableThemes(user), "clarity"];
+    if (!available.includes(theme)) setTheme("dark");
+  },[theme,user]);
+
+  useEffect(()=>{
     document.documentElement.setAttribute("data-theme",theme);
     localStorage.setItem("theme",theme);
   },[theme]);
+
+  useEffect(()=>{
+    console.log("stop inspecting the app and go build something");
+    console.log("points detected. opinion lowered.");
+    window.destroyPoints = () => {
+      showToast("Points destroyed. For now.");
+      return 0;
+    };
+    const onKey = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable) return;
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const currentIndex = konamiIndexRef.current;
+      const expected = KONAMI_SEQUENCE[currentIndex];
+      if (key === expected) {
+        if (currentIndex === KONAMI_SEQUENCE.length - 1) {
+          setTheme("clarity");
+          showToast("Post-Optimization Clarity unlocked.");
+          konamiIndexRef.current = 0;
+          return;
+        }
+        konamiIndexRef.current = currentIndex + 1;
+        return;
+      }
+      konamiIndexRef.current = key === KONAMI_SEQUENCE[0] ? 1 : 0;
+    };
+    window.addEventListener("keydown", onKey, { passive: true });
+    return () => window.removeEventListener("keydown", onKey);
+  },[showToast]);
+
+  const unlockSecretTheme = useCallback(()=>{
+    if (!user) return Promise.resolve(false);
+    const alreadyUnlocked = isSecretThemeUnlockedForUser(user);
+    const clicks = (user.badClicks || 0) + 1;
+    const unlockedThemes = alreadyUnlocked || clicks >= SECRET_THEME_CLICKS_REQUIRED
+      ? Array.from(new Set([...(user.unlockedThemes || []), SECRET_THEME]))
+      : (user.unlockedThemes || []);
+    const updatedUser = { ...user, badClicks: clicks, unlockedThemes };
+    setUser(updatedUser);
+    if (!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME)) {
+      setTheme(SECRET_THEME);
+      showToast("Velvet theme unlocked.");
+    }
+    return sset(`user:${user.username}`, updatedUser).catch(err=>{
+      console.error("failed to persist hidden counter", err);
+      return false;
+    }).then(()=>!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME));
+  },[user,showToast]);
 
   const runBoot=useCallback(async()=>{
     setBootError(false);
@@ -1982,7 +2262,7 @@ export default function App() {
           setResetDone(true);
         }}/>
       ):!user&&showLanding&&!joinParam?(
-        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin}/>
+        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin} onAreBadTap={unlockSecretTheme}/>
       ):!user?(
         <AuthScreen
           onLogin={handleLogin}
@@ -1998,19 +2278,19 @@ export default function App() {
           joinCode={joinParam}
         />
       ):!group?(
-        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam}/>
+        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
           updateGroup={updateGroup} patchGroup={patchGroup} refreshGroup={refreshGroup}
-          theme={theme} setTheme={setTheme}/>
+          theme={theme} setTheme={setTheme} unlockSecretTheme={unlockSecretTheme}/>
       )}
     </>
   );
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme,unlockSecretTheme}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{
@@ -2049,6 +2329,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     const y = r.top;
     setThumbs(t=>[...t,{id,x,y}]);
     setTimeout(()=>setThumbs(t=>t.filter(th=>th.id!==id)),850);
+    unlockSecretTheme?.();
   };
   const updateNickname = async (targetUsername, newName) => {
     const fresh = await sget(`user:${targetUsername}`);
@@ -2091,7 +2372,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       const [h, a] = f.result.split("-").map(Number);
       return sum + (isNaN(h) || isNaN(a) ? 0 : h + a);
     }, 0);
-    recapContent = { gwNum, winners, minPts, totalGoals };
+    recapContent = { gwNum, winners, minPts, totalGoals, flavor: getWeeklyWinnerFlavor(minPts, winners.length, totalGoals) };
   }
   const isWCGroup = (group.competition || "PL") === "WC";
   const nav = isWCGroup ? [...NAV.slice(0,2), "Bracket", ...NAV.slice(2)] : NAV;
@@ -2114,7 +2395,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
             ))}
           </nav>
           {user.username===DEMO_SHARED_USERNAME ? (
-            <button onClick={onLogout} style={{marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%",background:"none",border:"none",borderLeft:"1px solid var(--border)",paddingLeft:20,cursor:"pointer",color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,flexShrink:0}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+            <button onClick={onLogout} style={{marginLeft:"auto",height:"100%",background:"none",border:"none",borderLeft:"1px solid var(--border)",paddingLeft:20,cursor:"pointer",color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,flexShrink:0}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
           ) : (
           <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
             <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
@@ -2176,12 +2457,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
               <span style={{opacity:0.6,marginRight:10}}>{gwLabel(group,recapContent.gwNum)} RECAP</span>
               {recapContent.winners.length > 0 && <span style={{marginRight:8}}>{recapContent.winners.map(w => names[w.username] || w.username).join(" & ")} won the week <span style={{opacity:0.7}}>({recapContent.minPts} pts)</span></span>}
               {recapContent.totalGoals > 0 && <span style={{opacity:0.7}}>· {recapContent.totalGoals} goals total</span>}
+              {recapContent.flavor && <span style={{opacity:0.9}}> · {recapContent.flavor}</span>}
             </div>
             <button onClick={() => { lset(recapKey, true); setRecapDismissed(true); }}
               style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
           </div>
         )}
-        {tab==="League"&&<LeagueTab group={group} user={user} names={names}/>}
+        {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
         {tab==="Bracket"&&<WCBracketTab group={group}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
@@ -2340,9 +2622,10 @@ function WCBracketTab({ group }) {
 }
 
 /* ── LEAGUE ──────────────────────────────────────── */
-function LeagueTab({group,user,names}) {
+function LeagueTab({group,user,names,theme}) {
   const mob = useMobile();
   const stats = useMemo(()=>computeStats(group),[group]);
+  const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
@@ -2354,7 +2637,11 @@ function LeagueTab({group,user,names}) {
       </div>
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
-          {stats.map((p,i)=>(
+          {stats.map((p,i)=>{
+            const title = titles[p.username];
+            const pointsMeta = getPointsLabelMeta(p.total, theme);
+            const pointsLabelClass = pointsMeta.effect === "glitch" ? "pts-label-glitch" : pointsMeta.effect === "pulse" ? "pts-label-pulse" : pointsMeta.effect === "shimmer" ? "pts-label-shimmer" : "";
+            return (
             <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
@@ -2363,13 +2650,16 @@ function LeagueTab({group,user,names}) {
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
-                <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                <div style={{display:"flex",flexDirection:"column",justifyContent:"center",minWidth:0,flex:1,overflow:"visible",position:"relative",zIndex:1}}>
+                  <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",lineHeight:1.2}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                  <TitleBadge title={title} />
+                </div>
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
-              <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PTS</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:i===0?"#fbbf24":"var(--text-bright)",lineHeight:1}}>{p.total}</div></div>
+              <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:10,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
@@ -2398,6 +2688,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   const urgent = !hasPick && diff < 3 * 3600000;
   const warning = !hasPick && diff < 24 * 3600000;
   const label = warning ? "Picks due" : "Next kick-off";
+  const deadpanLine = null;
   const borderColor = urgent ? "#ef444435" : warning ? "#f59e0b35" : "var(--border3)";
   const bgColor = urgent ? "#ef444408" : warning ? "#f59e0b08" : "var(--card)";
   const textColor = urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-dim)";
@@ -2427,6 +2718,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
         <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase"}}>{label}</div>
         {timerEl}
       </div>
+      <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>{deadpanLine}</div>
       <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"var(--text-mid)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,flex:1,minWidth:0}}>
           <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
@@ -2443,7 +2735,10 @@ function NextMatchCountdown({ group, myPreds = {} }) {
 
   return (
     <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18,display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,alignItems:"center"}}>
-      <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
+      <div>
+        <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
+        <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",lineHeight:1.3,marginTop:4}}>{deadpanLine}</div>
+      </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:13,color:"var(--text-mid)"}}>
         <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
         <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
@@ -3116,9 +3411,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1}}>PICK</span>
-                {pickBlock}
+              <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,flexShrink:0}}>PICK</span>
+                <div style={{minWidth:0}}>
+                  {pickBlock}
+                </div>
               </div>
               <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
             </div>
@@ -3136,7 +3433,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
               <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{pickBlock}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
           </div>
         );
@@ -3906,6 +4203,7 @@ function TrendsTab({group,names}) {
 function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickname}) {
   const members=group.members||[];
   const admins=group.admins||[];
+  const stats = useMemo(()=>computeStats(group),[group]);
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
   const [logCount,setLogCount]=useState(20);
@@ -4053,6 +4351,12 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const [reminderMsg, setReminderMsg] = useState("");
 
   const activeSeason=group.season||2025;
+  const seasonStats = useMemo(()=>computeStats(group),[group]);
+  const seasonComplete = useMemo(()=>{
+    const scoped = (group.gameweeks||[]).filter(gw=>(gw.season||activeSeason)===activeSeason);
+    return scoped.length > 0 && scoped.every(gw => (gw.fixtures||[]).every(f => f.result || f.status === "POSTPONED"));
+  },[group.gameweeks,activeSeason]);
+  const seasonWinner = seasonStats[0] || null;
   const reminderTargetGW=useMemo(()=>{
     const seasonGWs=(group.gameweeks||[]).filter(gw=>(gw.season||activeSeason)===activeSeason).sort((a,b)=>a.gw-b.gw);
     const gw=seasonGWs.find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));
@@ -4293,7 +4597,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       <Section title="Appearance">
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-          {THEME_META.map(t=>(
+          {[...getSecretThemeMeta(user), ...(theme==="clarity" ? [{key:"clarity",label:"Post-Optimization Clarity",swatches:["#111","#666","#fff"],secret:true}] : [])].map(t=>(
             <button key={t.key} onClick={()=>setTheme(t.key)}
               style={{background:"var(--card)",border:`2px solid ${theme===t.key?"var(--btn-bg)":"var(--border)"}`,borderRadius:10,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8,transition:"border-color 0.15s",fontFamily:"inherit"}}>
               <div style={{display:"flex",gap:4}}>
@@ -4305,6 +4609,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
             </button>
           ))}
         </div>
+        {isSecretThemeUnlockedForUser(user) && <div style={{fontSize:11,color:"var(--text-dim)",marginTop:10}}>Secret theme unlocked. Tiny reward for aggressively agreeing that points are, in fact, bad.</div>}
       </Section>
 
       {isAdmin&&(group.competition||"PL")==="PL"&&(
@@ -4507,6 +4812,17 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
           ))}
         </div>
       </Section>
+
+      {seasonComplete && seasonWinner && (
+        <Section title="Season Awards">
+          <div style={{background:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>🏆 {names[seasonWinner.username]||seasonWinner.username}</div>
+            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
+            <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
+            <div style={{color:"var(--text-dim)"}}>A completely meaningless honour. Naturally everyone will care a lot.</div>
+          </div>
+        </Section>
+      )}
 
       <Section title="Scoring Rules">
         <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
