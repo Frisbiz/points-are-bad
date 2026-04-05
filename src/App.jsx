@@ -1087,7 +1087,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
   );
 }
 
-function AuthScreen({ onLogin, onBack, successMsg, joinCode=null }) {
+function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }) {
   const [mode,setMode]=useState("login");
   const [username,setUsername]=useState("");
   const [password,setPassword]=useState("");
@@ -1161,16 +1161,18 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null }) {
     setLoading(false);
   };
 
+  const isAutoStocks = theme === "autostocks";
+
   return (
-    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
+    <div className={isAutoStocks?"autostocks-grid-bg":undefined} style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
       <style>{CSS}</style>
-      <div style={{width:"100%",maxWidth:400}}>
-        <div style={{textAlign:"center",marginBottom:48}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:52,fontWeight:900,color:"var(--text-bright)",letterSpacing:-3,lineHeight:1}}>POINTS</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:7,marginTop:10}}>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></div>
+      <div style={{width:"100%",maxWidth:isAutoStocks?920:400,display:isAutoStocks?"grid":"block",gridTemplateColumns:isAutoStocks?"1.1fr .9fr":undefined,gap:isAutoStocks?36:undefined,alignItems:isAutoStocks?"center":undefined}}>
+        <div style={{textAlign:isAutoStocks?"left":"center",marginBottom:isAutoStocks?0:48}}>
+          <div style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?"clamp(2.4rem,5vw,4rem)":52,fontWeight:isAutoStocks?800:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.04em":-3,lineHeight:1.02}}>pab.wtf</div>
+          <div style={{fontSize:isAutoStocks?14:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?0.2:7,marginTop:10}}>{isAutoStocks?<>Sign in, join a group, and start making regrettable picks.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
-        <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:32}}>
+        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?28:14,padding:32}}>
           {joinCode&&<div style={{background:"#8888cc12",border:"1px solid #8888cc35",borderRadius:8,padding:"10px 12px",marginBottom:18,fontSize:11,color:"#b8b8ff",lineHeight:1.6}}>You're signing in from an invite link. After login, you'll be able to join the group.</div>}
           {forgotMode ? (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -1184,10 +1186,10 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null }) {
             </div>
           ) : (
             <>
-              <div style={{display:"flex",background:"var(--bg)",borderRadius:8,padding:3,marginBottom:28,gap:3}}>
+              <div style={{display:"flex",background:"var(--bg)",borderRadius:isAutoStocks?14:8,padding:3,marginBottom:28,gap:3}}>
                 {["login","register"].map(m=>(
                   <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
-                    {m==="login"?"Sign In":"Register"}
+                    {m==="login"?"Sign In":"Sign Up"}
                   </button>
                 ))}
               </div>
@@ -1212,8 +1214,8 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null }) {
           onClick={handleDemo}
           disabled={demoLoading}
           style={{width:"100%",marginTop:16,padding:"11px 0",display:"block",textAlign:"center",
-            letterSpacing:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:8,
-            color:"var(--text-dim)",cursor:"pointer",fontSize:11,fontFamily:"'DM Mono',monospace",
+            letterSpacing:isAutoStocks?0.2:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:isAutoStocks?14:8,
+            color:"var(--text-dim)",cursor:"pointer",fontSize:isAutoStocks?13:11,fontFamily:isAutoStocks?"inherit":"'DM Mono',monospace",
             transition:"border-color 0.2s,color 0.2s"}}
           onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--text-dim)";e.currentTarget.style.color="var(--text)";}}
           onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text-dim)";}}
@@ -1223,7 +1225,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null }) {
         {onBack&&<div style={{textAlign:"center",marginTop:16}}>
           <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
         </div>}
-        <div style={{textAlign:"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:1}}>PL &amp; World Cup 2026 Predictions</div>
+        <div style={{textAlign:isAutoStocks?"left":"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:isAutoStocks?0.2:1}}>PL &amp; World Cup 2026 Predictions</div>
       </div>
     </div>
   );
@@ -2324,6 +2326,7 @@ export default function App() {
           }}
           successMsg={resetDone?"Password updated - please sign in.":null}
           joinCode={joinParam}
+          theme={theme}
         />
       ):!group?(
         <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme}/>
@@ -4594,9 +4597,14 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
     setBackupBusy(false);
   };
 
+  const isAutoStocks = theme === "autostocks";
+
   return (
-    <div style={{maxWidth:520}}>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:32}}>Group</h1>
+    <div style={{maxWidth:isAutoStocks?920:520}}>
+      <div className={isAutoStocks?"liquid-card":undefined} style={{marginBottom:32,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
+        <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?34:36,fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1,marginBottom:8}}>Group</h1>
+        {isAutoStocks&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Manage appearance, invites, visibility, reminders, and the chaos behind the curtain.</p>}
+      </div>
 
       {group.mode==="dibs"&&isAdmin&&(()=>{
         const season = group.season||2025;
