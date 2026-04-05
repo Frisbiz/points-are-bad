@@ -2152,10 +2152,11 @@ export default function App() {
 
   useEffect(()=>{
     (async()=>{
-      const prefs = await sget(SITE_PREFS_KEY);
-      setSitePrefs(prefs || { defaultTheme: "dark", landingTheme: null });
+      const prefs = await sget(SITE_PREFS_KEY).catch(()=>null);
+      const safePrefs = prefs && typeof prefs === "object" ? prefs : { defaultTheme: "dark", landingTheme: null };
+      setSitePrefs(safePrefs);
       const savedTheme = localStorage.getItem("theme");
-      if (!savedTheme && prefs?.defaultTheme) setTheme(prefs.defaultTheme);
+      if (!savedTheme && safePrefs?.defaultTheme) setTheme(safePrefs.defaultTheme);
     })();
   },[]);
 
@@ -2536,7 +2537,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {tab==="Bracket"&&<WCBracketTab group={group}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname} theme={theme}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>}
       </main>
     </div>
   );
@@ -4420,8 +4421,9 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme,names={}}) {
+function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{}}) {
   const mob = useMobile();
+  const isAutoStocks = theme === "index";
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
   const [apiSaved,setApiSaved]=useState(false);
