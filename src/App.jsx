@@ -4327,6 +4327,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 
 /* ── GROUP TAB ───────────────────────────────────── */
 function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme,names={}}) {
+  const mob = useMobile();
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
   const [apiSaved,setApiSaved]=useState(false);
@@ -4671,13 +4672,15 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       {isAdmin&&(
         <Section title="Gameweek Visibility">
-          <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10,letterSpacing:0.3}}>Toggle which gameweeks players can submit picks for</div>
-          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+          <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:12,letterSpacing:0.3,lineHeight:1.5}}>Choose which rounds players can submit picks for.</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {(group.gameweeks||[])
               .filter(g=>(g.season||group.season||2025)===(group.season||2025))
               .sort((a,b)=>a.gw-b.gw)
               .map(g=>{
                 const hidden=(group.hiddenGWs||[]).includes(g.gw);
+                const label=gwLabel(group,g.gw);
+                const isWC=(group.competition||"PL")==="WC";
                 return (
                   <button key={g.gw} onClick={()=>updateGroup(grp=>{
                     const h=grp.hiddenGWs||[];
@@ -4685,23 +4688,32 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                     return {...grp,hiddenGWs:isHid?h.filter(n=>n!==g.gw):[...h,g.gw]};
                   })} style={{
                     background:hidden?"var(--card)":"var(--btn-bg)",
-                    color:hidden?"var(--text-dim2)":"var(--btn-text)",
-                    border:"1px solid var(--border)",
-                    borderRadius:6,
-                    padding:"5px 0",
-                    fontSize:11,
+                    color:hidden?"var(--text-dim)":"var(--btn-text)",
+                    border:`1px solid ${hidden?"var(--border)":"var(--btn-bg)"}`,
+                    borderRadius:999,
+                    padding:mob?"8px 12px":"9px 14px",
+                    minHeight:mob?36:38,
+                    fontSize:isWC?10:11,
                     cursor:"pointer",
-                    fontFamily:"inherit",
-                    letterSpacing:1,
+                    fontFamily:"'DM Mono',monospace",
+                    letterSpacing:isWC?0.6:0.9,
+                    lineHeight:1.2,
                     flexShrink:0,
-                    minWidth:54,
+                    display:"inline-flex",
+                    alignItems:"center",
+                    justifyContent:"center",
                     textAlign:"center",
-                    opacity:hidden?0.45:1,
-                    transition:"all 0.15s",
-                  }}>{gwLabel(group,g.gw)}</button>
+                    whiteSpace:"nowrap",
+                    opacity:hidden?0.6:1,
+                    transition:"all 0.15s ease",
+                    boxShadow:hidden?"none":"0 0 0 1px #ffffff0a inset",
+                  }} title={`${hidden?"Hidden":"Visible"}: ${label}`}>
+                    {label}
+                  </button>
                 );
               })}
           </div>
+          <div style={{fontSize:10,color:"var(--text-dim)",marginTop:10,letterSpacing:0.4,lineHeight:1.5}}>Visible rounds are bright. Hidden rounds are dimmed.</div>
         </Section>
       )}
 
