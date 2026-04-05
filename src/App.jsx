@@ -899,7 +899,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       <header style={{padding:"16px 24px 0",height:isAutoStocks?76:60,position:isAutoStocks?"fixed":undefined,top:isAutoStocks?0:undefined,left:isAutoStocks?0:undefined,right:isAutoStocks?0:undefined,zIndex:isAutoStocks?20:undefined}}>
         <div className={isAutoStocks?"pill-nav":undefined} style={{maxWidth:isAutoStocks?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isAutoStocks?44:60,borderRadius:isAutoStocks?18:0,padding:isAutoStocks?"0 10px":undefined,borderBottom:isAutoStocks?undefined:`1px solid ${"var(--border)"}`}}>
           <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
-            <div style={{padding:"0 12px",fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",height:isAutoStocks?32:60}}>Points</div>
+            <div style={{padding:"0 12px",fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",height:isAutoStocks?32:60}}>pab.wtf</div>
             {isAutoStocks&&<div style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
@@ -928,7 +928,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             </p>
             <div style={{display:"flex",gap:isAutoStocks?20:10,flexWrap:"wrap",alignItems:"center"}}>
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 20px":"12px 28px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up":"Create Group"}</button>
-              <button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isAutoStocks?"Try demo →":"How it works →"}</button>
+              {!isAutoStocks&&<button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isAutoStocks?"Try demo →":"How it works →"}</button>}
             </div>
             {isAutoStocks&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)",flexWrap:"wrap"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>World Cup mode</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
             {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{marginTop:8,background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
@@ -1041,7 +1041,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           <div style={{display:"grid",gridTemplateColumns:isAutoStocks?"1fr":"repeat(4,1fr)",gap:12}} className="land-feats">
             {isAutoStocks ? (
               <div style={{overflow:"hidden",position:"relative"}}>
-                <div style={{display:"flex",width:"max-content",animation:"marqueeScroll 34s linear infinite"}}>
+                <div style={{display:"flex",width:"calc(260px * 12 + 20px * 11)",animation:"marqueeScroll 34s linear infinite"}}>
                   {["Exact Picks","Hidden Locks","Weekly Winner","Private Leagues","World Cup Mode","Trend Charts","Invite Codes","Admin Controls","Exact Picks","Hidden Locks","Weekly Winner","Private Leagues"].map((item,i)=>(
                     <div key={i} className="liquid-card" style={{width:260,marginRight:20,borderRadius:24,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div style={{fontSize:14,fontWeight:600,color:"var(--text-bright)"}}>{item}</div>
