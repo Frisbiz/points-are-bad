@@ -3587,8 +3587,8 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
         </div>,
         document.body
       )}
-      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:-0.5}}>All Picks This Week</h2>
-      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
+      <h2 style={{fontFamily:theme==="autostocks"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:theme==="autostocks"?"-0.02em":-0.5,fontWeight:theme==="autostocks"?700:undefined}}>All Picks This Week</h2>
+      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:theme==="autostocks"?0.2:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
       <div style={{overflowX:"auto"}} className={theme==="excel"?"excel-mode":""}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <thead><tr style={{borderBottom:"1px solid var(--border)",background:theme==="excel"?"#1a1a1a":undefined}}>
@@ -3976,7 +3976,10 @@ function TrendsTab({group,names,theme}) {
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <div>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:mob?24:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:mob?16:28}}>Trends</h1>
+      <div className={isAutoStocks?"liquid-card":undefined} style={{marginBottom:mob?16:28,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
+        <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isAutoStocks?24:24):(isAutoStocks?34:36),fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1,marginBottom:8}}>Trends</h1>
+        {isAutoStocks&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}
+      </div>
       <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${mob?140:155}px,1fr))`,gap:mob?8:10,marginBottom:mob?20:30}}>
         {ds.map((p,ri)=>{
           const rank=ri+1;
@@ -4810,7 +4813,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
               const displayName=`${bk.createdBy[0].toUpperCase()}${bk.createdBy.slice(1)}`;
               const isRestoring=restoringId===bk.id;
               return (
-                <div key={bk.id} style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                <div key={bk.id} className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?22:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                     <div>
                       <span style={{fontSize:12,color:"var(--text-mid)"}}>{dateStr}</span>
@@ -4837,7 +4840,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:8,lineHeight:1}}>{group.code}</div>
+          <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isAutoStocks?24:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:36,fontWeight:isAutoStocks?800:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?2:8,lineHeight:1}}>{group.code}</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <div style={{display:"flex",gap:8}}>
               <Btn onClick={copyCode} variant={copied?"success":"ghost"} small>{copied?"Copied!":"Copy Code"}</Btn>
@@ -4849,7 +4852,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       </Section>
 
       <Section title="Live Data: football-data.org">
-        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"18px 20px"}}>
+        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"18px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
             <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
@@ -4880,7 +4883,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       )}
 
       <Section title="Info">
-        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
+        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
           {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
               <span style={{color:"var(--text-dim)"}}>{l}</span>
@@ -4892,7 +4895,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       {seasonComplete && seasonWinner && (
         <Section title="Season Awards">
-          <div style={{background:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+          <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>🏆 {names[seasonWinner.username]||seasonWinner.username}</div>
             <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
             <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
@@ -4902,7 +4905,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       )}
 
       <Section title="Scoring Rules">
-        <div style={{background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
           <div style={{color:"var(--text-mid)",marginBottom:8,fontFamily:"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
           <div>Each goal your prediction is off = 1 point.</div>
           <div style={{marginTop:6}}><span style={{color:"var(--text-dim)"}}>Predict 1-1, actual 2-3 → 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts ❌</strong></div>
