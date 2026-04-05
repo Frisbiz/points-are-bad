@@ -800,6 +800,8 @@ const CSS = `
   [data-theme="autostocks"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
   [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #f7f7f8);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 8px 40px -12px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.7);}
   [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f2f2f2,#eaeaee);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.03),0 2px 8px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4);}
+  [data-theme="autostocks"] .autostocks-grid-bg{position:relative;}
+  [data-theme="autostocks"] .autostocks-grid-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);background-size:48px 48px;mask-image:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));pointer-events:none;}
   [data-theme="autostocks"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.06) 0%, transparent 65%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
   [data-theme="autostocks"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.04) 0%, transparent 60%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
   [data-theme="autostocks"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:0 1px 2px rgba(0,0,0,.04);backdrop-filter:blur(24px) saturate(1.2);}
@@ -906,29 +908,29 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {!isAutoStocks&&<button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>}
-            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"0 16px":"8px 18px",height:isAutoStocks?32:undefined,borderRadius:isAutoStocks?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Create Group":"Create Group"}</button>
+            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"0 16px":"8px 18px",height:isAutoStocks?32:undefined,borderRadius:isAutoStocks?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up":"Create Group"}</button>
           </div>
         </div>
       </header>
 
-      <div style={{maxWidth:isAutoStocks?1120:940,margin:"0 auto",padding:isAutoStocks?"96px 24px 0":"0 24px"}}>
+      <div className={isAutoStocks?"autostocks-grid-bg":undefined} style={{maxWidth:isAutoStocks?1280:940,margin:"0 auto",padding:isAutoStocks?"96px 24px 0":"0 24px"}}>
 
         {/* hero */}
         <section className={isAutoStocks?"hero-glow":"land-hero"} style={{padding:isAutoStocks?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isAutoStocks?56:64,alignItems:"center"}}>
           <div className="fade">
             <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isAutoStocks?1.6:4,textTransform:isAutoStocks?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
             <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isAutoStocks?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.025em":-2,lineHeight:isAutoStocks?1.08:1.05,marginBottom:10,maxWidth:isAutoStocks?560:undefined}}>
-              {isAutoStocks?<>Hold one prediction.</>:<>Predict every goal.</>}
+              {isAutoStocks?<>Join one group.</>:<>Predict every goal.</>}
             </h1>
-            {isAutoStocks&&<div style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:"clamp(2.2rem,5vw,3.75rem)",lineHeight:1.08,letterSpacing:"-0.025em",marginBottom:20,color:"var(--text-bright)"}}>Receive <span style={{WebkitTextStroke:"1px rgba(0,0,0,.22)",color:"transparent"}}>real shame</span>.</div>}
+            {isAutoStocks&&<div style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:"clamp(2.2rem,5vw,3.75rem)",lineHeight:1.08,letterSpacing:"-0.025em",marginBottom:20,color:"var(--text-bright)"}}>Make <span style={{WebkitTextStroke:"1px rgba(0,0,0,.22)",color:"transparent"}}>real picks</span>.</div>}
             <p style={{fontSize:isAutoStocks?15:12,color:"var(--text-mid)",lineHeight:isAutoStocks?1.7:1.8,maxWidth:isAutoStocks?420:380,marginBottom:36,letterSpacing:0.1}}>
               A score prediction game to play with your friends. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
             </p>
             <div style={{display:"flex",gap:isAutoStocks?20:10,flexWrap:"wrap",alignItems:"center"}}>
-              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 20px":"12px 28px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create Group</button>
-              <button onClick={onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>How it works →</button>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 20px":"12px 28px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up":"Create Group"}</button>
+              <button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isAutoStocks?"Try demo →":"How it works →"}</button>
             </div>
-            {isAutoStocks&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Private groups</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
+            {isAutoStocks&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)",flexWrap:"wrap"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>World Cup mode</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
             {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{marginTop:8,background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
               {demoLoading?"loading...":"→ Try the live demo"}
             </button>}
@@ -936,7 +938,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           <div style={{display:"flex",justifyContent:"flex-end"}}>
             {/* prediction demo */}
             <div style={{width:"100%",maxWidth:isAutoStocks?400:320,position:"relative"}}>
-              {isAutoStocks&&<div className="glass-panel" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Your group</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Hold & earn</div><div style={{fontSize:11,color:"var(--text-dim)"}}>bragging rights</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
+              {isAutoStocks&&<div className="glass-panel" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Private league</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Exact scores</div><div style={{fontSize:11,color:"var(--text-dim)"}}>weekly leaderboard</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
               <div className={isAutoStocks?"glass-panel":undefined} style={{position:"relative",zIndex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?24:14,padding:isAutoStocks?0:24,minHeight:isAutoStocks?330:280,boxShadow:isAutoStocks?undefined:"0 24px 80px rgba(3,8,14,.35)"}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,padding:isAutoStocks?"20px 20px 0":"0"}}>
                   <div>
@@ -1043,7 +1045,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
                   {["Exact Picks","Hidden Locks","Weekly Winner","Private Leagues","World Cup Mode","Trend Charts","Invite Codes","Admin Controls","Exact Picks","Hidden Locks","Weekly Winner","Private Leagues"].map((item,i)=>(
                     <div key={i} className="liquid-card" style={{width:260,marginRight:20,borderRadius:24,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div style={{fontSize:14,fontWeight:600,color:"var(--text-bright)"}}>{item}</div>
-                      <div style={{fontSize:11,color:"var(--text-dim)"}}>On-chain-ish</div>
+                      <div style={{fontSize:11,color:"var(--text-dim)"}}>Live app</div>
                     </div>
                   ))}
                 </div>
@@ -1069,8 +1071,8 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?"clamp(2rem,4vw,2.6rem)":"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-2,lineHeight:1.1,marginBottom:16}}>{isAutoStocks?"Start losing with friends today.":"Start a group."}</h2>
             <p style={{fontSize:isAutoStocks?15:11,color:"var(--text-mid)",letterSpacing:0.1,marginBottom:36,maxWidth:isAutoStocks?460:undefined,marginLeft:isAutoStocks?"auto":undefined,marginRight:isAutoStocks?"auto":undefined,lineHeight:isAutoStocks?1.7:undefined}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
             <div style={{display:"flex",flexDirection:isAutoStocks?"row":"column",justifyContent:"center",alignItems:"center",gap:14}}>
-              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 24px":"13px 36px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Create Group →":"Create a group"}</button>
-              <button onClick={onContinue} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",fontSize:isAutoStocks?13:11,color:"var(--text-bright)",fontFamily:isAutoStocks?"inherit":"'DM Mono',monospace",letterSpacing:isAutoStocks?0.1:1,fontWeight:isAutoStocks?600:undefined}}>View demo →</button>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 24px":"13px 36px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up →":"Create a group"}</button>
+              <button onClick={onDemo||onContinue} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",fontSize:isAutoStocks?13:11,color:"var(--text-bright)",fontFamily:isAutoStocks?"inherit":"'DM Mono',monospace",letterSpacing:isAutoStocks?0.1:1,fontWeight:isAutoStocks?600:undefined}}>Try demo →</button>
             </div>
           </div>
         </section>
