@@ -4109,7 +4109,7 @@ function TrendsTab({group,names,theme}) {
                             <rect x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill={fill}>
                               <title>{allMissed?"missed":String(cell.pts)}</title>
                             </rect>
-                            {!allMissed && !mob && <text x={labelW+ci*cellW+cellW/2} y={32+ri*rowH+rowH/2} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={8} fontFamily="'DM Mono',monospace" fontWeight={600}>{cell.pts}</text>}
+                            {!allMissed && !mob && <text x={labelW+ci*cellW+cellW/2} y={32+ri*rowH+rowH/2} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={10} fontFamily="'DM Mono',monospace" fontWeight={700}>{cell.pts}</text>}
                           </g>
                         );
                       })}
