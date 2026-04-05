@@ -48,7 +48,7 @@ async function spatch(key, path, value) {
 }
 
 const SITE_PREFS_KEY = "site:preferences";
-const SITE_OWNER_USERNAME = "friswy";
+const SITE_OWNER_USERNAME = "faris";
 
 function applyPath(obj, dotPath, value) {
   const parts = dotPath.split(".");
