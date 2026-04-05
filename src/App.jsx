@@ -798,12 +798,12 @@ const CSS = `
   [data-theme="autostocks"] button,[data-theme="autostocks"] input,[data-theme="autostocks"] select{transition:all .18s ease, box-shadow .22s ease, transform .18s ease;}
   [data-theme="autostocks"] button:hover{box-shadow:none;}
   [data-theme="autostocks"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
-  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #f7f7f8);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.02), inset 0 1px 0 rgba(255,255,255,.7);}
-  [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f2f2f2,#eaeaee);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.02), inset 0 1px 0 rgba(255,255,255,.4);}
+  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #fbfbfc);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.78);}
+  [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f7f7f8,#efeff2);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.5);}
   [data-theme="autostocks"] .autostocks-grid-bg{position:relative;}
   [data-theme="autostocks"] .autostocks-grid-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);background-size:48px 48px;mask-image:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));pointer-events:none;}
-  [data-theme="autostocks"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.06) 0%, transparent 65%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
-  [data-theme="autostocks"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.04) 0%, transparent 60%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
+  [data-theme="autostocks"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.03) 0%, transparent 68%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
+  [data-theme="autostocks"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.02) 0%, transparent 62%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
   [data-theme="autostocks"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:none;backdrop-filter:blur(24px) saturate(1.2);}
   [data-theme="autostocks"] .mint-text{color:var(--text-bright);}
   @keyframes liquidFlow{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(1.5%, -2%, 0) scale(1.04);}}
@@ -3308,7 +3308,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
       {fetchMsg&&<div className={isAutoStocks?"liquid-card":undefined} style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
 
-      {isAdmin&&<div className={isAutoStocks?"liquid-card":undefined} style={{background:"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
+      {isAdmin&&<div style={{background:isAutoStocks?"#f6f6f7":"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
         <Flash size={12} color="#f59e0b" style={{flexShrink:0}}/> ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
