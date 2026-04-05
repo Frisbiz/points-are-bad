@@ -48,6 +48,7 @@ async function spatch(key, path, value) {
 }
 
 const SITE_PREFS_KEY = "site:preferences";
+const SITE_OWNER_USERNAME = "friswy";
 
 function applyPath(obj, dotPath, value) {
   const parts = dotPath.split(".");
@@ -4695,7 +4696,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       })()}
 
       <Section title="Appearance">
-        {isAdmin&&(
+        {user.username===SITE_OWNER_USERNAME&&(
           <div style={{marginBottom:18,padding:"14px 16px",border:"1px solid var(--border3)",borderRadius:isAutoStocks?20:10,background:isAutoStocks?"var(--card-hi)":"var(--card)"}}>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Default theme for new users</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
