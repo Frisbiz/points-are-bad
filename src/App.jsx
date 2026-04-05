@@ -47,6 +47,8 @@ async function spatch(key, path, value) {
   } catch(e) { console.error("spatch error", key, path, e); return false; }
 }
 
+const SITE_PREFS_KEY = "site:preferences";
+
 function applyPath(obj, dotPath, value) {
   const parts = dotPath.split(".");
   if (parts.length === 1) return { ...obj, [parts[0]]: value };
@@ -2124,6 +2126,7 @@ export default function App() {
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
   const [showLanding,setShowLanding]=useState(()=>!getInviteCodeFromLocation());
+  const [sitePrefs,setSitePrefs]=useState(null);
   const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"dark");
   const [toast,setToast]=useState(null);
   const konamiIndexRef=useRef(0);
@@ -2147,14 +2150,27 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
-    const available = [...getAvailableThemes(user), "clarity"];
-    if (!available.includes(theme)) setTheme("dark");
-  },[theme,user]);
+    (async()=>{
+      const prefs = await sget(SITE_PREFS_KEY);
+      setSitePrefs(prefs || { defaultTheme: "dark", landingTheme: null });
+      const savedTheme = localStorage.getItem("theme");
+      if (!savedTheme && prefs?.defaultTheme) setTheme(prefs.defaultTheme);
+    })();
+  },[]);
 
   useEffect(()=>{
-    document.documentElement.setAttribute("data-theme",theme);
+    const available = [...getAvailableThemes(user), "clarity"];
+    const fallback = sitePrefs?.defaultTheme || "dark";
+    if (!available.includes(theme)) setTheme(fallback);
+  },[theme,user,sitePrefs]);
+
+  const landingTheme = sitePrefs?.landingTheme || null;
+  const effectiveTheme = (!user && showLanding && landingTheme) ? landingTheme : theme;
+
+  useEffect(()=>{
+    document.documentElement.setAttribute("data-theme",effectiveTheme);
     localStorage.setItem("theme",theme);
-  },[theme]);
+  },[theme,effectiveTheme]);
 
   useEffect(()=>{
     console.log("stop inspecting the app and go build something");
@@ -2312,7 +2328,7 @@ export default function App() {
           setResetDone(true);
         }}/>
       ):!user&&showLanding&&!joinParam?(
-        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin} onAreBadTap={unlockSecretTheme} theme={theme}/>
+        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin} onAreBadTap={unlockSecretTheme} theme={effectiveTheme}/>
       ):!user?(
         <AuthScreen
           onLogin={handleLogin}
@@ -2326,7 +2342,7 @@ export default function App() {
           }}
           successMsg={resetDone?"Password updated - please sign in.":null}
           joinCode={joinParam}
-          theme={theme}
+          theme={effectiveTheme}
         />
       ):!group?(
         <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme}/>
@@ -4679,6 +4695,28 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       })()}
 
       <Section title="Appearance">
+        {isAdmin&&(
+          <div style={{marginBottom:18,padding:"14px 16px",border:"1px solid var(--border3)",borderRadius:isAutoStocks?20:10,background:isAutoStocks?"var(--card-hi)":"var(--card)"}}>
+            <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Default theme for new users</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+              {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
+                const active=(sitePrefs?.defaultTheme||"dark")===t.key;
+                return <button key={`default-${t.key}`} onClick={async()=>{
+                  const next={...(sitePrefs||{}),defaultTheme:t.key,landingTheme:(sitePrefs?.landingTheme===null||sitePrefs?.landingTheme===undefined)?t.key:sitePrefs.landingTheme};
+                  await sset(SITE_PREFS_KEY,next);setSitePrefs(next);
+                }} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+              })}
+            </div>
+            <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Landing page theme override</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <button onClick={async()=>{const next={...(sitePrefs||{}),landingTheme:null};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:(sitePrefs?.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(sitePrefs?.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
+              {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
+                const active=sitePrefs?.landingTheme===t.key;
+                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...(sitePrefs||{}),landingTheme:t.key,defaultTheme:sitePrefs?.defaultTheme||t.key};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+              })}
+            </div>
+          </div>
+        )}
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
           {[...getSecretThemeMeta(user), ...(theme==="clarity" ? [{key:"clarity",label:"Post-Optimization Clarity",swatches:["#111","#666","#fff"],secret:true}] : [])].map(t=>(
             <button key={t.key} onClick={()=>setTheme(t.key)}
