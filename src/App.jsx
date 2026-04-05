@@ -4071,10 +4071,12 @@ function TrendsTab({group,names,theme}) {
           const heatColor = pts => {
             const t = heatMax === heatMin ? 0.5 : Math.max(0, Math.min(1, (pts - heatMin) / (heatMax - heatMin)));
             if (isAutoStocks) {
-              const hue = 214 - t * 170;
-              const sat = 58 - t * 10;
-              const light = 94 - t * 18;
-              return `hsl(${hue}, ${sat}%, ${light}%)`;
+              if (t < 0.5) {
+                const tt = t * 2;
+                return `hsl(${105 - tt*55}, ${52 + tt*28}%, ${53 + tt*6}%)`;
+              }
+              const tt = (t - 0.5) * 2;
+              return `hsl(${50 - tt*40}, ${85 + tt*7}%, ${59 - tt*4}%)`;
             }
             // green → amber → red
             if (t < 0.5) { const h = 142 - t*2*87; return `hsl(${h},72%,${42-t*2*4}%)`; }
@@ -4100,8 +4102,8 @@ function TrendsTab({group,names,theme}) {
                         if (cell === "postponed") return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill="var(--border)"/>;
                         const nonPP = (g.fixtures||[]).filter(f=>f.result&&f.status!=="POSTPONED").length;
                         const allMissed = cell.missed && cell.pts >= MISSED_PICK_PTS * nonPP;
-                        const fill = allMissed ? (isAutoStocks ? "#eef1f4" : "#1e1e30") : heatColor(cell.pts);
-                        const textFill = allMissed ? (isAutoStocks ? "#7b818a" : "#555566") : (isAutoStocks ? "#111315" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111"));
+                        const fill = allMissed ? (isAutoStocks ? "#e5e7eb" : "#1e1e30") : heatColor(cell.pts);
+                        const textFill = allMissed ? (isAutoStocks ? "#7b818a" : "#555566") : (isAutoStocks ? "#ffffff" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111"));
                         return (
                           <g key={`${ri}-${ci}`}>
                             <rect x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill={fill}>
