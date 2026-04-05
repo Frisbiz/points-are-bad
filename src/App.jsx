@@ -2514,7 +2514,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
         {tab==="Bracket"&&<WCBracketTab group={group}/>}
-        {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
+        {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname} theme={theme}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names}/>}
       </main>
@@ -2804,6 +2804,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
 
 function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const mob = useMobile();
+  const isAutoStocks = theme === "autostocks";
   const gwStripRef = useRef(null);
   const pickInputRefs = useRef({});
   const [resultDraft,setResultDraft]=useState({});
@@ -3242,8 +3243,11 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         </div>,
         document.body
       )}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12}}>
-        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
+      <div className={isAutoStocks?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
+        <div>
+          <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?34:34,fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
+          {isAutoStocks&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Make picks, track locks, and watch the damage roll in.</div>}
+        </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
@@ -3255,14 +3259,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                     background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
                     color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
                     border:"1px solid var(--border)",
-                    borderRadius:6,
-                    padding:"5px 0",
+                    borderRadius:isAutoStocks?999:6,
+                    padding:isAutoStocks?"7px 12px":"5px 0",
                     fontSize:11,
                     cursor:"pointer",
                     fontFamily:"inherit",
-                    letterSpacing:1,
+                    letterSpacing:isAutoStocks?0.2:1,
                     flexShrink:0,
-                    minWidth:54,
+                    minWidth:isAutoStocks?64:54,
                     textAlign:"center",
                     opacity:adminHidden?0.4:1,
                   }}>
@@ -3299,9 +3303,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         </div>
       </div>
 
-      {fetchMsg&&<div style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
+      {fetchMsg&&<div className={isAutoStocks?"liquid-card":undefined} style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
 
-      {isAdmin&&<div style={{background:"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
+      {isAdmin&&<div className={isAutoStocks?"liquid-card":undefined} style={{background:"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
         <Flash size={12} color="#f59e0b" style={{flexShrink:0}}/> ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
@@ -3446,7 +3450,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
         );
         if (mob) return (
-          <div key={f.id} style={{background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",borderRadius:isAutoStocks?20:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -3471,7 +3475,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
         );
         return (
-          <div key={f.id} className="frow" style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:"var(--card)",borderRadius:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:2,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className={`frow${isAutoStocks?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isAutoStocks?undefined:"var(--card)",borderRadius:isAutoStocks?20:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
@@ -3693,8 +3697,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 }
 
 /* ── TRENDS ──────────────────────────────────────── */
-function TrendsTab({group,names}) {
+function TrendsTab({group,names,theme}) {
   const mob = useMobile();
+  const isAutoStocks = theme === "autostocks";
   const stats = useMemo(()=>computeStats(group),[group]);
   const members = group.members||[];
   const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
@@ -3710,7 +3715,7 @@ function TrendsTab({group,names}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,sub,children})=>(<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:2,color:"var(--text-dim3)",textTransform:"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const CC=({title,sub,children})=>(<div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isAutoStocks?22:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:isAutoStocks?0.2:2,color:"var(--text-dim3)",textTransform:isAutoStocks?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
