@@ -3705,7 +3705,8 @@ function TrendsTab({group,names,theme}) {
   const isAutoStocks = theme === "autostocks";
   const stats = useMemo(()=>computeStats(group),[group]);
   const members = group.members||[];
-  const memberColor = u => PALETTE[members.indexOf(u)%PALETTE.length];
+  const AUTO_PALETTE = ["#111315", "#6f7680", "#9aa1aa", "#c1c6cd", "#7d8ea3", "#9f8c7a", "#a4b3a1", "#8b949e"];
+  const memberColor = u => isAutoStocks ? AUTO_PALETTE[members.indexOf(u)%AUTO_PALETTE.length] : PALETTE[members.indexOf(u)%PALETTE.length];
   const activeSeason = group.season || 2025;
   const scope = group.scoreScope || "all";
   const gws = (group.gameweeks||[]).filter(g => scope === "all" || (g.season||activeSeason) === activeSeason);
@@ -3719,7 +3720,7 @@ function TrendsTab({group,names,theme}) {
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
   const CC=({title,sub,children})=>(<div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isAutoStocks?22:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:isAutoStocks?0.2:2,color:"var(--text-dim3)",textTransform:isAutoStocks?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
-  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
+  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isAutoStocks?"#8f959d":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:isAutoStocks?"#6f7680":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
   const filteredGWs = gws;
@@ -4121,15 +4122,18 @@ function TrendsTab({group,names,theme}) {
             <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/>
             <Legend content={<BreakdownLegend/>}/>
-            <Bar dataKey="Perfect" stackId="a" fill="#22c55e"/>
-            <Bar dataKey="Close" stackId="a" fill="#f59e0b"/>
-            <Bar dataKey="Bad" stackId="a" fill="#ef4444"/>
-            <Bar dataKey="Missed" stackId="a" fill="#555566" radius={[0,4,4,0]}/>
+            <Bar dataKey="Perfect" stackId="a" fill={isAutoStocks?"#9fb39d":"#22c55e"}/>
+
+            <Bar dataKey="Close" stackId="a" fill={isAutoStocks?"#c8b79d":"#f59e0b"}/>
+
+            <Bar dataKey="Bad" stackId="a" fill={isAutoStocks?"#bfa3a3":"#ef4444"}/>
+
+            <Bar dataKey="Missed" stackId="a" fill={isAutoStocks?"#d7dbe0":"#555566"} radius={[0,4,4,0]}/>
           </BarChart>
         </ResponsiveContainer>
       </CC>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill="#22c55e" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill={isAutoStocks?"#9fb39d":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
         <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
 
@@ -4142,8 +4146,10 @@ function TrendsTab({group,names,theme}) {
               <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
               <Legend wrapperStyle={{fontSize:10}}/>
-              <Bar dataKey="Home" stackId="a" fill="#6366f1"/>
-              <Bar dataKey="Draw" stackId="a" fill="#f59e0b"/>
+              <Bar dataKey="Home" stackId="a" fill={isAutoStocks?"#8f97a3":"#6366f1"}/>
+
+              <Bar dataKey="Draw" stackId="a" fill={isAutoStocks?"#c8b79d":"#f59e0b"}/>
+
               <Bar dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
             </BarChart>
           </ResponsiveContainer>
@@ -4155,7 +4161,7 @@ function TrendsTab({group,names,theme}) {
               <PolarAngleAxis dataKey="subject" tick={<RadarTick/>}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
               <Tooltip content={<RadarTooltip rawMap={radarData.rawMap} tt={tt}/>}/>
-              <Radar name="Group Avg" dataKey="Avg" stroke="#555577" fill="#555577" fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
+              <Radar name="Group Avg" dataKey="Avg" stroke={isAutoStocks?"#b8bec6":"#555577"} fill={isAutoStocks?"#d7dbe0":"#555577"} fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
               {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=>(
                 <Radar key={p.username} name={p.dn} dataKey={p.dn} stroke={memberColor(p.username)} fill={memberColor(p.username)} fillOpacity={selectedPlayer?0.4:0.15} strokeWidth={selectedPlayer?2.5:1.5}/>
               ))}
@@ -4173,13 +4179,13 @@ function TrendsTab({group,names,theme}) {
               <Tooltip contentStyle={tt} formatter={v=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
               <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
               <Bar dataKey="value" radius={[0,4,4,0]}>
-                {goalInflationData.map((e,i)=><Cell key={i} fill={e.value>=0?"#f59e0b":"#6366f1"}/>)}
+                {goalInflationData.map((e,i)=><Cell key={i} fill={e.value>=0?(isAutoStocks?"#c8b79d":"#f59e0b"):(isAutoStocks?"#8f97a3":"#6366f1")}/>)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
           <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:10,fontSize:10,color:"var(--text-dim3)"}}>
-            <span><span style={{color:"#f59e0b"}}>■</span> Over-predicts</span>
-            <span><span style={{color:"#6366f1"}}>■</span> Under-predicts</span>
+            <span><span style={{color:isAutoStocks?"#c8b79d":"#f59e0b"}}>■</span> Over-predicts</span>
+            <span><span style={{color:isAutoStocks?"#8f97a3":"#6366f1"}}>■</span> Under-predicts</span>
           </div>
         </CC>
         <CC title="Boldness vs Accuracy" sub="Do bolder scoreline predictions help or hurt?">
@@ -4246,10 +4252,10 @@ function TrendsTab({group,names,theme}) {
         return (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:18}}>
             <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
-              {renderHeatmap(scoreGridData,"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
+              {renderHeatmap(scoreGridData,isAutoStocks?"rgba(200,183,157,1)":"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
             </CC>
             <CC title="Actual Results Heatmap">
-              {renderHeatmap(resultGridData,"rgba(99,102,241,1)","REAL RESULTS")}
+              {renderHeatmap(resultGridData,isAutoStocks?"rgba(143,151,163,1)":"rgba(99,102,241,1)","REAL RESULTS")}
             </CC>
           </div>
         );
