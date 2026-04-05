@@ -796,15 +796,15 @@ const CSS = `
   [data-theme="autostocks"] .nb.active{color:var(--text-bright)!important;border-bottom-color:rgba(0,0,0,.18)!important;}
   [data-theme="autostocks"] .bot-nav{backdrop-filter:blur(18px);background:rgba(255,255,255,.92);border-top:1px solid rgba(0,0,0,.06);}
   [data-theme="autostocks"] button,[data-theme="autostocks"] input,[data-theme="autostocks"] select{transition:all .18s ease, box-shadow .22s ease, transform .18s ease;}
-  [data-theme="autostocks"] button:hover{box-shadow:0 10px 24px rgba(0,0,0,.08);}
+  [data-theme="autostocks"] button:hover{box-shadow:none;}
   [data-theme="autostocks"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
-  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #f7f7f8);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 8px 40px -12px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.7);}
-  [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f2f2f2,#eaeaee);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.03),0 2px 8px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4);}
+  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #f7f7f8);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.02), inset 0 1px 0 rgba(255,255,255,.7);}
+  [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f2f2f2,#eaeaee);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.02), inset 0 1px 0 rgba(255,255,255,.4);}
   [data-theme="autostocks"] .autostocks-grid-bg{position:relative;}
   [data-theme="autostocks"] .autostocks-grid-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);background-size:48px 48px;mask-image:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));pointer-events:none;}
   [data-theme="autostocks"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.06) 0%, transparent 65%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
   [data-theme="autostocks"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.04) 0%, transparent 60%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
-  [data-theme="autostocks"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:0 1px 2px rgba(0,0,0,.04);backdrop-filter:blur(24px) saturate(1.2);}
+  [data-theme="autostocks"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:none;backdrop-filter:blur(24px) saturate(1.2);}
   [data-theme="autostocks"] .mint-text{color:var(--text-bright);}
   @keyframes liquidFlow{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(1.5%, -2%, 0) scale(1.04);}}
   @keyframes liquidFlowB{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(-1%, 1.5%, 0) scale(1.02);}}
