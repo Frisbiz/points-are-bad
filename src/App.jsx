@@ -764,9 +764,9 @@ const CSS = `
   [data-theme="pitch"]{--bg:#0d1f0d;--surface:#122012;--card:#0f1c0f;--card-hi:#142214;--card-hover:#162516;--input-bg:#0a180a;--border:rgba(255,255,255,0.22);--border2:rgba(255,255,255,0.32);--border3:rgba(255,255,255,0.1);--text:#d4ecd4;--text-dim:#3a6a3a;--text-dim2:#2e562e;--text-dim3:#264426;--text-mid:#7ab87a;--text-bright:#e8f5e8;--text-inv:#0d1f0d;--scrollbar:rgba(255,255,255,0.15);--btn-bg:#4caf50;--btn-text:#0d1f0d;--font-mono:'DM Mono',monospace;}
   [data-theme="velvet"]{--bg:#120816;--surface:#1a0f1f;--card:#180d1d;--card-hi:#221229;--card-hover:#291631;--input-bg:#140a18;--border:#3a2344;--border2:#4a2d58;--border3:#26132d;--text:#f7d6ea;--text-dim:#7a5a71;--text-dim2:#8f6d84;--text-dim3:#62485c;--text-mid:#d6adc7;--text-bright:#fff2fa;--text-inv:#120816;--scrollbar:#4a2d58;--btn-bg:#f472b6;--btn-text:#1b0d18;--font-mono:'DM Mono',monospace;}
   [data-theme="clarity"]{--bg:#111;--surface:#1a1a1a;--card:#171717;--card-hi:#222;--card-hover:#252525;--input-bg:#141414;--border:#444;--border2:#555;--border3:#2a2a2a;--text:#f1f1f1;--text-dim:#999;--text-dim2:#888;--text-dim3:#777;--text-mid:#d0d0d0;--text-bright:#fff;--text-inv:#111;--scrollbar:#555;--btn-bg:#d7d7d7;--btn-text:#111;--font-mono:'DM Mono',monospace;filter:grayscale(1);}
-  [data-theme="autostocks"]{--bg:#07111d;--surface:rgba(9,22,36,0.78);--card:rgba(11,24,40,0.84);--card-hi:rgba(15,30,48,0.94);--card-hover:rgba(18,35,56,0.98);--input-bg:rgba(7,18,30,0.92);--border:rgba(108,132,167,0.20);--border2:rgba(120,146,184,0.28);--border3:rgba(65,89,120,0.18);--text:#d7e6f7;--text-dim:#5f7591;--text-dim2:#7f96b2;--text-dim3:#91a5bf;--text-mid:#a8bcd5;--text-bright:#f4fbff;--text-inv:#07111d;--scrollbar:#27405f;--btn-bg:linear-gradient(135deg,#9ff7c6 0%,#5ce2cc 55%,#7ec5ff 100%);--btn-text:#07111d;--font-mono:'DM Mono',monospace;}
+  [data-theme="autostocks"]{--bg:#f6f6f7;--surface:#ffffff;--card:#f0f0f2;--card-hi:#f7f7f8;--card-hover:#ebebee;--input-bg:#ffffff;--border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.08);--border3:rgba(0,0,0,0.05);--text:#121417;--text-dim:#7b818a;--text-dim2:#8f959d;--text-dim3:#6f7680;--text-mid:#565d66;--text-bright:#111315;--text-inv:#ffffff;--scrollbar:#cfd4db;--btn-bg:#15181c;--btn-text:#ffffff;--font-mono:Inter,system-ui,sans-serif;}
   html,body{background:var(--bg);}
-  html[data-theme="autostocks"],body[data-theme="autostocks"]{background:radial-gradient(circle at top, rgba(33,66,104,.48), transparent 38%), linear-gradient(180deg, #09111b 0%, #06101b 55%, #040b13 100%);}
+  html[data-theme="autostocks"],body[data-theme="autostocks"]{background:#f6f6f7;}
   *{box-sizing:border-box;margin:0;padding:0;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -790,19 +790,23 @@ const CSS = `
   .bot-nav .nb{height:54px;border-top:none!important;}
   .bot-nav .nb.active{border-bottom-color:var(--text)!important;}
   [data-theme="autostocks"] body{background-attachment:fixed;}
-  [data-theme="autostocks"] .frow:hover{background:rgba(18,35,56,.92)!important;}
-  [data-theme="autostocks"] .nb{border-bottom-width:1px;font-weight:500;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-dim2)!important;}
+  [data-theme="autostocks"] .frow:hover{background:#f5f5f6!important;}
+  [data-theme="autostocks"] .nb{border-bottom-width:1px;font-weight:500;letter-spacing:.2px;color:var(--text-dim2)!important;}
   [data-theme="autostocks"] .nb:hover{color:var(--text-bright)!important;}
-  [data-theme="autostocks"] .nb.active{color:var(--text-bright)!important;border-bottom-color:#8ef0c0!important;text-shadow:0 0 14px rgba(142,240,192,.28);}
-  [data-theme="autostocks"] .bot-nav{backdrop-filter:blur(18px);background:rgba(4,11,19,.88);border-top:1px solid rgba(126,197,255,.14);}
+  [data-theme="autostocks"] .nb.active{color:var(--text-bright)!important;border-bottom-color:rgba(0,0,0,.18)!important;}
+  [data-theme="autostocks"] .bot-nav{backdrop-filter:blur(18px);background:rgba(255,255,255,.92);border-top:1px solid rgba(0,0,0,.06);}
   [data-theme="autostocks"] button,[data-theme="autostocks"] input,[data-theme="autostocks"] select{transition:all .18s ease, box-shadow .22s ease, transform .18s ease;}
-  [data-theme="autostocks"] button{backdrop-filter:blur(14px);}
-  [data-theme="autostocks"] button:hover{box-shadow:0 12px 28px rgba(5,12,20,.24);}
-  [data-theme="autostocks"] input{box-shadow:0 0 0 1px rgba(255,255,255,.02) inset, 0 10px 30px rgba(4,10,18,.18);}
-  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, rgba(13,25,40,.88), rgba(8,18,30,.78));border:1px solid rgba(122,151,188,.18);box-shadow:0 18px 60px rgba(3,8,14,.35), inset 0 1px 0 rgba(255,255,255,.03);backdrop-filter:blur(18px);}
-  [data-theme="autostocks"] .hero-glow{position:relative;overflow:hidden;}
-  [data-theme="autostocks"] .hero-glow::before{content:"";position:absolute;inset:-20% -10% auto 20%;height:220px;background:radial-gradient(circle, rgba(126,197,255,.22), transparent 65%);pointer-events:none;filter:blur(10px);}
-  [data-theme="autostocks"] .mint-text{background:linear-gradient(135deg,#eafff6 0%, #9ff7c6 45%, #7ec5ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  [data-theme="autostocks"] button:hover{box-shadow:0 10px 24px rgba(0,0,0,.08);}
+  [data-theme="autostocks"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
+  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #f7f7f8);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 8px 40px -12px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.7);}
+  [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f2f2f2,#eaeaee);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.03),0 2px 8px rgba(0,0,0,.04),inset 0 1px 0 rgba(255,255,255,.4);}
+  [data-theme="autostocks"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.06) 0%, transparent 65%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
+  [data-theme="autostocks"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.04) 0%, transparent 60%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
+  [data-theme="autostocks"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:0 1px 2px rgba(0,0,0,.04);backdrop-filter:blur(24px) saturate(1.2);}
+  [data-theme="autostocks"] .mint-text{color:var(--text-bright);}
+  @keyframes liquidFlow{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(1.5%, -2%, 0) scale(1.04);}}
+  @keyframes liquidFlowB{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(-1%, 1.5%, 0) scale(1.02);}}
+  @keyframes marqueeScroll{from{transform:translate3d(0,0,0);}to{transform:translate3d(-50%,0,0);}}
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
@@ -890,47 +894,51 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
 
       {/* header */}
-      <header style={{borderBottom:`1px solid ${isAutoStocks?"rgba(126,197,255,.12)":"var(--border)"}`,padding:"0 24px",height:isAutoStocks?72:60,backdropFilter:isAutoStocks?"blur(18px)":undefined,background:isAutoStocks?"rgba(6,14,24,.52)":undefined,position:isAutoStocks?"sticky":undefined,top:isAutoStocks?0:undefined,zIndex:isAutoStocks?20:undefined}}>
-        <div style={{maxWidth:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isAutoStocks?72:60}}>
-          <div style={{display:"flex",alignItems:"center",gap:isAutoStocks?12:8,flexShrink:0}}>
-            <div style={{width:isAutoStocks?12:0,height:isAutoStocks?12:0,borderRadius:"50%",background:isAutoStocks?"linear-gradient(135deg,#9ff7c6,#7ec5ff)":undefined,boxShadow:isAutoStocks?"0 0 24px rgba(126,197,255,.35)":undefined}}/>
-            <div style={{display:"flex",flexDirection:"column",gap:isAutoStocks?2:0}}>
-              <span className={isAutoStocks?"mint-text":undefined} style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:isAutoStocks?20:18,color:isAutoStocks?undefined:"var(--text-bright)",letterSpacing:isAutoStocks?-0.6:undefined}}>POINTS</span>
-              <span onClick={spawnThumb} style={{color:isAutoStocks?"var(--text-dim2)":"var(--text-dim)",fontSize:isAutoStocks?8:9,letterSpacing:isAutoStocks?4:3,cursor:"pointer",userSelect:"none",textTransform:"uppercase"}}>are bad</span>
-            </div>
+      <header style={{padding:"16px 24px 0",height:isAutoStocks?76:60,position:isAutoStocks?"fixed":undefined,top:isAutoStocks?0:undefined,left:isAutoStocks?0:undefined,right:isAutoStocks?0:undefined,zIndex:isAutoStocks?20:undefined}}>
+        <div className={isAutoStocks?"pill-nav":undefined} style={{maxWidth:isAutoStocks?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isAutoStocks?44:60,borderRadius:isAutoStocks?18:0,padding:isAutoStocks?"0 10px":undefined,borderBottom:isAutoStocks?undefined:`1px solid ${"var(--border)"}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
+            <div style={{padding:"0 12px",fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",height:isAutoStocks?32:60}}>Points</div>
+            {isAutoStocks&&<div style={{display:"flex",alignItems:"center",gap:0}}>
+              <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
+              <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
+              <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
+            </div>}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:isAutoStocks?12:20}}>
-            <button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>
-            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:isAutoStocks?"10px 18px":"8px 18px",borderRadius:isAutoStocks?999:8,fontWeight:600,fontFamily:"inherit",border:isAutoStocks?"1px solid rgba(255,255,255,.18)":"none",cursor:"pointer"}}>Create Group</button>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {!isAutoStocks&&<button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>}
+            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"0 16px":"8px 18px",height:isAutoStocks?32:undefined,borderRadius:isAutoStocks?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Create Group":"Create Group"}</button>
           </div>
         </div>
       </header>
 
-      <div style={{maxWidth:isAutoStocks?1120:940,margin:"0 auto",padding:"0 24px"}}>
+      <div style={{maxWidth:isAutoStocks?1120:940,margin:"0 auto",padding:isAutoStocks?"96px 24px 0":"0 24px"}}>
 
         {/* hero */}
-        <section className={isAutoStocks?"hero-glow":"land-hero"} style={{padding:isAutoStocks?"96px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isAutoStocks?48:64,alignItems:"center"}}>
+        <section className={isAutoStocks?"hero-glow":"land-hero"} style={{padding:isAutoStocks?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isAutoStocks?56:64,alignItems:"center"}}>
           <div className="fade">
-            <div style={{fontSize:10,color:isAutoStocks?"#8fb0d2":"var(--text-dim)",letterSpacing:isAutoStocks?3.5:4,textTransform:"uppercase",marginBottom:28}}>Premier League · Score Predictions</div>
-            <h1 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:isAutoStocks?"clamp(3.3rem,5vw,5rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?-2.6:-2,lineHeight:isAutoStocks?0.98:1.05,marginBottom:24,maxWidth:isAutoStocks?560:undefined}}>
-              {isAutoStocks?<>Predict every fixture.<br/><span className="mint-text">Track every mistake.</span></>:<>Predict every goal.</>}
+            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isAutoStocks?1.6:4,textTransform:isAutoStocks?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
+            <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isAutoStocks?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.025em":-2,lineHeight:isAutoStocks?1.08:1.05,marginBottom:10,maxWidth:isAutoStocks?560:undefined}}>
+              {isAutoStocks?<>Hold one prediction.</>:<>Predict every goal.</>}
             </h1>
-            <p style={{fontSize:isAutoStocks?13:12,color:"var(--text-mid)",lineHeight:isAutoStocks?1.9:1.8,maxWidth:isAutoStocks?500:380,marginBottom:36,letterSpacing:0.3}}>
+            {isAutoStocks&&<div style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:"clamp(2.2rem,5vw,3.75rem)",lineHeight:1.08,letterSpacing:"-0.025em",marginBottom:20,color:"var(--text-bright)"}}>Receive <span style={{WebkitTextStroke:"1px rgba(0,0,0,.22)",color:"transparent"}}>real shame</span>.</div>}
+            <p style={{fontSize:isAutoStocks?15:12,color:"var(--text-mid)",lineHeight:isAutoStocks?1.7:1.8,maxWidth:isAutoStocks?420:380,marginBottom:36,letterSpacing:0.1}}>
               A score prediction game to play with your friends. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
             </p>
-            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:isAutoStocks?"14px 28px":"12px 28px",borderRadius:isAutoStocks?999:8,fontWeight:600,fontFamily:"inherit",border:isAutoStocks?"1px solid rgba(255,255,255,.18)":"none",cursor:"pointer",boxShadow:isAutoStocks?"0 18px 44px rgba(18,40,58,.28)":undefined}}>Create a group</button>
-              <button onClick={onContinue} style={{background:isAutoStocks?"rgba(9,22,36,.56)":"transparent",color:"var(--text-mid)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:isAutoStocks?"14px 28px":"12px 28px",borderRadius:isAutoStocks?999:8,fontWeight:400,fontFamily:"inherit",border:"1px solid var(--border2)",cursor:"pointer",backdropFilter:isAutoStocks?"blur(14px)":undefined}}>Sign in</button>
+            <div style={{display:"flex",gap:isAutoStocks?20:10,flexWrap:"wrap",alignItems:"center"}}>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 20px":"12px 28px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create Group</button>
+              <button onClick={onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>How it works →</button>
             </div>
+            {isAutoStocks&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Private groups</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
             {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{marginTop:8,background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
               {demoLoading?"loading...":"→ Try the live demo"}
             </button>}
           </div>
           <div style={{display:"flex",justifyContent:"flex-end"}}>
             {/* prediction demo */}
-            <div style={{width:"100%",maxWidth:isAutoStocks?420:320}}>
-              <div className={isAutoStocks?"glass-panel":undefined} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?24:14,padding:isAutoStocks?28:24,minHeight:isAutoStocks?330:280,boxShadow:isAutoStocks?"0 24px 80px rgba(3,8,14,.35)":undefined}}>
-                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20}}>
+            <div style={{width:"100%",maxWidth:isAutoStocks?400:320,position:"relative"}}>
+              {isAutoStocks&&<div className="glass-panel" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Your group</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Hold & earn</div><div style={{fontSize:11,color:"var(--text-dim)"}}>bragging rights</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
+              <div className={isAutoStocks?"glass-panel":undefined} style={{position:"relative",zIndex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?24:14,padding:isAutoStocks?0:24,minHeight:isAutoStocks?330:280,boxShadow:isAutoStocks?undefined:"0 24px 80px rgba(3,8,14,.35)"}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,padding:isAutoStocks?"20px 20px 0":"0"}}>
                   <div>
                     <div style={{fontSize:10,color:isAutoStocks?"#9cb6cf":"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:5}}>Matchweek 32</div>
                     <div style={{fontSize:14,color:"var(--text-bright)",fontWeight:500}}>Arsenal vs Tottenham</div>
@@ -940,7 +948,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
                     {statusLabel}
                   </div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:16,padding:isAutoStocks?"0 20px":"0"}}>
                   <div>
                     <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Your pick</div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -960,7 +968,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
                     </div>
                   )}
                 </div>
-                <div style={{minHeight:62}}>
+                <div style={{minHeight:62,padding:isAutoStocks?"0 20px 20px":"0"}}>
                   {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
                   {phase==="score"&&(
                     <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
@@ -978,26 +986,30 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* how it works */}
-        <section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
-          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>The game</div>
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:28,color:"var(--text-bright)",letterSpacing:-1,marginBottom:40}}>How it works.</h2>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}} className="land-steps">
+        <section id="how-it-works" style={{padding:"64px 0",borderTop:isAutoStocks?"none":"1px solid var(--border)"}}>
+          <div style={{fontSize:isAutoStocks?12:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isAutoStocks?500:undefined}}>{isAutoStocks?"How it works":"The game"}</div>
+          <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?32:28,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-1,marginBottom:40,maxWidth:isAutoStocks?420:undefined}}>{isAutoStocks?"Four steps. Fully automatic.":"How it works."}</h2>
+          <div style={{display:"grid",gridTemplateColumns:isAutoStocks?"repeat(4,1fr)":"repeat(3,1fr)",gap:isAutoStocks?20:16}} className="land-steps">
             {[
-              {num:"01",title:"Join or create a group",body:"Share an invite code. Everyone in your group sees the same fixtures each gameweek."},
-              {num:"02",title:"Submit your scorelines",body:"Pick exact home and away goals for every fixture before kickoff. Picks stay hidden until you lock them all in."},
-              {num:"03",title:"Lowest total wins",body:"Points are goals off per fixture. Zero is a perfect pick. The leaderboard runs all season."},
+              {num:"01",title:"Join a group",body:"Create a private league or join an invite-only group with a code."},
+              {num:"02",title:"Make your picks",body:"Predict every scoreline before kickoff. Hidden picks keep everyone honest."},
+              {num:"03",title:"Watch the damage",body:"Every goal off counts against you. Precision beats confidence."},
+              ...(isAutoStocks?[{num:"04",title:"Win by suffering less",body:"Lowest total after the round or season takes it. Beautifully petty."}]:[]),
             ].map(s=>(
-              <div key={s.num} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:10,padding:"24px 22px"}}>
-                <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,marginBottom:14}}>{s.num}</div>
-                <div style={{fontSize:13,color:"var(--text-bright)",fontWeight:500,marginBottom:10}}>{s.title}</div>
-                <div style={{fontSize:11,color:"var(--text-mid)",lineHeight:1.75}}>{s.body}</div>
+              <div key={s.num} className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?24:10,padding:isAutoStocks?"26px 24px":"24px 22px",position:"relative",overflow:"hidden"}}>
+                {isAutoStocks&&<span style={{position:"absolute",right:-6,top:-18,fontSize:110,fontWeight:800,letterSpacing:"-0.06em",color:"rgba(0,0,0,.03)",lineHeight:1}}>{s.num}</span>}
+                <div style={{position:"relative",zIndex:1}}>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isAutoStocks?1.2:2,marginBottom:14,fontWeight:isAutoStocks?600:undefined}}>{s.num}</div>
+                  <div style={{fontSize:isAutoStocks?16:13,color:"var(--text-bright)",fontWeight:600,marginBottom:10}}>{s.title}</div>
+                  <div style={{fontSize:isAutoStocks?13:11,color:"var(--text-mid)",lineHeight:isAutoStocks?1.65:1.75,maxWidth:isAutoStocks?220:undefined}}>{s.body}</div>
+                </div>
               </div>
             ))}
           </div>
         </section>
 
         {/* scoring */}
-        <section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
+        {!isAutoStocks&&<section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"center"}} className="land-hero">
             <div>
               <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>Scoring</div>
@@ -1017,14 +1029,26 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
               </div>
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* features */}
-        <section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
-          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>Features</div>
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:28,color:"var(--text-bright)",letterSpacing:-1,marginBottom:40}}>The details.</h2>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}} className="land-feats">
-            {[
+        <section style={{padding:"64px 0",borderTop:isAutoStocks?"none":"1px solid var(--border)"}}>
+          <div style={{fontSize:isAutoStocks?12:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isAutoStocks?500:undefined}}>{isAutoStocks?"Supported outcomes":"Features"}</div>
+          <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?32:28,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-1,marginBottom:isAutoStocks?18:40,maxWidth:isAutoStocks?420:undefined}}>{isAutoStocks?"Real pain, on matchday.":"The details."}</h2>
+          {isAutoStocks&&<p style={{fontSize:14,color:"var(--text-dim)",lineHeight:1.7,maxWidth:360,marginBottom:30}}>Built for group chats, overconfident predictions, and weekly humiliation.</p>}
+          <div style={{display:"grid",gridTemplateColumns:isAutoStocks?"1fr":"repeat(4,1fr)",gap:12}} className="land-feats">
+            {isAutoStocks ? (
+              <div style={{overflow:"hidden",position:"relative"}}>
+                <div style={{display:"flex",width:"max-content",animation:"marqueeScroll 34s linear infinite"}}>
+                  {["Exact Picks","Hidden Locks","Weekly Winner","Private Leagues","World Cup Mode","Trend Charts","Invite Codes","Admin Controls","Exact Picks","Hidden Locks","Weekly Winner","Private Leagues"].map((item,i)=>(
+                    <div key={i} className="liquid-card" style={{width:260,marginRight:20,borderRadius:24,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{fontSize:14,fontWeight:600,color:"var(--text-bright)"}}>{item}</div>
+                      <div style={{fontSize:11,color:"var(--text-dim)"}}>On-chain-ish</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : [
               {title:"Hidden picks",body:"Nobody sees your predictions until you lock them all in. No copying."},
               {title:"Locks at kickoff",body:"Picks freeze the moment a match starts. No backdating, no excuses."},
               {title:"Lowest score wins",body:"The leaderboard rewards accuracy, not optimism. Zero is the goal."},
@@ -1039,15 +1063,15 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* cta */}
-        <section style={{borderTop:"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
-          <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:16}}>Play</div>
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:-2,lineHeight:1.1,marginBottom:16}}>Start a group.</h2>
-          <p style={{fontSize:11,color:"var(--text-mid)",letterSpacing:0.3,marginBottom:36}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14}}>
-            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:11,letterSpacing:2,textTransform:"uppercase",padding:"13px 36px",borderRadius:8,fontWeight:500,fontFamily:"inherit",border:"none",cursor:"pointer"}}>Create a group</button>
-            {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
-              {demoLoading?"loading...":"→ Try the live demo"}
-            </button>}
+        <section style={{borderTop:isAutoStocks?"none":"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
+          <div className={isAutoStocks?"liquid-card":undefined} style={{maxWidth:isAutoStocks?760:undefined,margin:isAutoStocks?"0 auto":undefined,borderRadius:isAutoStocks?32:undefined,padding:isAutoStocks?"56px 24px":"0",textAlign:"center"}}>
+            <div style={{fontSize:isAutoStocks?12:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?"0.18em":4,textTransform:"uppercase",marginBottom:16,fontWeight:isAutoStocks?500:undefined}}>Play</div>
+            <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?"clamp(2rem,4vw,2.6rem)":"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-2,lineHeight:1.1,marginBottom:16}}>{isAutoStocks?"Start losing with friends today.":"Start a group."}</h2>
+            <p style={{fontSize:isAutoStocks?15:11,color:"var(--text-mid)",letterSpacing:0.1,marginBottom:36,maxWidth:isAutoStocks?460:undefined,marginLeft:isAutoStocks?"auto":undefined,marginRight:isAutoStocks?"auto":undefined,lineHeight:isAutoStocks?1.7:undefined}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
+            <div style={{display:"flex",flexDirection:isAutoStocks?"row":"column",justifyContent:"center",alignItems:"center",gap:14}}>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 24px":"13px 36px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Create Group →":"Create a group"}</button>
+              <button onClick={onContinue} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",fontSize:isAutoStocks?13:11,color:"var(--text-bright)",fontFamily:isAutoStocks?"inherit":"'DM Mono',monospace",letterSpacing:isAutoStocks?0.1:1,fontWeight:isAutoStocks?600:undefined}}>View demo →</button>
+            </div>
           </div>
         </section>
 
