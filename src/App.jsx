@@ -764,9 +764,9 @@ const CSS = `
   [data-theme="pitch"]{--bg:#0d1f0d;--surface:#122012;--card:#0f1c0f;--card-hi:#142214;--card-hover:#162516;--input-bg:#0a180a;--border:rgba(255,255,255,0.22);--border2:rgba(255,255,255,0.32);--border3:rgba(255,255,255,0.1);--text:#d4ecd4;--text-dim:#3a6a3a;--text-dim2:#2e562e;--text-dim3:#264426;--text-mid:#7ab87a;--text-bright:#e8f5e8;--text-inv:#0d1f0d;--scrollbar:rgba(255,255,255,0.15);--btn-bg:#4caf50;--btn-text:#0d1f0d;--font-mono:'DM Mono',monospace;}
   [data-theme="velvet"]{--bg:#120816;--surface:#1a0f1f;--card:#180d1d;--card-hi:#221229;--card-hover:#291631;--input-bg:#140a18;--border:#3a2344;--border2:#4a2d58;--border3:#26132d;--text:#f7d6ea;--text-dim:#7a5a71;--text-dim2:#8f6d84;--text-dim3:#62485c;--text-mid:#d6adc7;--text-bright:#fff2fa;--text-inv:#120816;--scrollbar:#4a2d58;--btn-bg:#f472b6;--btn-text:#1b0d18;--font-mono:'DM Mono',monospace;}
   [data-theme="clarity"]{--bg:#111;--surface:#1a1a1a;--card:#171717;--card-hi:#222;--card-hover:#252525;--input-bg:#141414;--border:#444;--border2:#555;--border3:#2a2a2a;--text:#f1f1f1;--text-dim:#999;--text-dim2:#888;--text-dim3:#777;--text-mid:#d0d0d0;--text-bright:#fff;--text-inv:#111;--scrollbar:#555;--btn-bg:#d7d7d7;--btn-text:#111;--font-mono:'DM Mono',monospace;filter:grayscale(1);}
-  [data-theme="autostocks"]{--bg:#f6f6f7;--surface:#ffffff;--card:#f0f0f2;--card-hi:#f7f7f8;--card-hover:#ebebee;--input-bg:#ffffff;--border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.08);--border3:rgba(0,0,0,0.05);--text:#121417;--text-dim:#7b818a;--text-dim2:#8f959d;--text-dim3:#6f7680;--text-mid:#565d66;--text-bright:#111315;--text-inv:#ffffff;--scrollbar:#cfd4db;--btn-bg:#15181c;--btn-text:#ffffff;--font-mono:Inter,system-ui,sans-serif;}
+  [data-theme="index"]{--bg:#f6f6f7;--surface:#ffffff;--card:#f0f0f2;--card-hi:#f7f7f8;--card-hover:#ebebee;--input-bg:#ffffff;--border:rgba(0,0,0,0.06);--border2:rgba(0,0,0,0.08);--border3:rgba(0,0,0,0.05);--text:#121417;--text-dim:#7b818a;--text-dim2:#8f959d;--text-dim3:#6f7680;--text-mid:#565d66;--text-bright:#111315;--text-inv:#ffffff;--scrollbar:#cfd4db;--btn-bg:#15181c;--btn-text:#ffffff;--font-mono:Inter,system-ui,sans-serif;}
   html,body{background:var(--bg);}
-  html[data-theme="autostocks"],body[data-theme="autostocks"]{background:#f6f6f7;}
+  html[data-theme="index"],body[data-theme="index"]{background:#f6f6f7;}
   *{box-sizing:border-box;margin:0;padding:0;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -789,23 +789,23 @@ const CSS = `
   .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
   .bot-nav .nb{height:54px;border-top:none!important;}
   .bot-nav .nb.active{border-bottom-color:var(--text)!important;}
-  [data-theme="autostocks"] body{background-attachment:fixed;}
-  [data-theme="autostocks"] .frow:hover{background:#f5f5f6!important;}
-  [data-theme="autostocks"] .nb{border-bottom-width:1px;font-weight:500;letter-spacing:.2px;color:var(--text-dim2)!important;}
-  [data-theme="autostocks"] .nb:hover{color:var(--text-bright)!important;}
-  [data-theme="autostocks"] .nb.active{color:var(--text-bright)!important;border-bottom-color:rgba(0,0,0,.18)!important;}
-  [data-theme="autostocks"] .bot-nav{backdrop-filter:blur(18px);background:rgba(255,255,255,.92);border-top:1px solid rgba(0,0,0,.06);}
-  [data-theme="autostocks"] button,[data-theme="autostocks"] input,[data-theme="autostocks"] select{transition:all .18s ease, box-shadow .22s ease, transform .18s ease;}
-  [data-theme="autostocks"] button:hover{box-shadow:none;}
-  [data-theme="autostocks"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
-  [data-theme="autostocks"] .glass-panel{background:linear-gradient(180deg, #ffffff, #fbfbfc);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.78);}
-  [data-theme="autostocks"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f7f7f8,#efeff2);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.5);}
-  [data-theme="autostocks"] .autostocks-grid-bg{position:relative;}
-  [data-theme="autostocks"] .autostocks-grid-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);background-size:48px 48px;mask-image:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));pointer-events:none;}
-  [data-theme="autostocks"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.03) 0%, transparent 68%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
-  [data-theme="autostocks"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.02) 0%, transparent 62%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
-  [data-theme="autostocks"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:none;backdrop-filter:blur(24px) saturate(1.2);}
-  [data-theme="autostocks"] .mint-text{color:var(--text-bright);}
+  [data-theme="index"] body{background-attachment:fixed;}
+  [data-theme="index"] .frow:hover{background:#f5f5f6!important;}
+  [data-theme="index"] .nb{border-bottom-width:1px;font-weight:500;letter-spacing:.2px;color:var(--text-dim2)!important;}
+  [data-theme="index"] .nb:hover{color:var(--text-bright)!important;}
+  [data-theme="index"] .nb.active{color:var(--text-bright)!important;border-bottom-color:rgba(0,0,0,.18)!important;}
+  [data-theme="index"] .bot-nav{backdrop-filter:blur(18px);background:rgba(255,255,255,.92);border-top:1px solid rgba(0,0,0,.06);}
+  [data-theme="index"] button,[data-theme="index"] input,[data-theme="index"] select{transition:all .18s ease, box-shadow .22s ease, transform .18s ease;}
+  [data-theme="index"] button:hover{box-shadow:none;}
+  [data-theme="index"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
+  [data-theme="index"] .glass-panel{background:linear-gradient(180deg, #ffffff, #fbfbfc);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.78);}
+  [data-theme="index"] .liquid-card{position:relative;overflow:hidden;background:linear-gradient(180deg,#f7f7f8,#efeff2);border:1px solid rgba(0,0,0,.06);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.5);}
+  [data-theme="index"] .index-grid-bg{position:relative;}
+  [data-theme="index"] .index-grid-bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);background-size:48px 48px;mask-image:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));pointer-events:none;}
+  [data-theme="index"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.03) 0%, transparent 68%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
+  [data-theme="index"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.02) 0%, transparent 62%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
+  [data-theme="index"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:none;backdrop-filter:blur(24px) saturate(1.2);}
+  [data-theme="index"] .mint-text{color:var(--text-bright);}
   @keyframes liquidFlow{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(1.5%, -2%, 0) scale(1.04);}}
   @keyframes liquidFlowB{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(-1%, 1.5%, 0) scale(1.02);}}
   @keyframes marqueeScroll{from{transform:translate3d(0,0,0);}to{transform:translate3d(-50%,0,0);}}
@@ -888,69 +888,69 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
     </div>
   );
 
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
 
   return (
-    <div style={{minHeight:"100vh",background:isAutoStocks?"transparent":"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
+    <div style={{minHeight:"100vh",background:isIndex?"transparent":"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
       {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
 
       {/* header */}
-      <header style={{padding:"16px 24px 0",height:isAutoStocks?76:60,position:isAutoStocks?"fixed":undefined,top:isAutoStocks?0:undefined,left:isAutoStocks?0:undefined,right:isAutoStocks?0:undefined,zIndex:isAutoStocks?20:undefined}}>
-        <div className={isAutoStocks?"pill-nav":undefined} style={{maxWidth:isAutoStocks?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isAutoStocks?44:60,borderRadius:isAutoStocks?18:0,padding:isAutoStocks?"0 10px":undefined,borderBottom:isAutoStocks?undefined:`1px solid ${"var(--border)"}`}}>
+      <header style={{padding:"16px 24px 0",height:isIndex?76:60,position:isIndex?"fixed":undefined,top:isIndex?0:undefined,left:isIndex?0:undefined,right:isIndex?0:undefined,zIndex:isIndex?20:undefined}}>
+        <div className={isIndex?"pill-nav":undefined} style={{maxWidth:isIndex?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isIndex?44:60,borderRadius:isIndex?18:0,padding:isIndex?"0 10px":undefined,borderBottom:isIndex?undefined:`1px solid ${"var(--border)"}`}}>
           <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
-            <div style={{padding:"0 12px",fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",height:isAutoStocks?32:60}}>pab.wtf</div>
-            {isAutoStocks&&<div style={{display:"flex",alignItems:"center",gap:0}}>
+            <div style={{padding:"0 12px",fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",height:isIndex?32:60}}>pab.wtf</div>
+            {isIndex&&<div style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
             </div>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {!isAutoStocks&&<button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>}
-            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"0 16px":"8px 18px",height:isAutoStocks?32:undefined,borderRadius:isAutoStocks?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up":"Create Group"}</button>
+            {!isIndex&&<button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>}
+            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
           </div>
         </div>
       </header>
 
-      <div className={isAutoStocks?"autostocks-grid-bg":undefined} style={{maxWidth:isAutoStocks?1280:940,margin:"0 auto",padding:isAutoStocks?"96px 24px 0":"0 24px"}}>
+      <div className={isIndex?"index-grid-bg":undefined} style={{maxWidth:isIndex?1280:940,margin:"0 auto",padding:isIndex?"96px 24px 0":"0 24px"}}>
 
         {/* hero */}
-        <section className={isAutoStocks?"hero-glow":"land-hero"} style={{padding:isAutoStocks?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isAutoStocks?56:64,alignItems:"center"}}>
+        <section className={isIndex?"hero-glow":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
           <div className="fade">
-            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isAutoStocks?1.6:4,textTransform:isAutoStocks?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
-            <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isAutoStocks?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.025em":-2,lineHeight:isAutoStocks?1.08:1.05,marginBottom:10,maxWidth:isAutoStocks?560:undefined}}>
-              {isAutoStocks?<>Join one group.</>:<>Predict every goal.</>}
+            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.6:4,textTransform:isIndex?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
+            <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isIndex?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.025em":-2,lineHeight:isIndex?1.08:1.05,marginBottom:10,maxWidth:isIndex?560:undefined}}>
+              {isIndex?<>Join one group.</>:<>Predict every goal.</>}
             </h1>
-            {isAutoStocks&&<div style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:"clamp(2.2rem,5vw,3.75rem)",lineHeight:1.08,letterSpacing:"-0.025em",marginBottom:20,color:"var(--text-bright)"}}>Make <span style={{WebkitTextStroke:"1px rgba(0,0,0,.22)",color:"transparent"}}>real picks</span>.</div>}
-            <p style={{fontSize:isAutoStocks?15:12,color:"var(--text-mid)",lineHeight:isAutoStocks?1.7:1.8,maxWidth:isAutoStocks?420:380,marginBottom:36,letterSpacing:0.1}}>
+            {isIndex&&<div style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:"clamp(2.2rem,5vw,3.75rem)",lineHeight:1.08,letterSpacing:"-0.025em",marginBottom:20,color:"var(--text-bright)"}}>Make <span style={{WebkitTextStroke:"1px rgba(0,0,0,.22)",color:"transparent"}}>real picks</span>.</div>}
+            <p style={{fontSize:isIndex?15:12,color:"var(--text-mid)",lineHeight:isIndex?1.7:1.8,maxWidth:isIndex?420:380,marginBottom:36,letterSpacing:0.1}}>
               A score prediction game to play with your friends. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
             </p>
-            <div style={{display:"flex",gap:isAutoStocks?20:10,flexWrap:"wrap",alignItems:"center"}}>
-              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 20px":"12px 28px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up":"Create Group"}</button>
-              {!isAutoStocks&&<button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isAutoStocks?"Try demo →":"How it works →"}</button>}
+            <div style={{display:"flex",gap:isIndex?20:10,flexWrap:"wrap",alignItems:"center"}}>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 20px":"12px 28px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
+              {!isIndex&&<button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isIndex?"Try demo →":"How it works →"}</button>}
             </div>
-            {isAutoStocks&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)",flexWrap:"wrap"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>World Cup mode</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
+            {isIndex&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)",flexWrap:"wrap"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>World Cup mode</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
             {onDemo&&<button onClick={async()=>{setDemoLoading(true);await onDemo();setDemoLoading(false);}} disabled={demoLoading} style={{marginTop:8,background:"none",border:"none",padding:0,cursor:"pointer",fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:1}}>
               {demoLoading?"loading...":"→ Try the live demo"}
             </button>}
           </div>
           <div style={{display:"flex",justifyContent:"flex-end"}}>
             {/* prediction demo */}
-            <div style={{width:"100%",maxWidth:isAutoStocks?400:320,position:"relative"}}>
-              {isAutoStocks&&<div className="glass-panel" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Private league</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Exact scores</div><div style={{fontSize:11,color:"var(--text-dim)"}}>weekly leaderboard</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
-              <div className={isAutoStocks?"glass-panel":undefined} style={{position:"relative",zIndex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?24:14,padding:isAutoStocks?0:24,minHeight:isAutoStocks?330:280,boxShadow:isAutoStocks?undefined:"0 24px 80px rgba(3,8,14,.35)"}}>
-                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,padding:isAutoStocks?"20px 20px 0":"0"}}>
+            <div style={{width:"100%",maxWidth:isIndex?400:320,position:"relative"}}>
+              {isIndex&&<div className="glass-panel" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Private league</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Exact scores</div><div style={{fontSize:11,color:"var(--text-dim)"}}>weekly leaderboard</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
+              <div className={isIndex?"glass-panel":undefined} style={{position:"relative",zIndex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?24:14,padding:isIndex?0:24,minHeight:isIndex?330:280,boxShadow:isIndex?undefined:"0 24px 80px rgba(3,8,14,.35)"}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,padding:isIndex?"20px 20px 0":"0"}}>
                   <div>
-                    <div style={{fontSize:10,color:isAutoStocks?"#9cb6cf":"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:5}}>Matchweek 32</div>
+                    <div style={{fontSize:10,color:isIndex?"#9cb6cf":"var(--text-dim)",letterSpacing:3,textTransform:"uppercase",marginBottom:5}}>Matchweek 32</div>
                     <div style={{fontSize:14,color:"var(--text-bright)",fontWeight:500}}>Arsenal vs Tottenham</div>
                     <div style={{fontSize:10,color:"var(--text-dim2)",marginTop:2}}>Sat 15 Apr · 12:30</div>
                   </div>
-                  <div style={{fontSize:9,letterSpacing:2,fontWeight:500,padding:isAutoStocks?"6px 10px":"3px 9px",borderRadius:isAutoStocks?999:4,border:`1px solid ${statusColor.border}`,background:statusColor.bg,color:statusColor.color,transition:"all 0.2s",backdropFilter:isAutoStocks?"blur(12px)":undefined}}>
+                  <div style={{fontSize:9,letterSpacing:2,fontWeight:500,padding:isIndex?"6px 10px":"3px 9px",borderRadius:isIndex?999:4,border:`1px solid ${statusColor.border}`,background:statusColor.bg,color:statusColor.color,transition:"all 0.2s",backdropFilter:isIndex?"blur(12px)":undefined}}>
                     {statusLabel}
                   </div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:16,padding:isAutoStocks?"0 20px":"0"}}>
+                <div style={{display:"flex",alignItems:"center",gap:24,marginBottom:16,padding:isIndex?"0 20px":"0"}}>
                   <div>
                     <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Your pick</div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -970,7 +970,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
                     </div>
                   )}
                 </div>
-                <div style={{minHeight:62,padding:isAutoStocks?"0 20px 20px":"0"}}>
+                <div style={{minHeight:62,padding:isIndex?"0 20px 20px":"0"}}>
                   {phase==="locked"&&<div style={{fontSize:10,color:"#f59e0b",letterSpacing:1,marginBottom:12,animation:"fadein 0.2s ease forwards"}}>Picks locked at kickoff</div>}
                   {phase==="score"&&(
                     <div style={{borderTop:"1px solid var(--border)",paddingTop:14,marginTop:4,animation:"fadein 0.2s ease forwards"}}>
@@ -988,22 +988,22 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* how it works */}
-        <section id="how-it-works" style={{padding:"64px 0",borderTop:isAutoStocks?"none":"1px solid var(--border)"}}>
-          <div style={{fontSize:isAutoStocks?12:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isAutoStocks?500:undefined}}>{isAutoStocks?"How it works":"The game"}</div>
-          <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?32:28,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-1,marginBottom:40,maxWidth:isAutoStocks?420:undefined}}>{isAutoStocks?"Four steps. Fully automatic.":"How it works."}</h2>
-          <div style={{display:"grid",gridTemplateColumns:isAutoStocks?"repeat(4,1fr)":"repeat(3,1fr)",gap:isAutoStocks?20:16}} className="land-steps">
+        <section id="how-it-works" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
+          <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"How it works":"The game"}</div>
+          <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Four steps. Fully automatic.":"How it works."}</h2>
+          <div style={{display:"grid",gridTemplateColumns:isIndex?"repeat(4,1fr)":"repeat(3,1fr)",gap:isIndex?20:16}} className="land-steps">
             {[
               {num:"01",title:"Join a group",body:"Create a private league or join an invite-only group with a code."},
               {num:"02",title:"Make your picks",body:"Predict every scoreline before kickoff. Hidden picks keep everyone honest."},
               {num:"03",title:"Watch the damage",body:"Every goal off counts against you. Precision beats confidence."},
-              ...(isAutoStocks?[{num:"04",title:"Win by suffering less",body:"Lowest total after the round or season takes it. Beautifully petty."}]:[]),
+              ...(isIndex?[{num:"04",title:"Win by suffering less",body:"Lowest total after the round or season takes it. Beautifully petty."}]:[]),
             ].map(s=>(
-              <div key={s.num} className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?24:10,padding:isAutoStocks?"26px 24px":"24px 22px",position:"relative",overflow:"hidden"}}>
-                {isAutoStocks&&<span style={{position:"absolute",right:-6,top:-18,fontSize:110,fontWeight:800,letterSpacing:"-0.06em",color:"rgba(0,0,0,.03)",lineHeight:1}}>{s.num}</span>}
+              <div key={s.num} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?24:10,padding:isIndex?"26px 24px":"24px 22px",position:"relative",overflow:"hidden"}}>
+                {isIndex&&<span style={{position:"absolute",right:-6,top:-18,fontSize:110,fontWeight:800,letterSpacing:"-0.06em",color:"rgba(0,0,0,.03)",lineHeight:1}}>{s.num}</span>}
                 <div style={{position:"relative",zIndex:1}}>
-                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isAutoStocks?1.2:2,marginBottom:14,fontWeight:isAutoStocks?600:undefined}}>{s.num}</div>
-                  <div style={{fontSize:isAutoStocks?16:13,color:"var(--text-bright)",fontWeight:600,marginBottom:10}}>{s.title}</div>
-                  <div style={{fontSize:isAutoStocks?13:11,color:"var(--text-mid)",lineHeight:isAutoStocks?1.65:1.75,maxWidth:isAutoStocks?220:undefined}}>{s.body}</div>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.2:2,marginBottom:14,fontWeight:isIndex?600:undefined}}>{s.num}</div>
+                  <div style={{fontSize:isIndex?16:13,color:"var(--text-bright)",fontWeight:600,marginBottom:10}}>{s.title}</div>
+                  <div style={{fontSize:isIndex?13:11,color:"var(--text-mid)",lineHeight:isIndex?1.65:1.75,maxWidth:isIndex?220:undefined}}>{s.body}</div>
                 </div>
               </div>
             ))}
@@ -1011,7 +1011,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* scoring */}
-        {!isAutoStocks&&<section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
+        {!isIndex&&<section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"center"}} className="land-hero">
             <div>
               <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>Scoring</div>
@@ -1034,12 +1034,12 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>}
 
         {/* features */}
-        <section style={{padding:"64px 0",borderTop:isAutoStocks?"none":"1px solid var(--border)"}}>
-          <div style={{fontSize:isAutoStocks?12:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isAutoStocks?500:undefined}}>{isAutoStocks?"Supported outcomes":"Features"}</div>
-          <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?32:28,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-1,marginBottom:isAutoStocks?18:40,maxWidth:isAutoStocks?420:undefined}}>{isAutoStocks?"Real pain, on matchday.":"The details."}</h2>
-          {isAutoStocks&&<p style={{fontSize:14,color:"var(--text-dim)",lineHeight:1.7,maxWidth:360,marginBottom:30}}>Built for group chats, overconfident predictions, and weekly humiliation.</p>}
-          <div style={{display:"grid",gridTemplateColumns:isAutoStocks?"1fr":"repeat(4,1fr)",gap:12}} className="land-feats">
-            {isAutoStocks ? (
+        <section style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
+          <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"Supported outcomes":"Features"}</div>
+          <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:isIndex?18:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Real pain, on matchday.":"The details."}</h2>
+          {isIndex&&<p style={{fontSize:14,color:"var(--text-dim)",lineHeight:1.7,maxWidth:360,marginBottom:30}}>Built for group chats, overconfident predictions, and weekly humiliation.</p>}
+          <div style={{display:"grid",gridTemplateColumns:isIndex?"1fr":"repeat(4,1fr)",gap:12}} className="land-feats">
+            {isIndex ? (
               <div style={{overflow:"hidden",position:"relative"}}>
                 <div style={{display:"flex",width:"calc(260px * 12 + 20px * 11)",animation:"marqueeScroll 34s linear infinite"}}>
                   {["Exact Picks","Hidden Locks","Weekly Winner","Private Leagues","World Cup Mode","Trend Charts","Invite Codes","Admin Controls","Exact Picks","Hidden Locks","Weekly Winner","Private Leagues"].map((item,i)=>(
@@ -1065,14 +1065,14 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* cta */}
-        <section style={{borderTop:isAutoStocks?"none":"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
-          <div className={isAutoStocks?"liquid-card":undefined} style={{maxWidth:isAutoStocks?760:undefined,margin:isAutoStocks?"0 auto":undefined,borderRadius:isAutoStocks?32:undefined,padding:isAutoStocks?"56px 24px":"0",textAlign:"center"}}>
-            <div style={{fontSize:isAutoStocks?12:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?"0.18em":4,textTransform:"uppercase",marginBottom:16,fontWeight:isAutoStocks?500:undefined}}>Play</div>
-            <h2 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isAutoStocks?600:900,fontSize:isAutoStocks?"clamp(2rem,4vw,2.6rem)":"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.02em":-2,lineHeight:1.1,marginBottom:16}}>{isAutoStocks?"Start losing with friends today.":"Start a group."}</h2>
-            <p style={{fontSize:isAutoStocks?15:11,color:"var(--text-mid)",letterSpacing:0.1,marginBottom:36,maxWidth:isAutoStocks?460:undefined,marginLeft:isAutoStocks?"auto":undefined,marginRight:isAutoStocks?"auto":undefined,lineHeight:isAutoStocks?1.7:undefined}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
-            <div style={{display:"flex",flexDirection:isAutoStocks?"row":"column",justifyContent:"center",alignItems:"center",gap:14}}>
-              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isAutoStocks?13:11,letterSpacing:isAutoStocks?0.1:2,textTransform:isAutoStocks?"none":"uppercase",padding:isAutoStocks?"12px 24px":"13px 36px",borderRadius:isAutoStocks?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isAutoStocks?"Sign in / up →":"Create a group"}</button>
-              <button onClick={onDemo||onContinue} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",fontSize:isAutoStocks?13:11,color:"var(--text-bright)",fontFamily:isAutoStocks?"inherit":"'DM Mono',monospace",letterSpacing:isAutoStocks?0.1:1,fontWeight:isAutoStocks?600:undefined}}>Try demo →</button>
+        <section style={{borderTop:isIndex?"none":"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
+          <div className={isIndex?"liquid-card":undefined} style={{maxWidth:isIndex?760:undefined,margin:isIndex?"0 auto":undefined,borderRadius:isIndex?32:undefined,padding:isIndex?"56px 24px":"0",textAlign:"center"}}>
+            <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.18em":4,textTransform:"uppercase",marginBottom:16,fontWeight:isIndex?500:undefined}}>Play</div>
+            <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?"clamp(2rem,4vw,2.6rem)":"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-2,lineHeight:1.1,marginBottom:16}}>{isIndex?"Start losing with friends today.":"Start a group."}</h2>
+            <p style={{fontSize:isIndex?15:11,color:"var(--text-mid)",letterSpacing:0.1,marginBottom:36,maxWidth:isIndex?460:undefined,marginLeft:isIndex?"auto":undefined,marginRight:isIndex?"auto":undefined,lineHeight:isIndex?1.7:undefined}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
+            <div style={{display:"flex",flexDirection:isIndex?"row":"column",justifyContent:"center",alignItems:"center",gap:14}}>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 24px":"13px 36px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up →":"Create a group"}</button>
+              <button onClick={onDemo||onContinue} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",fontSize:isIndex?13:11,color:"var(--text-bright)",fontFamily:isIndex?"inherit":"'DM Mono',monospace",letterSpacing:isIndex?0.1:1,fontWeight:isIndex?600:undefined}}>Try demo →</button>
             </div>
           </div>
         </section>
@@ -1161,18 +1161,18 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
     setLoading(false);
   };
 
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
 
   return (
-    <div className={isAutoStocks?"autostocks-grid-bg":undefined} style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
+    <div className={isIndex?"index-grid-bg":undefined} style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
       <style>{CSS}</style>
-      <div style={{width:"100%",maxWidth:isAutoStocks?920:400,display:isAutoStocks?"grid":"block",gridTemplateColumns:isAutoStocks?"1.1fr .9fr":undefined,gap:isAutoStocks?36:undefined,alignItems:isAutoStocks?"center":undefined}}>
-        <div style={{textAlign:isAutoStocks?"left":"center",marginBottom:isAutoStocks?0:48}}>
-          <div style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?"clamp(2.4rem,5vw,4rem)":52,fontWeight:isAutoStocks?800:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.04em":-3,lineHeight:1.02}}>pab.wtf</div>
-          <div style={{fontSize:isAutoStocks?14:10,color:"var(--text-dim)",letterSpacing:isAutoStocks?0.2:7,marginTop:10}}>{isAutoStocks?<>Sign in, join a group, and start making regrettable picks.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>
+      <div style={{width:"100%",maxWidth:isIndex?920:400,display:isIndex?"grid":"block",gridTemplateColumns:isIndex?"1.1fr .9fr":undefined,gap:isIndex?36:undefined,alignItems:isIndex?"center":undefined}}>
+        <div style={{textAlign:isIndex?"left":"center",marginBottom:isIndex?0:48}}>
+          <div style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?"clamp(2.4rem,5vw,4rem)":52,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.04em":-3,lineHeight:1.02}}>pab.wtf</div>
+          <div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Sign in, join a group, and start making regrettable picks.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
-        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isAutoStocks?28:14,padding:32}}>
+        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?28:14,padding:32}}>
           {joinCode&&<div style={{background:"#8888cc12",border:"1px solid #8888cc35",borderRadius:8,padding:"10px 12px",marginBottom:18,fontSize:11,color:"#b8b8ff",lineHeight:1.6}}>You're signing in from an invite link. After login, you'll be able to join the group.</div>}
           {forgotMode ? (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -1186,7 +1186,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
             </div>
           ) : (
             <>
-              <div style={{display:"flex",background:"var(--bg)",borderRadius:isAutoStocks?14:8,padding:3,marginBottom:28,gap:3}}>
+              <div style={{display:"flex",background:"var(--bg)",borderRadius:isIndex?14:8,padding:3,marginBottom:28,gap:3}}>
                 {["login","register"].map(m=>(
                   <button key={m} onClick={()=>{setMode(m);setError("");setEmail("");setConfirmPassword("");}} style={{flex:1,background:mode===m?"var(--btn-bg)":"transparent",color:mode===m?"var(--btn-text)":"var(--text-dim2)",border:"none",borderRadius:6,padding:"8px 0",fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
                     {m==="login"?"Sign In":"Sign Up"}
@@ -1214,8 +1214,8 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
           onClick={handleDemo}
           disabled={demoLoading}
           style={{width:"100%",marginTop:16,padding:"11px 0",display:"block",textAlign:"center",
-            letterSpacing:isAutoStocks?0.2:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:isAutoStocks?14:8,
-            color:"var(--text-dim)",cursor:"pointer",fontSize:isAutoStocks?13:11,fontFamily:isAutoStocks?"inherit":"'DM Mono',monospace",
+            letterSpacing:isIndex?0.2:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:isIndex?14:8,
+            color:"var(--text-dim)",cursor:"pointer",fontSize:isIndex?13:11,fontFamily:isIndex?"inherit":"'DM Mono',monospace",
             transition:"border-color 0.2s,color 0.2s"}}
           onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--text-dim)";e.currentTarget.style.color="var(--text)";}}
           onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text-dim)";}}
@@ -1225,7 +1225,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
         {onBack&&<div style={{textAlign:"center",marginTop:16}}>
           <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
         </div>}
-        <div style={{textAlign:isAutoStocks?"left":"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:isAutoStocks?0.2:1}}>PL &amp; World Cup 2026 Predictions</div>
+        <div style={{textAlign:isIndex?"left":"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:isIndex?0.2:1}}>PL &amp; World Cup 2026 Predictions</div>
       </div>
     </div>
   );
@@ -1845,7 +1845,7 @@ const NAV = ["League","Fixtures","Trends","Members","Group"];
 const SECRET_THEME = "velvet";
 const SECRET_THEME_CLICKS_REQUIRED = 99;
 const KONAMI_SEQUENCE = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
-const THEMES=["dark","light","excel","terminal","nord","pitch","autostocks",SECRET_THEME];
+const THEMES=["dark","light","excel","terminal","nord","pitch","index",SECRET_THEME];
 const THEME_META=[
   {key:"dark",   label:"Dark",     swatches:["#080810","#0e0e1a","#e8e4d9"]},
   {key:"light",  label:"Light",    swatches:["#f4f1e8","#fff","#1a1814"]},
@@ -1853,7 +1853,7 @@ const THEME_META=[
   {key:"terminal",label:"Terminal",swatches:["#000000","#0a0a0a","#00cc44"]},
   {key:"nord",   label:"Nord",     swatches:["#2e3440","#3b4252","#eceff4"]},
   {key:"pitch",  label:"Pitch",    swatches:["#0d1f0d","#122012","#d4ecd4"]},
-  {key:"autostocks", label:"AutoStocks", swatches:["#08111b","#0d1928","#83f0b3"]},
+  {key:"index", label:"Index", swatches:["#08111b","#0d1928","#83f0b3"]},
   {key:SECRET_THEME,label:"Velvet",  swatches:["#120816","#1d1024","#f7d6ea"],secret:true},
 ];
 
@@ -2430,19 +2430,19 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:theme==="autostocks"?"none":"1px solid var(--border)",padding:theme==="autostocks"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
-        <div className={theme==="autostocks"?"pill-nav":undefined} style={{maxWidth:theme==="autostocks"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="autostocks"?48:60,gap:0,borderRadius:theme==="autostocks"?18:0,padding:theme==="autostocks"?"0 10px":undefined}}>
-          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="autostocks"?"none":"1px solid var(--border)",marginRight:theme==="autostocks"?12:20,padding:theme==="autostocks"?"0 12px":"0 16px 0 0",height:"100%"}}>
-            <span style={{fontFamily:theme==="autostocks"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:theme==="autostocks"?700:900,fontSize:18,color:"var(--text-bright)",letterSpacing:theme==="autostocks"?"-0.02em":undefined}}>pab.wtf</span>
-            {theme!=="autostocks"&&<span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>}
+      <header style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
+        <div className={theme==="index"?"pill-nav":undefined} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="index"?48:60,gap:0,borderRadius:theme==="index"?18:0,padding:theme==="index"?"0 10px":undefined}}>
+          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
+            <span style={{fontFamily:theme==="index"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:theme==="index"?700:900,fontSize:18,color:"var(--text-bright)",letterSpacing:theme==="index"?"-0.02em":undefined}}>pab.wtf</span>
+            {theme!=="index"&&<span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>}
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div className="mob-hide" style={{flex:1,fontSize:theme==="autostocks"?13:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:theme==="autostocks"?500:undefined}}>{group.name}</div>
-          {theme!=="autostocks"&&<div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>}
+          <div className="mob-hide" style={{flex:1,fontSize:theme==="index"?13:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:theme==="index"?500:undefined}}>{group.name}</div>
+          {theme!=="index"&&<div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>}
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {nav.map(t=>(
-              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:theme==="autostocks"?13:10,letterSpacing:theme==="autostocks"?0.1:2,padding:theme==="autostocks"?"0 12px":"22px 12px 20px",height:theme==="autostocks"?32:undefined,textTransform:theme==="autostocks"?"none":"uppercase",borderRadius:theme==="autostocks"?12:undefined,background:theme==="autostocks"&&tab===t?"rgba(255,255,255,.5)":"transparent"}}>{t}</button>
+              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:theme==="index"?13:10,letterSpacing:theme==="index"?0.1:2,padding:theme==="index"?"0 12px":"22px 12px 20px",height:theme==="index"?32:undefined,textTransform:theme==="index"?"none":"uppercase",borderRadius:theme==="index"?12:undefined,background:theme==="index"&&tab===t?"rgba(255,255,255,.5)":"transparent"}}>{t}</button>
             ))}
           </nav>
           {user.username===DEMO_SHARED_USERNAME ? (
@@ -2501,7 +2501,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
       </nav>
-      <main style={{maxWidth:theme==="autostocks"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
+      <main style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
           <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
@@ -2675,16 +2675,16 @@ function WCBracketTab({ group }) {
 /* ── LEAGUE ──────────────────────────────────────── */
 function LeagueTab({group,user,names,theme}) {
   const mob = useMobile();
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
-      <div className={isAutoStocks?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isAutoStocks?"26px 28px":"0",borderRadius:isAutoStocks?28:0}}>
+      <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isIndex?"26px 28px":"0",borderRadius:isIndex?28:0}}>
         <div>
-          <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isAutoStocks?26:28):(isAutoStocks?34:38),fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1}}>Standings</h1>
-          <p style={{color:"var(--text-dim)",fontSize:isAutoStocks?12:11,letterSpacing:isAutoStocks?0.2:2,marginTop:6}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
+          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isIndex?26:28):(isIndex?34:38),fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>Standings</h1>
+          <p style={{color:"var(--text-dim)",fontSize:isIndex?12:11,letterSpacing:isIndex?0.2:2,marginTop:6}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
         </div>
       </div>
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
@@ -2694,7 +2694,7 @@ function LeagueTab({group,user,names,theme}) {
             const pointsMeta = getPointsLabelMeta(p.total, theme);
             const pointsLabelClass = pointsMeta.effect === "glitch" ? "pts-label-glitch" : pointsMeta.effect === "pulse" ? "pts-label-pulse" : pointsMeta.effect === "shimmer" ? "pts-label-shimmer" : "";
             return (
-            <div key={p.username} className={isAutoStocks?"liquid-card":undefined} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:isAutoStocks?undefined:(p.username===user.username?"var(--card-hi)":"var(--card)"),borderRadius:isAutoStocks?22:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
+            <div key={p.username} className={isIndex?"liquid-card":undefined} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:isIndex?undefined:(p.username===user.username?"var(--card-hi)":"var(--card)"),borderRadius:isIndex?22:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
                   {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
@@ -2807,7 +2807,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
 
 function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   const mob = useMobile();
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
   const gwStripRef = useRef(null);
   const pickInputRefs = useRef({});
   const [resultDraft,setResultDraft]=useState({});
@@ -3246,10 +3246,10 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         </div>,
         document.body
       )}
-      <div className={isAutoStocks?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
+      <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <div>
-          <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?34:34,fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
-          {isAutoStocks&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Make picks, track locks, and watch the damage roll in.</div>}
+          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
+          {isIndex&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Make picks, track locks, and watch the damage roll in.</div>}
         </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
@@ -3262,14 +3262,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
                     background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
                     color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
                     border:"1px solid var(--border)",
-                    borderRadius:isAutoStocks?999:6,
-                    padding:isAutoStocks?"7px 12px":"5px 0",
+                    borderRadius:isIndex?999:6,
+                    padding:isIndex?"7px 12px":"5px 0",
                     fontSize:11,
                     cursor:"pointer",
                     fontFamily:"inherit",
-                    letterSpacing:isAutoStocks?0.2:1,
+                    letterSpacing:isIndex?0.2:1,
                     flexShrink:0,
-                    minWidth:isAutoStocks?64:54,
+                    minWidth:isIndex?64:54,
                     textAlign:"center",
                     opacity:adminHidden?0.4:1,
                   }}>
@@ -3306,9 +3306,9 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         </div>
       </div>
 
-      {fetchMsg&&<div className={isAutoStocks?"liquid-card":undefined} style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
+      {fetchMsg&&<div className={isIndex?"liquid-card":undefined} style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:isIndex?18:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
 
-      {isAdmin&&<div style={{background:isAutoStocks?"#f6f6f7":"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:isAutoStocks?18:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
+      {isAdmin&&<div style={{background:isIndex?"#f6f6f7":"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:isIndex?18:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
         <Flash size={12} color="#f59e0b" style={{flexShrink:0}}/> ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
       </div>}
 
@@ -3453,7 +3453,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
         );
         if (mob) return (
-          <div key={f.id} className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",borderRadius:isAutoStocks?20:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -3478,7 +3478,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
           </div>
         );
         return (
-          <div key={f.id} className={`frow${isAutoStocks?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isAutoStocks?undefined:"var(--card)",borderRadius:isAutoStocks?20:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className={`frow${isIndex?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
@@ -3587,8 +3587,8 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
         </div>,
         document.body
       )}
-      <h2 style={{fontFamily:theme==="autostocks"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:theme==="autostocks"?"-0.02em":-0.5,fontWeight:theme==="autostocks"?700:undefined}}>All Picks This Week</h2>
-      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:theme==="autostocks"?0.2:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
+      <h2 style={{fontFamily:theme==="index"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:4,letterSpacing:theme==="index"?"-0.02em":-0.5,fontWeight:theme==="index"?700:undefined}}>All Picks This Week</h2>
+      {isAdmin&&<div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:theme==="index"?0.2:1,marginBottom:14}}>ADMIN · click any pick to edit</div>}
       <div style={{overflowX:"auto"}} className={theme==="excel"?"excel-mode":""}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <thead><tr style={{borderBottom:"1px solid var(--border)",background:theme==="excel"?"#1a1a1a":undefined}}>
@@ -3702,11 +3702,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
 /* ── TRENDS ──────────────────────────────────────── */
 function TrendsTab({group,names,theme}) {
   const mob = useMobile();
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
   const stats = useMemo(()=>computeStats(group),[group]);
   const members = group.members||[];
   const AUTO_PALETTE = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ec4899", "#eab308", "#06b6d4", "#ef4444"];
-  const memberColor = u => isAutoStocks ? AUTO_PALETTE[members.indexOf(u)%AUTO_PALETTE.length] : PALETTE[members.indexOf(u)%PALETTE.length];
+  const memberColor = u => isIndex ? AUTO_PALETTE[members.indexOf(u)%AUTO_PALETTE.length] : PALETTE[members.indexOf(u)%PALETTE.length];
   const activeSeason = group.season || 2025;
   const scope = group.scoreScope || "all";
   const gws = (group.gameweeks||[]).filter(g => scope === "all" || (g.season||activeSeason) === activeSeason);
@@ -3719,8 +3719,8 @@ function TrendsTab({group,names,theme}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,sub,children})=>(<div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isAutoStocks?22:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:isAutoStocks?0.2:2,color:"var(--text-dim3)",textTransform:isAutoStocks?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
-  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isAutoStocks?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:isAutoStocks?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
+  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
   const filteredGWs = gws;
@@ -3977,9 +3977,9 @@ function TrendsTab({group,names,theme}) {
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <div>
-      <div className={isAutoStocks?"liquid-card":undefined} style={{marginBottom:mob?16:28,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
-        <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isAutoStocks?24:24):(isAutoStocks?34:36),fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1,marginBottom:8}}>Trends</h1>
-        {isAutoStocks&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}
+      <div className={isIndex?"liquid-card":undefined} style={{marginBottom:mob?16:28,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
+        <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isIndex?24:24):(isIndex?34:36),fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Trends</h1>
+        {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${mob?140:155}px,1fr))`,gap:mob?8:10,marginBottom:mob?20:30}}>
         {ds.map((p,ri)=>{
@@ -4070,7 +4070,7 @@ function TrendsTab({group,names,theme}) {
           const heatMax = allPts.length ? Math.max(...allPts) : 1;
           const heatColor = pts => {
             const t = heatMax === heatMin ? 0.5 : Math.max(0, Math.min(1, (pts - heatMin) / (heatMax - heatMin)));
-            if (isAutoStocks) {
+            if (isIndex) {
               if (t < 0.5) {
                 const tt = t * 2;
                 return `hsl(${105 - tt*55}, ${52 + tt*28}%, ${53 + tt*6}%)`;
@@ -4102,8 +4102,8 @@ function TrendsTab({group,names,theme}) {
                         if (cell === "postponed") return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill="var(--border)"/>;
                         const nonPP = (g.fixtures||[]).filter(f=>f.result&&f.status!=="POSTPONED").length;
                         const allMissed = cell.missed && cell.pts >= MISSED_PICK_PTS * nonPP;
-                        const fill = allMissed ? (isAutoStocks ? "#e5e7eb" : "#1e1e30") : heatColor(cell.pts);
-                        const textFill = allMissed ? (isAutoStocks ? "#7b818a" : "#555566") : (isAutoStocks ? "#ffffff" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111"));
+                        const fill = allMissed ? (isIndex ? "#e5e7eb" : "#1e1e30") : heatColor(cell.pts);
+                        const textFill = allMissed ? (isIndex ? "#7b818a" : "#555566") : (isIndex ? "#ffffff" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111"));
                         return (
                           <g key={`${ri}-${ci}`}>
                             <rect x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill={fill}>
@@ -4130,18 +4130,18 @@ function TrendsTab({group,names,theme}) {
             <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
             <Tooltip contentStyle={tt}/>
             <Legend content={<BreakdownLegend/>}/>
-            <Bar dataKey="Perfect" stackId="a" fill={isAutoStocks?"#22c55e":"#22c55e"}/>
+            <Bar dataKey="Perfect" stackId="a" fill={isIndex?"#22c55e":"#22c55e"}/>
 
-            <Bar dataKey="Close" stackId="a" fill={isAutoStocks?"#f59e0b":"#f59e0b"}/>
+            <Bar dataKey="Close" stackId="a" fill={isIndex?"#f59e0b":"#f59e0b"}/>
 
-            <Bar dataKey="Bad" stackId="a" fill={isAutoStocks?"#ef4444":"#ef4444"}/>
+            <Bar dataKey="Bad" stackId="a" fill={isIndex?"#ef4444":"#ef4444"}/>
 
-            <Bar dataKey="Missed" stackId="a" fill={isAutoStocks?"#94a3b8":"#555566"} radius={[0,4,4,0]}/>
+            <Bar dataKey="Missed" stackId="a" fill={isIndex?"#94a3b8":"#555566"} radius={[0,4,4,0]}/>
           </BarChart>
         </ResponsiveContainer>
       </CC>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill={isAutoStocks?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Bar dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
         <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip contentStyle={tt}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
 
@@ -4154,9 +4154,9 @@ function TrendsTab({group,names,theme}) {
               <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
               <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
               <Legend wrapperStyle={{fontSize:10}}/>
-              <Bar dataKey="Home" stackId="a" fill={isAutoStocks?"#3b82f6":"#6366f1"}/>
+              <Bar dataKey="Home" stackId="a" fill={isIndex?"#3b82f6":"#6366f1"}/>
 
-              <Bar dataKey="Draw" stackId="a" fill={isAutoStocks?"#f59e0b":"#f59e0b"}/>
+              <Bar dataKey="Draw" stackId="a" fill={isIndex?"#f59e0b":"#f59e0b"}/>
 
               <Bar dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
             </BarChart>
@@ -4169,7 +4169,7 @@ function TrendsTab({group,names,theme}) {
               <PolarAngleAxis dataKey="subject" tick={<RadarTick/>}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
               <Tooltip content={<RadarTooltip rawMap={radarData.rawMap} tt={tt}/>}/>
-              <Radar name="Group Avg" dataKey="Avg" stroke={isAutoStocks?"#94a3b8":"#555577"} fill={isAutoStocks?"#cbd5e1":"#555577"} fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
+              <Radar name="Group Avg" dataKey="Avg" stroke={isIndex?"#94a3b8":"#555577"} fill={isIndex?"#cbd5e1":"#555577"} fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
               {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=>(
                 <Radar key={p.username} name={p.dn} dataKey={p.dn} stroke={memberColor(p.username)} fill={memberColor(p.username)} fillOpacity={selectedPlayer?0.4:0.15} strokeWidth={selectedPlayer?2.5:1.5}/>
               ))}
@@ -4187,13 +4187,13 @@ function TrendsTab({group,names,theme}) {
               <Tooltip contentStyle={tt} formatter={v=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
               <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
               <Bar dataKey="value" radius={[0,4,4,0]}>
-                {goalInflationData.map((e,i)=><Cell key={i} fill={e.value>=0?(isAutoStocks?"#f59e0b":"#f59e0b"):(isAutoStocks?"#3b82f6":"#6366f1")}/>)}
+                {goalInflationData.map((e,i)=><Cell key={i} fill={e.value>=0?(isIndex?"#f59e0b":"#f59e0b"):(isIndex?"#3b82f6":"#6366f1")}/>)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
           <div style={{display:"flex",gap:16,justifyContent:"center",marginTop:10,fontSize:10,color:"var(--text-dim3)"}}>
-            <span><span style={{color:isAutoStocks?"#f59e0b":"#f59e0b"}}>■</span> Over-predicts</span>
-            <span><span style={{color:isAutoStocks?"#3b82f6":"#6366f1"}}>■</span> Under-predicts</span>
+            <span><span style={{color:isIndex?"#f59e0b":"#f59e0b"}}>■</span> Over-predicts</span>
+            <span><span style={{color:isIndex?"#3b82f6":"#6366f1"}}>■</span> Under-predicts</span>
           </div>
         </CC>
         <CC title="Boldness vs Accuracy" sub="Do bolder scoreline predictions help or hurt?">
@@ -4260,10 +4260,10 @@ function TrendsTab({group,names,theme}) {
         return (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:18}}>
             <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
-              {renderHeatmap(scoreGridData,isAutoStocks?"rgba(245,158,11,1)":"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
+              {renderHeatmap(scoreGridData,isIndex?"rgba(245,158,11,1)":"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
             </CC>
             <CC title="Actual Results Heatmap">
-              {renderHeatmap(resultGridData,isAutoStocks?"rgba(59,130,246,1)":"rgba(99,102,241,1)","REAL RESULTS")}
+              {renderHeatmap(resultGridData,isIndex?"rgba(59,130,246,1)":"rgba(99,102,241,1)","REAL RESULTS")}
             </CC>
           </div>
         );
@@ -4281,7 +4281,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
   const [logCount,setLogCount]=useState(20);
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
   const saveNick=async(username)=>{
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
@@ -4299,10 +4299,10 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
     if(fresh)await sset(`user:${username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
   };
   return (
-    <div style={{maxWidth:isAutoStocks?860:560}}>
-      <div className={isAutoStocks?"liquid-card":undefined} style={{marginBottom:32,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
-        <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?34:36,fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1,marginBottom:8}}>Members</h1>
-        <p style={{color:"var(--text-dim)",fontSize:isAutoStocks?12:11,letterSpacing:isAutoStocks?0.2:2}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
+    <div style={{maxWidth:isIndex?860:560}}>
+      <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
+        <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Members</h1>
+        <p style={{color:"var(--text-dim)",fontSize:isIndex?12:11,letterSpacing:isIndex?0.2:2}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {members.map(username=>{
@@ -4310,7 +4310,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
           return (
-            <div key={username} className={isAutoStocks?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:isAutoStocks?undefined:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:isAutoStocks?22:10,padding:"14px 18px"}}>
+            <div key={username} className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:isIndex?undefined:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:isIndex?22:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
                 <Avatar name={names[username]||username} color={PALETTE[members.indexOf(username)%PALETTE.length]}/>
                 <div style={{flex:1,minWidth:0}}>
@@ -4614,13 +4614,13 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
     setBackupBusy(false);
   };
 
-  const isAutoStocks = theme === "autostocks";
+  const isIndex = theme === "index";
 
   return (
-    <div style={{maxWidth:isAutoStocks?920:520}}>
-      <div className={isAutoStocks?"liquid-card":undefined} style={{marginBottom:32,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
-        <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?34:36,fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1,marginBottom:8}}>Group</h1>
-        {isAutoStocks&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Manage appearance, invites, visibility, reminders, and the chaos behind the curtain.</p>}
+    <div style={{maxWidth:isIndex?920:520}}>
+      <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
+        <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Group</h1>
+        {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Manage appearance, invites, visibility, reminders, and the chaos behind the curtain.</p>}
       </div>
 
       {group.mode==="dibs"&&isAdmin&&(()=>{
@@ -4827,7 +4827,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
               const displayName=`${bk.createdBy[0].toUpperCase()}${bk.createdBy.slice(1)}`;
               const isRestoring=restoringId===bk.id;
               return (
-                <div key={bk.id} className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?22:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                <div key={bk.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?22:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                     <div>
                       <span style={{fontSize:12,color:"var(--text-mid)"}}>{dateStr}</span>
@@ -4854,7 +4854,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       <Section title="Invite Code">
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isAutoStocks?24:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:36,fontWeight:isAutoStocks?800:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?2:8,lineHeight:1}}>{group.code}</div>
+          <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isIndex?24:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:36,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?2:8,lineHeight:1}}>{group.code}</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <div style={{display:"flex",gap:8}}>
               <Btn onClick={copyCode} variant={copied?"success":"ghost"} small>{copied?"Copied!":"Copy Code"}</Btn>
@@ -4866,7 +4866,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       </Section>
 
       <Section title="Live Data: football-data.org">
-        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"18px 20px"}}>
+        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"18px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
             <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
@@ -4897,7 +4897,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       )}
 
       <Section title="Info">
-        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
+        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
           {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
               <span style={{color:"var(--text-dim)"}}>{l}</span>
@@ -4909,7 +4909,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
       {seasonComplete && seasonWinner && (
         <Section title="Season Awards">
-          <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+          <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>🏆 {names[seasonWinner.username]||seasonWinner.username}</div>
             <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
             <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
@@ -4919,7 +4919,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       )}
 
       <Section title="Scoring Rules">
-        <div className={isAutoStocks?"liquid-card":undefined} style={{background:isAutoStocks?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isAutoStocks?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
           <div style={{color:"var(--text-mid)",marginBottom:8,fontFamily:"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
           <div>Each goal your prediction is off = 1 point.</div>
           <div style={{marginTop:6}}><span style={{color:"var(--text-dim)"}}>Predict 1-1, actual 2-3 → 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts ❌</strong></div>
