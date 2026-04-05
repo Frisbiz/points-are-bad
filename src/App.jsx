@@ -2427,19 +2427,19 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:"1px solid var(--border)",padding:"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
-        <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",height:60,gap:0}}>
-          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:"1px solid var(--border)",marginRight:20,padding:"0 16px 0 0",height:"100%"}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span>
-            <span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>
+      <header style={{borderBottom:theme==="autostocks"?"none":"1px solid var(--border)",padding:theme==="autostocks"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
+        <div className={theme==="autostocks"?"pill-nav":undefined} style={{maxWidth:theme==="autostocks"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="autostocks"?48:60,gap:0,borderRadius:theme==="autostocks"?18:0,padding:theme==="autostocks"?"0 10px":undefined}}>
+          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="autostocks"?"none":"1px solid var(--border)",marginRight:theme==="autostocks"?12:20,padding:theme==="autostocks"?"0 12px":"0 16px 0 0",height:"100%"}}>
+            <span style={{fontFamily:theme==="autostocks"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:theme==="autostocks"?700:900,fontSize:18,color:"var(--text-bright)",letterSpacing:theme==="autostocks"?"-0.02em":undefined}}>pab.wtf</span>
+            {theme!=="autostocks"&&<span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>}
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div className="mob-hide" style={{flex:1,fontSize:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{group.name}</div>
-          <div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>
+          <div className="mob-hide" style={{flex:1,fontSize:theme==="autostocks"?13:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:theme==="autostocks"?500:undefined}}>{group.name}</div>
+          {theme!=="autostocks"&&<div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>}
 
           <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
             {nav.map(t=>(
-              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:10,letterSpacing:2,padding:"22px 12px 20px",textTransform:"uppercase"}}>{t}</button>
+              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:theme==="autostocks"?13:10,letterSpacing:theme==="autostocks"?0.1:2,padding:theme==="autostocks"?"0 12px":"22px 12px 20px",height:theme==="autostocks"?32:undefined,textTransform:theme==="autostocks"?"none":"uppercase",borderRadius:theme==="autostocks"?12:undefined,background:theme==="autostocks"&&tab===t?"rgba(255,255,255,.5)":"transparent"}}>{t}</button>
             ))}
           </nav>
           {user.username===DEMO_SHARED_USERNAME ? (
@@ -2498,7 +2498,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
       </nav>
-      <main style={{maxWidth:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
+      <main style={{maxWidth:theme==="autostocks"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
           <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
@@ -2515,7 +2515,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
         {tab==="Bracket"&&<WCBracketTab group={group}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names}/>}
-        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname}/>}
+        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname} theme={theme}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names}/>}
       </main>
     </div>
@@ -2672,15 +2672,16 @@ function WCBracketTab({ group }) {
 /* ── LEAGUE ──────────────────────────────────────── */
 function LeagueTab({group,user,names,theme}) {
   const mob = useMobile();
+  const isAutoStocks = theme === "autostocks";
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
   return (
     <div>
-      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32}}>
+      <div className={isAutoStocks?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isAutoStocks?"26px 28px":"0",borderRadius:isAutoStocks?28:0}}>
         <div>
-          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:mob?28:38,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
-          <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
+          <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isAutoStocks?26:28):(isAutoStocks?34:38),fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1}}>Standings</h1>
+          <p style={{color:"var(--text-dim)",fontSize:isAutoStocks?12:11,letterSpacing:isAutoStocks?0.2:2,marginTop:6}}>{totalResults} RESULTS COUNTED · LOWER IS BETTER</p>
         </div>
       </div>
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
@@ -2690,7 +2691,7 @@ function LeagueTab({group,user,names,theme}) {
             const pointsMeta = getPointsLabelMeta(p.total, theme);
             const pointsLabelClass = pointsMeta.effect === "glitch" ? "pts-label-glitch" : pointsMeta.effect === "pulse" ? "pts-label-pulse" : pointsMeta.effect === "shimmer" ? "pts-label-shimmer" : "";
             return (
-            <div key={p.username} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:p.username===user.username?"var(--card-hi)":"var(--card)",borderRadius:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
+            <div key={p.username} className={isAutoStocks?"liquid-card":undefined} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:isAutoStocks?undefined:(p.username===user.username?"var(--card-hi)":"var(--card)"),borderRadius:isAutoStocks?22:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
                 <span style={{fontFamily:"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
                   {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
@@ -4248,13 +4249,14 @@ function TrendsTab({group,names}) {
 }
 
 /* ── MEMBERS ─────────────────────────────────────── */
-function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickname}) {
+function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickname,theme}) {
   const members=group.members||[];
   const admins=group.admins||[];
   const stats = useMemo(()=>computeStats(group),[group]);
   const [editingNick,setEditingNick]=useState(null);
   const [nickDraft,setNickDraft]=useState("");
   const [logCount,setLogCount]=useState(20);
+  const isAutoStocks = theme === "autostocks";
   const saveNick=async(username)=>{
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
@@ -4272,16 +4274,18 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
     if(fresh)await sset(`user:${username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
   };
   return (
-    <div style={{maxWidth:560}}>
-      <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:8}}>Members</h1>
-      <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginBottom:32}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
+    <div style={{maxWidth:isAutoStocks?860:560}}>
+      <div className={isAutoStocks?"liquid-card":undefined} style={{marginBottom:32,padding:isAutoStocks?"24px 28px":"0",borderRadius:isAutoStocks?28:0}}>
+        <h1 style={{fontFamily:isAutoStocks?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isAutoStocks?34:36,fontWeight:isAutoStocks?700:900,color:"var(--text-bright)",letterSpacing:isAutoStocks?"-0.03em":-1,marginBottom:8}}>Members</h1>
+        <p style={{color:"var(--text-dim)",fontSize:isAutoStocks?12:11,letterSpacing:isAutoStocks?0.2:2}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
+      </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {members.map(username=>{
           const mIsAdmin=admins.includes(username);
           const mIsCreator=username===group.creatorUsername;
           const isMe=username===user.username;
           return (
-            <div key={username} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:10,padding:"14px 18px"}}>
+            <div key={username} className={isAutoStocks?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:isAutoStocks?undefined:"var(--card)",border:`1px solid ${isMe?"var(--border2)":"var(--border3)"}`,borderRadius:isAutoStocks?22:10,padding:"14px 18px"}}>
               <div style={{display:"flex",alignItems:"center",gap:12,flex:1,minWidth:0}}>
                 <Avatar name={names[username]||username} color={PALETTE[members.indexOf(username)%PALETTE.length]}/>
                 <div style={{flex:1,minWidth:0}}>
