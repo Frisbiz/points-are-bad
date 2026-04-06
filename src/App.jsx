@@ -1059,10 +1059,9 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             {isIndex ? (
               <div style={{overflow:"hidden",position:"relative"}}>
                 <div style={{display:"flex",width:"calc(260px * 12 + 20px * 11)",animation:"marqueeScroll 34s linear infinite"}}>
-                  {["Exact Picks","Hidden Locks","Weekly Winner","Private Leagues","World Cup Mode","Trend Charts","Invite Codes","Admin Controls","Exact Picks","Hidden Locks","Weekly Winner","Private Leagues"].map((item,i)=>(
-                    <div key={i} className="liquid-card" style={{width:260,marginRight:20,borderRadius:24,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <div style={{fontSize:14,fontWeight:600,color:"var(--text-bright)"}}>{item}</div>
-                      <div style={{fontSize:11,color:"var(--text-dim)"}}>Live app</div>
+                  {Array.from({length:12}).map((_,i)=>(
+                    <div key={i} className="liquid-card" style={{width:260,marginRight:20,borderRadius:24,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <div style={{fontSize:16,fontWeight:700,color:"var(--text-bright)",letterSpacing:"-0.02em"}}>Points Are Bad</div>
                     </div>
                   ))}
                 </div>
