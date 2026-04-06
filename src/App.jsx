@@ -1109,7 +1109,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?"clamp(2rem,4vw,2.6rem)":"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-2,lineHeight:1.1,marginBottom:16}}>{isIndex?"Start losing with friends today.":"Start a group."}</h2>
             <p style={{fontSize:isIndex?15:11,color:"var(--text-mid)",letterSpacing:0.1,marginBottom:36,maxWidth:isIndex?460:undefined,marginLeft:isIndex?"auto":undefined,marginRight:isIndex?"auto":undefined,lineHeight:isIndex?1.7:undefined}}>Free to use. Invite friends with a code. Picks open each gameweek.</p>
             <div style={{display:"flex",flexDirection:isIndex?"row":"column",justifyContent:"center",alignItems:"center",gap:14}}>
-              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 24px":"13px 36px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up →":"Create a group"}</button>
+              <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 24px":"13px 36px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create a group"}</button>
               <button onClick={onDemo||onContinue} style={{background:"transparent",border:"none",padding:0,cursor:"pointer",fontSize:isIndex?13:11,color:"var(--text-bright)",fontFamily:isIndex?"inherit":"'DM Mono',monospace",letterSpacing:isIndex?0.1:1,fontWeight:isIndex?600:undefined}}>Try demo →</button>
             </div>
           </div>
@@ -2215,7 +2215,7 @@ export default function App() {
   },[theme,user,sitePrefs]);
 
   const landingTheme = sitePrefs?.landingTheme || null;
-  const effectiveTheme = (!user && showLanding && landingTheme) ? landingTheme : theme;
+  const effectiveTheme = (!user && landingTheme) ? landingTheme : theme;
 
   useEffect(()=>{
     document.documentElement.setAttribute("data-theme",effectiveTheme);
