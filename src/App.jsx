@@ -760,7 +760,7 @@ function useMobile() {
 }
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
   :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#555566;--text-dim2:#666;--text-dim3:#555;--text-mid:#999;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;--font-mono:'DM Mono',monospace;}
   [data-theme="light"]{--bg:#f4f1e8;--surface:#fff;--card:#eeeae0;--card-hi:#e8e5db;--card-hover:#e5e2d8;--input-bg:#fff;--border:#dddad0;--border2:#e0ddd4;--border3:#e4e1d8;--text:#1a1814;--text-dim:#888;--text-dim2:#666;--text-dim3:#777;--text-mid:#444;--text-bright:#0f0d0a;--text-inv:#f4f1e8;--scrollbar:#ccc;--btn-bg:#111;--btn-text:#f4f1e8;--font-mono:'DM Mono',monospace;}
   [data-theme="excel"]{--bg:#ffffff;--surface:#ffffff;--card:#f9f9f9;--card-hi:#f2f2f2;--card-hover:#efefef;--input-bg:#fff;--border:#d0d0d0;--border2:#e0e0e0;--border3:#e8e8e8;--text:#1a1a1a;--text-dim:#888;--text-dim2:#999;--text-dim3:#aaa;--text-mid:#444;--text-bright:#000;--text-inv:#fff;--scrollbar:#ccc;--btn-bg:#107c41;--btn-text:#fff;--font-mono:Arial,Calibri,sans-serif;}
@@ -1061,7 +1061,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
                 <div style={{display:"flex",width:"calc(260px * 12 + 20px * 11)",animation:"marqueeScroll 34s linear infinite"}}>
                   {Array.from({length:12}).map((_,i)=>(
                     <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",marginRight:34}}>
-                      <div style={{fontSize:24,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.03em",fontFamily:"Inter,system-ui,sans-serif",lineHeight:1}}>Points Are Bad</div>
+                      <div style={{fontSize:24,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.03em",fontFamily:"'Plus Jakarta Sans', Inter, system-ui, sans-serif",lineHeight:1}}>Points Are Bad</div>
                     </div>
                   ))}
                 </div>
