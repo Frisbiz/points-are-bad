@@ -903,8 +903,11 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       {/* header */}
       <header style={{padding:"16px 24px 0",height:isIndex?76:60,position:isIndex?"fixed":undefined,top:isIndex?0:undefined,left:isIndex?0:undefined,right:isIndex?0:undefined,zIndex:isIndex?20:undefined}}>
         <div className={isIndex?"pill-nav":undefined} style={{maxWidth:isIndex?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isIndex?44:60,borderRadius:isIndex?18:0,padding:isIndex?"0 10px":undefined,borderBottom:isIndex?undefined:`1px solid ${"var(--border)"}`}}>
-          <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
-            <div style={{padding:"0 12px",fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",height:isIndex?32:60}}>pab.wtf</div>
+          <div style={{display:"flex",alignItems:isIndex?"center":"flex-start",gap:1,flexShrink:0}}>
+            <div style={{padding:"0 12px",display:"flex",flexDirection:isIndex?"row":"column",justifyContent:isIndex?"center":undefined,alignItems:isIndex?"center":"flex-start",height:isIndex?32:60}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",lineHeight:1}}>pab.wtf</div>
+              {!isIndex&&<div style={{fontSize:8,color:"var(--text-dim2)",letterSpacing:2.4,textTransform:"uppercase",marginTop:4,lineHeight:1}}>Points Are Bad</div>}
+            </div>
             {isIndex&&<div style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
