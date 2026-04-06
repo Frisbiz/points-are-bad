@@ -935,7 +935,6 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
             {!isIndex&&<button onClick={onContinue} className="mob-hide" style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit",whiteSpace:"nowrap"}}>Sign In</button>}
-            {isIndex&&<button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:13,letterSpacing:0.1,textTransform:"none",padding:"0 4px",height:32,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit",whiteSpace:"nowrap"}}>Try Demo →</button>}
             <button className={isIndex?"index-mobile-cta":undefined} onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{isIndex?"Sign in / up":"Create Group"}</button>
           </div>
         </div>
@@ -969,7 +968,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             </p>
             <div className="land-hero-btns" style={{display:"flex",gap:isIndex?20:10,flexWrap:"wrap",alignItems:"center"}}>
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 20px":"12px 28px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
-              {!isIndex&&<button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isIndex?"Try demo →":"Try Demo →"}</button>}
+              <button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isIndex?"Try Demo →":"Try Demo →"}</button>
             </div>
             {isIndex&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:10,fontSize:10,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.08em",color:"rgba(86,93,102,.55)",flexWrap:"nowrap",overflow:"hidden"}}><span style={{whiteSpace:"nowrap"}}>Hidden picks</span><span style={{width:1,height:10,background:"rgba(0,0,0,.12)",flexShrink:0}}/><span style={{whiteSpace:"nowrap"}}>World Cup</span><span style={{width:1,height:10,background:"rgba(0,0,0,.12)",flexShrink:0}}/><span style={{whiteSpace:"nowrap"}}>Lowest wins</span></div>}
           </div>
