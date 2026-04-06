@@ -1060,8 +1060,8 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
               <div style={{overflow:"hidden",position:"relative"}}>
                 <div style={{display:"flex",width:"calc(260px * 12 + 20px * 11)",animation:"marqueeScroll 34s linear infinite"}}>
                   {Array.from({length:12}).map((_,i)=>(
-                    <div key={i} className="liquid-card" style={{width:260,marginRight:20,borderRadius:24,padding:"16px 18px",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <div style={{fontSize:16,fontWeight:700,color:"var(--text-bright)",letterSpacing:"-0.02em"}}>Points Are Bad</div>
+                    <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",marginRight:34}}>
+                      <div style={{fontSize:24,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.03em",fontFamily:"Inter,system-ui,sans-serif",lineHeight:1}}>Points Are Bad</div>
                     </div>
                   ))}
                 </div>
