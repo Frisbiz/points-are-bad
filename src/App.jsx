@@ -1903,7 +1903,7 @@ const THEME_META=[
   {key:"terminal",label:"Terminal",swatches:["#000000","#0a0a0a","#00cc44"]},
   {key:"nord",   label:"Nord",     swatches:["#2e3440","#3b4252","#eceff4"]},
   {key:"pitch",  label:"Pitch",    swatches:["#0d1f0d","#122012","#d4ecd4"]},
-  {key:"index", label:"Index", swatches:["#08111b","#0d1928","#83f0b3"]},
+  {key:"index", label:"Index", swatches:["#f6f6f7","#ffffff","#15181c"]},
   {key:SECRET_THEME,label:"Velvet",  swatches:["#120816","#1d1024","#f7d6ea"],secret:true},
 ];
 
@@ -4780,7 +4780,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
             <button key={t.key} onClick={()=>setTheme(t.key)}
               style={{background:"var(--card)",border:`2px solid ${theme===t.key?"var(--btn-bg)":"var(--border)"}`,borderRadius:10,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8,transition:"border-color 0.15s",fontFamily:"inherit"}}>
               <div style={{display:"flex",gap:4}}>
-                {t.swatches.map((c,i)=><div key={i} style={{width:14,height:14,borderRadius:"50%",background:c,border:"1px solid #ffffff22"}}/>)}
+                {t.swatches.map((c,i)=><div key={i} style={{width:14,height:14,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.2)"}}/>)}
               </div>
               <div style={{fontSize:10,color:theme===t.key?"var(--btn-bg)":"var(--text-dim)",letterSpacing:1.5,textTransform:"uppercase",fontWeight:theme===t.key?700:400}}>
                 {t.label}{theme===t.key&&" ✓"}
