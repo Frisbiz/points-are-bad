@@ -3319,7 +3319,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <div>
           <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
-          {isIndex&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Make picks, track locks, and watch the damage roll in.</div>}
+          {isIndex&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Set your picks before the whistle.</div>}
         </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
