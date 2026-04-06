@@ -824,7 +824,7 @@ const CSS = `
   @media(max-width:620px){
     [data-theme="index"] .pill-nav{max-width:none!important;margin:0 8px!important;padding:8px 10px!important;height:auto!important;display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important;row-gap:8px!important;column-gap:8px!important;}
     [data-theme="index"] .index-mobile-brand{padding:0 4px!important;height:auto!important;font-size:12px!important;}
-    [data-theme="index"] .index-mobile-links{grid-column:1 / -1;display:flex!important;gap:8px!important;flex-wrap:wrap!important;}
+    [data-theme="index"] .index-mobile-links{display:none!important;}
     [data-theme="index"] .index-mobile-links button{height:30px!important;padding:0 10px!important;font-size:12px!important;}
     [data-theme="index"] .index-mobile-cta{height:34px!important;padding:0 12px!important;font-size:12px!important;white-space:nowrap!important;}
     [data-theme="index"] .hero-glow{overflow:visible;}
