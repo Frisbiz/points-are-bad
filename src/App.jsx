@@ -1469,7 +1469,7 @@ function AccountSetupModal({ user, onDone, onLogout }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap }) {
+function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark" }) {
   const [groups,setGroups]=useState([]);
   const [loading,setLoading]=useState(true);
   const [createName,setCreateName]=useState("");
@@ -2399,7 +2399,7 @@ export default function App() {
           theme={effectiveTheme}
         />
       ):!group?(
-        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme}/>
+        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
@@ -2587,7 +2587,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
         {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
-        {tab==="Bracket"&&<WCBracketTab group={group}/>}
+        {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname} theme={theme}/>}
         {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>}
@@ -2597,7 +2597,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
 }
 
 /* ── WC BRACKET ──────────────────────────────────── */
-function WCBracketTab({ group }) {
+function WCBracketTab({ group, theme="dark" }) {
   const mob = useMobile();
   const SLOT_H = mob ? 36 : 56;
   const CARD_H = mob ? 28 : 46;
