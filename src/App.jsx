@@ -816,6 +816,18 @@ const CSS = `
   @keyframes marqueeScroll{from{transform:translate3d(0,0,0);}to{transform:translate3d(-50%,0,0);}}
   @keyframes brandTicker{from{transform:translate3d(0,0,0);}to{transform:translate3d(-50%,0,0);}}
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
+  @media(max-width:820px){
+    [data-theme="index"] .land-hero{grid-template-columns:1fr!important;gap:28px!important;padding-top:20px!important;}
+    [data-theme="index"] .land-steps{grid-template-columns:1fr!important;gap:14px!important;}
+    [data-theme="index"] .land-feats{grid-template-columns:1fr!important;}
+  }
+  @media(max-width:620px){
+    [data-theme="index"] .pill-nav{max-width:none!important;margin:0 8px!important;padding:0 8px!important;}
+    [data-theme="index"] .hero-glow{overflow:visible;}
+    [data-theme="index"] .index-mobile-stack{max-width:100%!important;}
+    [data-theme="index"] .index-mobile-card{left:0!important;top:0!important;position:relative!important;margin-bottom:12px;}
+    [data-theme="index"] .index-mobile-marquee{margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;}
+  }
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
   .excel-mode table td,.excel-mode table th{border:1px solid #888888;border-radius:0!important;padding:5px 8px!important;}
@@ -936,7 +948,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         )}
 
         {/* hero */}
-        <section className={isIndex?"hero-glow":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
+        <section className={isIndex?"hero-glow land-hero":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
           <div className="fade">
             {isIndex&&<div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1.6,textTransform:"none",marginBottom:10}}>Points Are Bad</div>}
             <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.6:4,textTransform:isIndex?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
@@ -953,10 +965,10 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             </div>
             {isIndex&&<div style={{marginTop:28,display:"flex",alignItems:"center",gap:16,fontSize:11,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.1em",color:"rgba(86,93,102,.55)",flexWrap:"wrap"}}><span>Hidden picks</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>World Cup mode</span><span style={{width:1,height:12,background:"rgba(0,0,0,.12)"}}/><span>Lowest wins</span></div>}
           </div>
-          <div style={{display:"flex",justifyContent:"flex-end"}}>
+          <div className={isIndex?"index-mobile-stack":undefined} style={{display:"flex",justifyContent:"flex-end"}}>
             {/* prediction demo */}
             <div style={{width:"100%",maxWidth:isIndex?400:320,position:"relative"}}>
-              {isIndex&&<div className="glass-panel" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Private league</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Exact scores</div><div style={{fontSize:11,color:"var(--text-dim)"}}>weekly leaderboard</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
+              {isIndex&&<div className="glass-panel index-mobile-card" style={{position:"absolute",left:-16,top:-16,width:"100%",padding:20,borderRadius:16,zIndex:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:36,height:36,borderRadius:12,background:"#111",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700}}>PB</div><div><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Points Are Bad</div><div style={{fontSize:11,color:"var(--text-dim)"}}>Private league</div></div></div><div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)"}}>Exact scores</div><div style={{fontSize:11,color:"var(--text-dim)"}}>weekly leaderboard</div></div></div><div style={{marginTop:14,height:1,background:"rgba(0,0,0,.05)"}}/><div style={{marginTop:12,fontSize:11,color:"var(--text-dim)",lineHeight:1.6}}>Predictions → fixtures → points totals every gameweek</div></div>}
               <div className={isIndex?"glass-panel":undefined} style={{position:"relative",zIndex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?24:14,padding:isIndex?0:24,minHeight:isIndex?330:280,boxShadow:isIndex?undefined:"0 24px 80px rgba(3,8,14,.35)"}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:20,padding:isIndex?"20px 20px 0":"0"}}>
                   <div>
@@ -1006,9 +1018,9 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {isIndex&&(
-          <section style={{padding:"18px 0 10px",marginLeft:"calc(50% - 50vw)",marginRight:"calc(50% - 50vw)",overflow:"hidden",position:"relative"}}>
-            <div style={{position:"absolute",left:0,top:0,bottom:0,width:120,background:"linear-gradient(90deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}}/>
-            <div style={{position:"absolute",right:0,top:0,bottom:0,width:120,background:"linear-gradient(270deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}}/>
+          <section className="index-mobile-marquee" style={{padding:"18px 0 10px",marginLeft:"calc(50% - 50vw)",marginRight:"calc(50% - 50vw)",overflow:"hidden",position:"relative"}}>
+            <div style={{position:"absolute",left:0,top:0,bottom:0,width:120,background:"linear-gradient(90deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}} className="mob-hide"/>
+            <div style={{position:"absolute",right:0,top:0,bottom:0,width:120,background:"linear-gradient(270deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}} className="mob-hide"/>
             <div style={{display:"flex",width:"max-content",animation:"marqueeScroll 32s linear infinite",whiteSpace:"nowrap"}}>
               {Array.from({length:18}).map((_,i)=>(
                 <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",marginRight:34}}>
