@@ -2545,17 +2545,17 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       </header>
       {accountOpen&&createPortal(
   <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
-      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:20}}>ACCOUNT</div>
-      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-mid)"}}>{user.username}</span>
+    <div onClick={e=>e.stopPropagation()} className={theme==="index"?"liquid-card":undefined} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420}}>
+      <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:16,fontWeight:theme==="index"?600:undefined}}>ACCOUNT</div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
+          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-bright)",fontWeight:theme==="index"?600:undefined}}>{user.username}</span>
         </div>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
+          <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-bright)",fontWeight:theme==="index"?500:undefined}}>{user.email||"—"}</span>
         </div>
       </div>
-      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CHANGE PASSWORD</div>
+      <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:14,fontWeight:theme==="index"?600:undefined}}>CHANGE PASSWORD</div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
         <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
@@ -2563,8 +2563,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       </div>
       {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
       {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
-      <div style={{display:"flex",gap:10,marginTop:16}}>
-        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>{pwLoading?"...":"SAVE"}</Btn>
+      <div style={{display:"flex",gap:10,marginTop:18}}>
+        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:theme==="index"?0.2:2}}>{pwLoading?"...":"SAVE"}</Btn>
         <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
       </div>
     </div>
