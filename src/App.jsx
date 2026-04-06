@@ -1216,9 +1216,9 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
       <style>{CSS}</style>
       <div style={{width:"100%",maxWidth:isIndex?(mob?400:920):400,display:isIndex&&!mob?"grid":"block",gridTemplateColumns:isIndex&&!mob?"1.1fr .9fr":undefined,gap:isIndex&&!mob?36:undefined,alignItems:isIndex&&!mob?"center":undefined}}>
         <div style={{textAlign:isIndex?"left":"center",marginBottom:isIndex?(mob?20:0):48}}>
-          <div style={{display:"inline-flex",flexDirection:"column",alignItems:"flex-start",gap:6}}>
-            <div style={{fontFamily:"Inter,system-ui,sans-serif",fontSize:isIndex?(mob?"clamp(1.9rem,8vw,2.45rem)":"clamp(2.25rem,5vw,3.7rem)"):52,fontWeight:700,color:"var(--text-bright)",letterSpacing:"-0.05em",lineHeight:0.95}}>pab.wtf</div>
-            <div style={{fontSize:isIndex?9:10,color:"var(--text-dim2)",letterSpacing:isIndex?0.24:4,marginTop:0,textTransform:isIndex?"uppercase":"uppercase",fontWeight:500}}>Points Are Bad</div>
+          <div style={{display:"inline-flex",flexDirection:"column",alignItems:"flex-start",gap:isIndex?10:6}}>
+            <div style={{fontFamily:"Inter,system-ui,sans-serif",fontSize:isIndex?(mob?"clamp(1.9rem,8vw,2.45rem)":"clamp(2.25rem,5vw,3.7rem)"):52,fontWeight:700,color:"var(--text-bright)",letterSpacing:"-0.05em",lineHeight:1}}>pab.wtf</div>
+            <div style={{fontSize:isIndex?9:10,color:"var(--text-dim2)",letterSpacing:isIndex?0.24:4,marginTop:0,textTransform:isIndex?"uppercase":"uppercase",fontWeight:500,lineHeight:1}}>Points Are Bad</div>
           </div>
           {!mob&&<div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Pick scores. Take the damage. Lowest total wins.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>}
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
@@ -1261,21 +1261,23 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
             </>
           )}
         </div>
-        <button
-          onClick={handleDemo}
-          disabled={demoLoading}
-          style={{width:"100%",marginTop:16,padding:"11px 0",display:"block",textAlign:"center",
-            letterSpacing:isIndex?0.2:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:isIndex?14:8,
-            color:"var(--text-dim)",cursor:"pointer",fontSize:isIndex?13:11,fontFamily:isIndex?"inherit":"'DM Mono',monospace",
-            transition:"border-color 0.2s,color 0.2s"}}
-          onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--text-dim)";e.currentTarget.style.color="var(--text)";}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text-dim)";}}
-        >
-          {demoLoading?"...":"TRY DEMO"}
-        </button>
-        {onBack&&<div style={{textAlign:"center",marginTop:16}}>
-          <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
-        </div>}
+        <div style={{textAlign:"center",marginTop:16,display:"flex",flexDirection:"column",gap:12}}>
+          <button
+            onClick={handleDemo}
+            disabled={demoLoading}
+            style={{width:"100%",padding:"11px 0",display:"block",textAlign:"center",
+              letterSpacing:isIndex?0.2:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:isIndex?14:8,
+              color:"var(--text-dim)",cursor:"pointer",fontSize:isIndex?13:11,fontFamily:isIndex?"inherit":"'DM Mono',monospace",
+              transition:"border-color 0.2s,color 0.2s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--text-dim)";e.currentTarget.style.color="var(--text)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text-dim)";}}
+          >
+            {demoLoading?"...":"TRY DEMO"}
+          </button>
+          {onBack&&<div style={{textAlign:"center"}}>
+            <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
+          </div>}
+        </div>
         <div style={{textAlign:isIndex?"left":"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:isIndex?0.2:1}}>PL &amp; World Cup 2026 Predictions</div>
       </div>
     </div>
