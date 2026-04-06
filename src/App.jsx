@@ -1083,9 +1083,8 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
 
         {/* features */}
         <section className="land-section" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
-          <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"Supported outcomes":"Features"}</div>
-          <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:isIndex?18:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Real pain, on matchday.":"The details."}</h2>
-          {isIndex&&<p style={{fontSize:14,color:"var(--text-dim)",lineHeight:1.7,maxWidth:360,marginBottom:30}}>Built for group chats, overconfident predictions, and weekly humiliation.</p>}
+          <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"The format":"Features"}</div>
+          <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:isIndex?18:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Pick scores. Take the damage. Lowest total wins.":"The details."}</h2>
           <div style={{display:"grid",gridTemplateColumns:isIndex?"1fr":"repeat(4,1fr)",gap:12}} className="land-feats">
             {isIndex ? null : [
               {title:"Hidden picks",body:"Nobody sees your predictions until you lock them all in. No copying."},
