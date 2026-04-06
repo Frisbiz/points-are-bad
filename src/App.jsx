@@ -1028,7 +1028,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             <div style={{position:"absolute",left:0,top:0,bottom:0,width:120,background:"linear-gradient(90deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}} className="mob-hide"/>
             <div style={{position:"absolute",right:0,top:0,bottom:0,width:120,background:"linear-gradient(270deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}} className="mob-hide"/>
             <div style={{display:"flex",width:"max-content",animation:"marqueeScroll 32s linear infinite",whiteSpace:"nowrap"}}>
-              {Array.from({length:18}).map((_,i)=>(
+              {Array.from({length:36}).map((_,i)=>(
                 <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",marginRight:34}}>
                   <div style={{fontSize:28,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.03em",fontFamily:"'Plus Jakarta Sans', Inter, system-ui, sans-serif",lineHeight:1}}>Points Are Bad</div>
                 </div>
