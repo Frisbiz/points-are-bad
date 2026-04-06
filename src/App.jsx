@@ -2354,14 +2354,15 @@ export default function App() {
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
           updateGroup={updateGroup} patchGroup={patchGroup} refreshGroup={refreshGroup}
-          theme={theme} setTheme={setTheme} unlockSecretTheme={unlockSecretTheme}/>
+          theme={theme} setTheme={setTheme} unlockSecretTheme={unlockSecretTheme}
+          sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>
       )}
     </>
   );
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme,unlockSecretTheme}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{
