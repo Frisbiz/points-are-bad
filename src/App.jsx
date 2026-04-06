@@ -810,6 +810,8 @@ const CSS = `
   [data-theme="index"] .liquid-card::before{content:"";position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.03) 0%, transparent 68%);animation:liquidFlow 24s ease-in-out infinite;pointer-events:none;}
   [data-theme="index"] .liquid-card::after{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.02) 0%, transparent 62%);animation:liquidFlowB 30s ease-in-out infinite;pointer-events:none;}
   [data-theme="index"] .pill-nav{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.6);box-shadow:none;backdrop-filter:blur(24px) saturate(1.2);}
+  [data-theme="index"] .pill-nav-link{background:transparent;border-radius:12px;transition:background .15s,color .15s;}
+  [data-theme="index"] .pill-nav-link:hover{background:rgba(0,0,0,.05)!important;color:var(--text-bright)!important;}
   [data-theme="index"] .mint-text{color:var(--text-bright);}
   @keyframes liquidFlow{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(1.5%, -2%, 0) scale(1.04);}}
   @keyframes liquidFlowB{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(-1%, 1.5%, 0) scale(1.02);}}
@@ -927,8 +929,8 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             </div>
             {isIndex&&<div className="index-mobile-links" style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
-              <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
-              <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
+              <button onClick={onContinue} className="pill-nav-link" style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
+              <button onClick={onContinue} className="pill-nav-link" style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
             </div>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -1038,7 +1040,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         {/* how it works */}
         <section id="how-it-works" className="land-section" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
           <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"How it works":"The game"}</div>
-          <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Four steps. Fully automatic.":"How it works."}</h2>
+          <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Simple by design.":"How it works."}</h2>
           <div style={{display:"grid",gridTemplateColumns:isIndex?"repeat(4,1fr)":"repeat(3,1fr)",gap:isIndex?20:16}} className="land-steps">
             {[
               {num:"01",title:"Join a group",body:"Create a private league or join an invite-only group with a code."},
@@ -2503,7 +2505,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       <header style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
         <div className={theme==="index"?"pill-nav":undefined} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="index"?48:60,gap:0,borderRadius:theme==="index"?18:0,padding:theme==="index"?"0 10px":undefined}}>
           <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
-            <span style={{fontFamily:theme==="index"?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:theme==="index"?700:900,fontSize:18,color:"var(--text-bright)",letterSpacing:theme==="index"?"-0.02em":undefined}}>pab.wtf</span>
+            <span style={{fontWeight:600,fontSize:13,color:"var(--text-bright)",lineHeight:1}}>pab.wtf</span>
             {theme!=="index"&&<span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>}
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
