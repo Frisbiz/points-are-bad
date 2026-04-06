@@ -822,7 +822,11 @@ const CSS = `
     [data-theme="index"] .land-feats{grid-template-columns:1fr!important;}
   }
   @media(max-width:620px){
-    [data-theme="index"] .pill-nav{max-width:none!important;margin:0 8px!important;padding:0 8px!important;}
+    [data-theme="index"] .pill-nav{max-width:none!important;margin:0 8px!important;padding:8px 10px!important;height:auto!important;display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important;row-gap:8px!important;column-gap:8px!important;}
+    [data-theme="index"] .index-mobile-brand{padding:0 4px!important;height:auto!important;font-size:12px!important;}
+    [data-theme="index"] .index-mobile-links{grid-column:1 / -1;display:flex!important;gap:8px!important;flex-wrap:wrap!important;}
+    [data-theme="index"] .index-mobile-links button{height:30px!important;padding:0 10px!important;font-size:12px!important;}
+    [data-theme="index"] .index-mobile-cta{height:34px!important;padding:0 12px!important;font-size:12px!important;white-space:nowrap!important;}
     [data-theme="index"] .hero-glow{overflow:visible;}
     [data-theme="index"] .index-mobile-stack{max-width:100%!important;}
     [data-theme="index"] .index-mobile-card{left:0!important;top:0!important;position:relative!important;margin-bottom:12px;}
@@ -917,10 +921,10 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       <header style={{padding:"16px 24px 0",height:isIndex?76:60,position:isIndex?"fixed":undefined,top:isIndex?0:undefined,left:isIndex?0:undefined,right:isIndex?0:undefined,zIndex:isIndex?20:undefined}}>
         <div className={isIndex?"pill-nav":undefined} style={{maxWidth:isIndex?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isIndex?44:60,borderRadius:isIndex?18:0,padding:isIndex?"0 10px":undefined,borderBottom:isIndex?undefined:`1px solid ${"var(--border)"}`}}>
           <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
-            <div style={{padding:"0 12px",display:"flex",alignItems:"center",height:isIndex?32:60}}>
+            <div className={isIndex?"index-mobile-brand":undefined} style={{padding:"0 12px",display:"flex",alignItems:"center",height:isIndex?32:60}}>
               <div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",lineHeight:1}}>pab.wtf</div>
             </div>
-            {isIndex&&<div style={{display:"flex",alignItems:"center",gap:0}}>
+            {isIndex&&<div className="index-mobile-links" style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
@@ -928,7 +932,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {!isIndex&&<button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>}
-            <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
+            <button className={isIndex?"index-mobile-cta":undefined} onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
           </div>
         </div>
       </header>
