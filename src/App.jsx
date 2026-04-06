@@ -10,7 +10,10 @@ async function sget(key, timeoutMs = 8000) {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     const res = await fetch("/api/db?key=" + encodeURIComponent(key), { signal: controller.signal });
     clearTimeout(timer);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status !== 400) console.error("sget error", key, res.status);
+      return null;
+    }
     const data = await res.json();
     return data.value;
   } catch(e) { console.error("sget error", key, e); return null; }
@@ -4424,6 +4427,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{}}) {
   const mob = useMobile();
   const isAutoStocks = theme === "index";
+  const resolvedSitePrefs = sitePrefs || { defaultTheme: "dark", landingTheme: null };
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
   const [apiSaved,setApiSaved]=useState(false);
@@ -4703,19 +4707,19 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Default theme for new users</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
               {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
-                const active=(sitePrefs?.defaultTheme||"dark")===t.key;
+                const active=(resolvedSitePrefs.defaultTheme||"dark")===t.key;
                 return <button key={`default-${t.key}`} onClick={async()=>{
-                  const next={...(sitePrefs||{}),defaultTheme:t.key,landingTheme:(sitePrefs?.landingTheme===null||sitePrefs?.landingTheme===undefined)?t.key:sitePrefs.landingTheme};
+                  const next={...resolvedSitePrefs,defaultTheme:t.key,landingTheme:(resolvedSitePrefs.landingTheme===null||resolvedSitePrefs.landingTheme===undefined)?t.key:resolvedSitePrefs.landingTheme};
                   await sset(SITE_PREFS_KEY,next);setSitePrefs(next);
                 }} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Landing page theme override</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <button onClick={async()=>{const next={...(sitePrefs||{}),landingTheme:null};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:(sitePrefs?.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(sitePrefs?.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
+              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
               {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
-                const active=sitePrefs?.landingTheme===t.key;
-                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...(sitePrefs||{}),landingTheme:t.key,defaultTheme:sitePrefs?.defaultTheme||t.key};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+                const active=resolvedSitePrefs.landingTheme===t.key;
+                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
           </div>
