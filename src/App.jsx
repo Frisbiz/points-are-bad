@@ -1261,11 +1261,11 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
             </>
           )}
         </div>
-        <div style={{textAlign:isIndex?"right":"center",marginTop:16,marginLeft:isIndex?"auto":undefined,maxWidth:isIndex?420:undefined}}>
+        <div style={{textAlign:"center",marginTop:16,display:"flex",flexDirection:"column",gap:12}}>
           <button
             onClick={handleDemo}
             disabled={demoLoading}
-            style={{width:isIndex?"100%":"100%",padding:"11px 0",display:"block",textAlign:"center",
+            style={{width:"100%",padding:"11px 0",display:"block",textAlign:"center",
               letterSpacing:isIndex?0.2:2,background:"transparent",border:"1px solid var(--border2)",borderRadius:isIndex?14:8,
               color:"var(--text-dim)",cursor:"pointer",fontSize:isIndex?13:11,fontFamily:isIndex?"inherit":"'DM Mono',monospace",
               transition:"border-color 0.2s,color 0.2s"}}
@@ -1274,7 +1274,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
           >
             {demoLoading?"...":"TRY DEMO"}
           </button>
-          {onBack&&<div style={{textAlign:isIndex?"right":"center",marginTop:12}}>
+          {onBack&&<div style={{textAlign:"center"}}>
             <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
           </div>}
         </div>
