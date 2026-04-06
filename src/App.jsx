@@ -926,9 +926,9 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           <div style={{overflow:"hidden",borderTop:"1px solid var(--border)",borderBottom:"1px solid var(--border)",margin:"20px 0 0",height:34,display:"flex",alignItems:"center"}}>
             <div style={{display:"flex",width:"max-content",animation:"brandTicker 26s linear infinite",whiteSpace:"nowrap"}}>
               {Array.from({length:18}).map((_,i)=>(
-                <div key={i} style={{display:"inline-flex",alignItems:"center",gap:12,paddingRight:28,fontSize:10,color:"var(--text-dim2)",letterSpacing:3,textTransform:"uppercase"}}>
+                <div key={i} style={{display:"inline-flex",alignItems:"center",gap:16,paddingRight:36,fontFamily:"Inter,system-ui,sans-serif",fontSize:18,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.02em",lineHeight:1}}>
                   <span>Points Are Bad</span>
-                  <span style={{opacity:0.45}}>•</span>
+                  <span style={{opacity:0.28,fontSize:14}}>•</span>
                 </div>
               ))}
             </div>
