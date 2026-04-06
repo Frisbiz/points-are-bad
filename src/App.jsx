@@ -1717,19 +1717,23 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontWeight:theme==="index"?800:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
-          <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center"}}>
-            <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,padding:0,borderRadius:4}}>
-              <Avatar name={user.displayName} size={28}/>
-              <span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span>
-            </button>
-            {profileOpen&&(
-              <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:120,boxShadow:"0 4px 16px #00000030"}}>
-                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap"}}>{user.displayName}</div>
-                <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
-                <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
-              </div>
-            )}
-          </div>
+          {user.username===DEMO_SHARED_USERNAME?(
+            <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,padding:0,color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit"}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+          ):(
+            <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center"}}>
+              <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,padding:0,borderRadius:4}}>
+                <Avatar name={user.displayName} size={28}/>
+                <span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span>
+              </button>
+              {profileOpen&&(
+                <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:6,zIndex:100,minWidth:120,boxShadow:"0 4px 16px #00000030"}}>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1,padding:"4px 8px 6px",borderBottom:"1px solid var(--border)",marginBottom:4,whiteSpace:"nowrap"}}>{user.displayName}</div>
+                  <button onClick={()=>{setProfileOpen(false);setPwError("");setPwSuccess(false);setAccountOpen(true);}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"var(--text-mid)",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6,marginBottom:2}}><User size={13} color="currentColor"/>ACCOUNT</button>
+                  <button onClick={()=>{setProfileOpen(false);onLogout();}} style={{width:"100%",background:"none",border:"none",borderRadius:6,color:"#ef4444",cursor:"pointer",fontSize:11,letterSpacing:1.5,padding:"6px 8px",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:6}}><LogOut size={13} color="#ef4444"/>LOG OUT</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
       {inviteGroup&&createPortal(
