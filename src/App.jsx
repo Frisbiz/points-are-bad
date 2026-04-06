@@ -4094,7 +4094,7 @@ function TrendsTab({group,names,theme}) {
           </LineChart>
         </ResponsiveContainer>
       </CC>
-      <CC title="Cumulative Points Race" sub="Running total — lower is winning">
+      <CC title="Cumulative Points Race" sub="Running total. Lower is winning.">
         <ResponsiveContainer width="100%" height={mob?160:200}>
           <LineChart data={cumLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
