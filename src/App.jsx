@@ -3668,9 +3668,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
               const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];
               const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;
               const isAwaiting = Object.values(dibsTurnFor).some(turn => turn === u);
-              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
+              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",width:theme==="excel"?undefined:"72px",minWidth:theme==="excel"?undefined:"72px",maxWidth:theme==="excel"?undefined:"72px",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
                 ? <span style={{animation:"pulse 1.2s ease-in-out infinite",display:"inline-block"}}>{names[u]||u}</span>
-                : <>{isWinner&&!excelBg&&<Star size={13} color="#fbbf24" filled style={{marginRight:4,filter:"drop-shadow(0 0 4px #fbbf24aa)",flexShrink:0}}/>}{names[u]||u}</>
+                : <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{isWinner&&!excelBg&&<Star size={13} color="#fbbf24" filled style={{marginRight:4,filter:"drop-shadow(0 0 4px #fbbf24aa)",flexShrink:0}}/>}{names[u]||u}</span>
               }</th>;
             })}
           </tr></thead>
