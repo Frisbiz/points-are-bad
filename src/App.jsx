@@ -1043,8 +1043,8 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             {[
               {num:"01",title:"Join a group",body:"Create a private league or join an invite-only group with a code."},
               {num:"02",title:"Make your picks",body:"Predict every scoreline before kickoff. Hidden picks keep everyone honest."},
-              {num:"03",title:"Watch the damage",body:"Every goal off counts against you. Precision beats confidence."},
-              ...(isIndex?[{num:"04",title:"Win by suffering less",body:"Lowest total after the round or season takes it. Beautifully petty."}]:[]),
+              {num:"03",title:"Watch the damage",body:"Every goal off counts against you. Being close isn't close enough."},
+              ...(isIndex?[{num:"04",title:"Finish with the lowest total",body:"Lowest total after the season wins."}]:[]),
             ].map(s=>(
               <div key={s.num} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?24:10,padding:isIndex?"26px 24px":"24px 22px",position:"relative",overflow:"hidden"}}>
                 {isIndex&&<span style={{position:"absolute",right:-6,top:-18,fontSize:110,fontWeight:800,letterSpacing:"-0.06em",color:"rgba(0,0,0,.03)",lineHeight:1}}>{s.num}</span>}
