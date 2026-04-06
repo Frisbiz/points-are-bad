@@ -1004,6 +1004,20 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           </div>
         </section>
 
+        {isIndex&&(
+          <section style={{padding:"18px 0 10px",marginLeft:"calc(50% - 50vw)",marginRight:"calc(50% - 50vw)",overflow:"hidden",position:"relative"}}>
+            <div style={{position:"absolute",left:0,top:0,bottom:0,width:120,background:"linear-gradient(90deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}}/>
+            <div style={{position:"absolute",right:0,top:0,bottom:0,width:120,background:"linear-gradient(270deg, var(--bg) 0%, rgba(246,246,247,0) 100%)",zIndex:2,pointerEvents:"none"}}/>
+            <div style={{display:"flex",width:"max-content",animation:"marqueeScroll 32s linear infinite",whiteSpace:"nowrap"}}>
+              {Array.from({length:18}).map((_,i)=>(
+                <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",marginRight:34}}>
+                  <div style={{fontSize:28,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.03em",fontFamily:"'Plus Jakarta Sans', Inter, system-ui, sans-serif",lineHeight:1}}>Points Are Bad</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* how it works */}
         <section id="how-it-works" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
           <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"How it works":"The game"}</div>
@@ -1056,17 +1070,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
           <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:isIndex?18:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Real pain, on matchday.":"The details."}</h2>
           {isIndex&&<p style={{fontSize:14,color:"var(--text-dim)",lineHeight:1.7,maxWidth:360,marginBottom:30}}>Built for group chats, overconfident predictions, and weekly humiliation.</p>}
           <div style={{display:"grid",gridTemplateColumns:isIndex?"1fr":"repeat(4,1fr)",gap:12}} className="land-feats">
-            {isIndex ? (
-              <div style={{overflow:"hidden",position:"relative"}}>
-                <div style={{display:"flex",width:"calc(260px * 12 + 20px * 11)",animation:"marqueeScroll 34s linear infinite"}}>
-                  {Array.from({length:12}).map((_,i)=>(
-                    <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",marginRight:34}}>
-                      <div style={{fontSize:24,fontWeight:800,color:"var(--text-bright)",letterSpacing:"-0.03em",fontFamily:"'Plus Jakarta Sans', Inter, system-ui, sans-serif",lineHeight:1}}>Points Are Bad</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : [
+            {isIndex ? null : [
               {title:"Hidden picks",body:"Nobody sees your predictions until you lock them all in. No copying."},
               {title:"Locks at kickoff",body:"Picks freeze the moment a match starts. No backdating, no excuses."},
               {title:"Lowest score wins",body:"The leaderboard rewards accuracy, not optimism. Zero is the goal."},
