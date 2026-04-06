@@ -2508,8 +2508,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       <header style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
         <div className={theme==="index"?"pill-nav":undefined} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="index"?48:60,gap:0,borderRadius:theme==="index"?18:0,padding:theme==="index"?"0 10px":undefined}}>
           <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
-            <span style={{fontWeight:600,fontSize:13,color:"var(--text-bright)",lineHeight:1}}>pab.wtf</span>
-            {theme!=="index"&&<span onClick={spawnThumb} style={{fontSize:9,color:"var(--text-dim)",letterSpacing:3,cursor:"pointer",userSelect:"none"}}>are bad</span>}
+            <span style={{fontFamily:theme==="index"?"Inter,system-ui,sans-serif":theme==="excel"?"Arial,Calibri,sans-serif":"'Playfair Display',serif",fontWeight:theme==="index"?700:theme==="excel"?700:900,fontSize:theme==="index"?13:18,color:"var(--text-bright)",lineHeight:1,letterSpacing:theme==="index"?"-0.02em":undefined}}>pab.wtf</span>
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:theme==="index"?13:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:theme==="index"?500:undefined}}>{group.name}</div>
