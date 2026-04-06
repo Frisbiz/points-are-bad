@@ -957,7 +957,6 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         {/* hero */}
         <section className={isIndex?"hero-glow land-hero":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
           <div className="fade">
-            {isIndex&&<div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1.6,textTransform:"none",marginBottom:10}}>Points Are Bad</div>}
             <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.6:4,textTransform:isIndex?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
             <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isIndex?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.025em":-2,lineHeight:isIndex?1.08:1.05,marginBottom:10,maxWidth:isIndex?560:undefined}}>
               {isIndex?<>Join one group.</>:<>Predict every goal.</>}
