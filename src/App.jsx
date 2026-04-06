@@ -814,6 +814,7 @@ const CSS = `
   @keyframes liquidFlow{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(1.5%, -2%, 0) scale(1.04);}}
   @keyframes liquidFlowB{0%,100%{transform:translate3d(0,0,0) scale(1);}50%{transform:translate3d(-1%, 1.5%, 0) scale(1.02);}}
   @keyframes marqueeScroll{from{transform:translate3d(0,0,0);}to{transform:translate3d(-50%,0,0);}}
+  @keyframes brandTicker{from{transform:translate3d(0,0,0);}to{transform:translate3d(-50%,0,0);}}
   @media(max-width:620px){.mob-hide{display:none!important;}.bot-nav{display:flex!important;}.pad-bot{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;}input{font-size:16px!important;}.gw-outer{width:100%!important;}.gw-controls{width:100%!important;}.gw-controls .gw-strip{flex:1!important;max-width:none!important;}}
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
@@ -903,10 +904,9 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       {/* header */}
       <header style={{padding:"16px 24px 0",height:isIndex?76:60,position:isIndex?"fixed":undefined,top:isIndex?0:undefined,left:isIndex?0:undefined,right:isIndex?0:undefined,zIndex:isIndex?20:undefined}}>
         <div className={isIndex?"pill-nav":undefined} style={{maxWidth:isIndex?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isIndex?44:60,borderRadius:isIndex?18:0,padding:isIndex?"0 10px":undefined,borderBottom:isIndex?undefined:`1px solid ${"var(--border)"}`}}>
-          <div style={{display:"flex",alignItems:isIndex?"center":"flex-start",gap:1,flexShrink:0}}>
-            <div style={{padding:"0 12px",display:"flex",flexDirection:isIndex?"row":"column",justifyContent:isIndex?"center":undefined,alignItems:isIndex?"center":"flex-start",height:isIndex?32:60}}>
+          <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
+            <div style={{padding:"0 12px",display:"flex",alignItems:"center",height:isIndex?32:60}}>
               <div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)",display:"flex",alignItems:"center",lineHeight:1}}>pab.wtf</div>
-              {!isIndex&&<div style={{fontSize:8,color:"var(--text-dim2)",letterSpacing:2.4,textTransform:"uppercase",marginTop:4,lineHeight:1}}>Points Are Bad</div>}
             </div>
             {isIndex&&<div style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
@@ -922,6 +922,18 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       </header>
 
       <div className={isIndex?"index-grid-bg":undefined} style={{maxWidth:isIndex?1280:940,margin:"0 auto",padding:isIndex?"96px 24px 0":"0 24px"}}>
+        {!isIndex&&(
+          <div style={{overflow:"hidden",borderTop:"1px solid var(--border)",borderBottom:"1px solid var(--border)",margin:"20px 0 0",height:34,display:"flex",alignItems:"center"}}>
+            <div style={{display:"flex",width:"max-content",animation:"brandTicker 26s linear infinite",whiteSpace:"nowrap"}}>
+              {Array.from({length:18}).map((_,i)=>(
+                <div key={i} style={{display:"inline-flex",alignItems:"center",gap:12,paddingRight:28,fontSize:10,color:"var(--text-dim2)",letterSpacing:3,textTransform:"uppercase"}}>
+                  <span>Points Are Bad</span>
+                  <span style={{opacity:0.45}}>•</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* hero */}
         <section className={isIndex?"hero-glow":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
