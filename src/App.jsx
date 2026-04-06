@@ -1208,15 +1208,16 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
   };
 
   const isIndex = theme === "index";
+  const mob = useMobile();
 
   return (
-    <div className={isIndex?"index-grid-bg":undefined} style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:24}}>
+    <div className={isIndex?"index-grid-bg":undefined} style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Mono',monospace",padding:mob?16:24}}>
       <style>{CSS}</style>
-      <div style={{width:"100%",maxWidth:isIndex?920:400,display:isIndex?"grid":"block",gridTemplateColumns:isIndex?"1.1fr .9fr":undefined,gap:isIndex?36:undefined,alignItems:isIndex?"center":undefined}}>
-        <div style={{textAlign:isIndex?"left":"center",marginBottom:isIndex?0:48}}>
-          <div style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?"clamp(2.4rem,5vw,4rem)":52,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.04em":-3,lineHeight:1.02}}>pab.wtf</div>
+      <div style={{width:"100%",maxWidth:isIndex?(mob?400:920):400,display:isIndex&&!mob?"grid":"block",gridTemplateColumns:isIndex&&!mob?"1.1fr .9fr":undefined,gap:isIndex&&!mob?36:undefined,alignItems:isIndex&&!mob?"center":undefined}}>
+        <div style={{textAlign:isIndex?"left":"center",marginBottom:isIndex?(mob?20:0):48}}>
+          <div style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?(mob?"clamp(2rem,8vw,2.6rem)":"clamp(2.4rem,5vw,4rem)"):52,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.04em":-3,lineHeight:1.02}}>pab.wtf</div>
           <div style={{fontSize:isIndex?12:10,color:"var(--text-dim2)",letterSpacing:isIndex?0.18:4,marginTop:10,textTransform:isIndex?"none":"uppercase"}}>Points Are Bad</div>
-          <div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Sign in, join a group, and start making regrettable picks.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>
+          {!mob&&<div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Pick scores. Take the damage. Lowest total wins.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>}
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
         <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?28:14,padding:32}}>
