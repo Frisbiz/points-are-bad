@@ -930,9 +930,9 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
               <button onClick={onContinue} style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
             </div>}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {!isIndex&&<button onClick={onContinue} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit"}}>Sign In</button>}
-            <button className={isIndex?"index-mobile-cta":undefined} onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            {!isIndex&&<button onClick={onContinue} className="mob-hide" style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit",whiteSpace:"nowrap"}}>Sign In</button>}
+            <button className={isIndex?"index-mobile-cta":undefined} onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{isIndex?"Sign in / up":"Create Group"}</button>
           </div>
         </div>
       </header>
@@ -963,7 +963,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             <p style={{fontSize:isIndex?15:12,color:"var(--text-mid)",lineHeight:isIndex?1.7:1.8,maxWidth:isIndex?420:380,marginBottom:36,letterSpacing:0.1}}>
               A score prediction game to play with your friends. Pick exact scorelines for every Premier League fixture each gameweek. Every goal off costs a point. Lowest total wins.
             </p>
-            <div style={{display:"flex",gap:isIndex?20:10,flexWrap:"wrap",alignItems:"center"}}>
+            <div className="land-hero-btns" style={{display:"flex",gap:isIndex?20:10,flexWrap:"wrap",alignItems:"center"}}>
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 20px":"12px 28px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
               {!isIndex&&<button onClick={onDemo||onContinue} style={{background:"transparent",color:"var(--text-bright)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:0,border:"none",cursor:"pointer",fontWeight:600,fontFamily:"inherit"}}>{isIndex?"Try demo →":"Try Demo →"}</button>}
             </div>
@@ -1036,7 +1036,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         )}
 
         {/* how it works */}
-        <section id="how-it-works" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
+        <section id="how-it-works" className="land-section" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
           <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"How it works":"The game"}</div>
           <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Four steps. Fully automatic.":"How it works."}</h2>
           <div style={{display:"grid",gridTemplateColumns:isIndex?"repeat(4,1fr)":"repeat(3,1fr)",gap:isIndex?20:16}} className="land-steps">
@@ -1059,7 +1059,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* scoring */}
-        {!isIndex&&<section style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
+        {!isIndex&&<section className="land-section" style={{padding:"64px 0",borderTop:"1px solid var(--border)"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"center"}} className="land-hero">
             <div>
               <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>Scoring</div>
@@ -1082,7 +1082,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>}
 
         {/* features */}
-        <section style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
+        <section className="land-section" style={{padding:"64px 0",borderTop:isIndex?"none":"1px solid var(--border)"}}>
           <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.15em":4,textTransform:"uppercase",marginBottom:8,fontWeight:isIndex?500:undefined}}>{isIndex?"Supported outcomes":"Features"}</div>
           <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?32:28,color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-1,marginBottom:isIndex?18:40,maxWidth:isIndex?420:undefined}}>{isIndex?"Real pain, on matchday.":"The details."}</h2>
           {isIndex&&<p style={{fontSize:14,color:"var(--text-dim)",lineHeight:1.7,maxWidth:360,marginBottom:30}}>Built for group chats, overconfident predictions, and weekly humiliation.</p>}
@@ -1102,7 +1102,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         </section>
 
         {/* cta */}
-        <section style={{borderTop:isIndex?"none":"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
+        <section className="land-cta-section" style={{borderTop:isIndex?"none":"1px solid var(--border)",padding:"80px 0 100px",textAlign:"center"}}>
           <div className={isIndex?"liquid-card":undefined} style={{maxWidth:isIndex?760:undefined,margin:isIndex?"0 auto":undefined,borderRadius:isIndex?32:undefined,padding:isIndex?"56px 24px":"0",textAlign:"center"}}>
             <div style={{fontSize:isIndex?12:10,color:"var(--text-dim)",letterSpacing:isIndex?"0.18em":4,textTransform:"uppercase",marginBottom:16,fontWeight:isIndex?500:undefined}}>Play</div>
             <h2 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontWeight:isIndex?600:900,fontSize:isIndex?"clamp(2rem,4vw,2.6rem)":"clamp(2rem,4vw,3rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.02em":-2,lineHeight:1.1,marginBottom:16}}>{isIndex?"Start losing with friends today.":"Start a group."}</h2>
@@ -1119,6 +1119,16 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       <style>{`
         @media(max-width:720px){.land-hero{grid-template-columns:1fr!important;}.land-steps{grid-template-columns:1fr!important;}.land-feats{grid-template-columns:1fr 1fr!important;}}
         @media(max-width:480px){.land-feats{grid-template-columns:1fr!important;}}
+        @media(max-width:620px){
+          .land-hero{padding-top:36px!important;padding-bottom:36px!important;}
+          .land-section{padding:36px 0!important;}
+          .land-cta-section{padding:40px 0 56px!important;}
+          .land-hero-btns{flex-direction:column!important;align-items:stretch!important;}
+          .land-hero-btns button{text-align:center!important;padding-top:14px!important;padding-bottom:14px!important;}
+          [data-theme="index"] .land-hero{padding-top:0!important;padding-bottom:32px!important;}
+          [data-theme="index"] .land-cta-section{padding:0!important;}
+          [data-theme="index"] .land-cta-section .liquid-card{padding:36px 20px!important;border-radius:20px!important;}
+        }
       `}</style>
     </div>
   );
