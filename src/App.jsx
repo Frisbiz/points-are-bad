@@ -2308,10 +2308,9 @@ export default function App() {
       const demoState = await ensureDemoExperience();
       if (demoState?.user) nextUser = demoState.user;
       if (demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
-      if (!localStorage.getItem("theme")) {
-        const fallbackTheme = sitePrefs?.defaultTheme || "dark";
-        setTheme(fallbackTheme);
-      }
+      const fallbackTheme = sitePrefs?.defaultTheme || "dark";
+      setTheme(fallbackTheme);
+      localStorage.setItem("theme", fallbackTheme);
     }
     lset("session", nextSession);
     setUser(nextUser);
