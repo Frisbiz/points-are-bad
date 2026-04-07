@@ -2215,6 +2215,10 @@ export default function App() {
   useEffect(()=>{
     const available = [...getAvailableThemes(user), "clarity"];
     const fallback = sitePrefs?.defaultTheme || "dark";
+    if (user?.username === DEMO_SHARED_USERNAME && theme !== fallback) {
+      setTheme(fallback);
+      return;
+    }
     if (!available.includes(theme)) setTheme(fallback);
   },[theme,user,sitePrefs]);
 
@@ -4755,7 +4759,7 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
       })()}
 
       <Section title="Appearance">
-        {true&&(
+        {user?.username==="faris" && user?.username!==DEMO_SHARED_USERNAME &&(
           <div style={{marginBottom:18,padding:"14px 16px",border:"1px solid var(--border3)",borderRadius:isAutoStocks?20:10,background:isAutoStocks?"var(--card-hi)":"var(--card)"}}>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Default theme for new users</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
