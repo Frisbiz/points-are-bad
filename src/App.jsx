@@ -2215,10 +2215,6 @@ export default function App() {
   useEffect(()=>{
     const available = [...getAvailableThemes(user), "clarity"];
     const fallback = sitePrefs?.defaultTheme || "dark";
-    if (user?.username === DEMO_SHARED_USERNAME && theme !== fallback) {
-      setTheme(fallback);
-      return;
-    }
     if (!available.includes(theme)) setTheme(fallback);
   },[theme,user,sitePrefs]);
 
@@ -2312,6 +2308,10 @@ export default function App() {
       const demoState = await ensureDemoExperience();
       if (demoState?.user) nextUser = demoState.user;
       if (demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
+      if (!localStorage.getItem("theme")) {
+        const fallbackTheme = sitePrefs?.defaultTheme || "dark";
+        setTheme(fallbackTheme);
+      }
     }
     lset("session", nextSession);
     setUser(nextUser);
