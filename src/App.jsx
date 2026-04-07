@@ -2210,7 +2210,9 @@ export default function App() {
 
   useEffect(()=>{
     (async()=>{
-      const prefs = await sget(SITE_PREFS_KEY).catch(()=>null);
+      const res = await fetch('/api/site-preferences').catch(()=>null);
+      const data = res ? await res.json().catch(()=>({ value:null })) : { value:null };
+      const prefs = data?.value;
       const safePrefs = prefs && typeof prefs === "object" ? prefs : { defaultTheme: "dark", landingTheme: null };
       setSitePrefs(safePrefs);
       setSitePrefsLoaded(true);
@@ -4778,16 +4780,16 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                 const active=(resolvedSitePrefs.defaultTheme||"dark")===t.key;
                 return <button key={`default-${t.key}`} onClick={async()=>{
                   const next={...resolvedSitePrefs,defaultTheme:t.key,landingTheme:(resolvedSitePrefs.landingTheme===null||resolvedSitePrefs.landingTheme===undefined)?t.key:resolvedSitePrefs.landingTheme};
-                  await sset(SITE_PREFS_KEY,next);setSitePrefs(next);
+                  await fetch('/api/site-preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});setSitePrefs(next);
                 }} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Landing page theme override</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
+              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await fetch('/api/site-preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
               {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
                 const active=resolvedSitePrefs.landingTheme===t.key;
-                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await fetch('/api/site-preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
           </div>
