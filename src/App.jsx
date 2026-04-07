@@ -1190,20 +1190,23 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
         setLoading(false);
         return;
       }
-      const ex = await sget(`user:${uname}`);
-      if (ex){setError("Username taken.");setLoading(false);return;}
-      const emailKey = `useremail:${email.trim().toLowerCase()}`;
-      const exEmail = await sget(emailKey);
-      if (exEmail){setError("Email already in use.");setLoading(false);return;}
-      const user = {username:uname,displayName:uname[0].toUpperCase()+uname.slice(1),password,email:email.trim().toLowerCase(),groupIds:[]};
-      const ok1 = await sset(`user:${uname}`,user);
-      const ok2 = await sset(emailKey,{username:uname});
-      if (!ok1||!ok2){setError("Registration failed - please try again.");setLoading(false);return;}
-      onLogin(user);
+      const res = await fetch('/api/auth-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname, password, email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.user){setError(data.error||"Registration failed - please try again.");setLoading(false);return;}
+      onLogin(data.user);
     } else {
-      const user = await sget(`user:${username.toLowerCase()}`);
-      if (!user||user.password!==password){setError("Invalid credentials.");setLoading(false);return;}
-      onLogin(user);
+      const res = await fetch('/api/auth-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.toLowerCase(), password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.user){setError(data.error||"Invalid credentials.");setLoading(false);return;}
+      onLogin(data.user);
     }
     setLoading(false);
   };
@@ -2278,12 +2281,13 @@ export default function App() {
     setBootError(false);
     setBoot(false);
     const saved=lget("session");
-    if(saved?.username){
-      const u=await sget(`user:${saved.username}`);
-      if(!u){setBootError(true);setBoot(true);return;}
+    const sessionRes = await fetch('/api/auth-session').catch(()=>null);
+    const sessionData = sessionRes ? await sessionRes.json().catch(()=>({user:null})) : { user:null };
+    const u = sessionData.user;
+    if(u){
       setUser(u);
-      setNeedsSetup(!u.email || u.password === "password123");
-      if(saved.groupId){
+      setNeedsSetup(!u.email);
+      if(saved?.groupId){
         const g=await sget(`group:${saved.groupId}`);
         if(g&&g.members?.includes(u.username)){
           setGroup(g);
@@ -2316,7 +2320,7 @@ export default function App() {
     setUser(nextUser);
     setNeedsSetup(false);
   };
-  const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
+  const handleLogout = async () => {try{await fetch('/api/auth-logout',{method:'POST'});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
     setGroup(fresh||g);

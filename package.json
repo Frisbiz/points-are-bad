@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "firebase-admin": "^13.6.1",
     "griddy-icons": "^0.2.0",
     "react": "^19.2.0",
