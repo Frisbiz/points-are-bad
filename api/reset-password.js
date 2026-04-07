@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import bcrypt from "bcryptjs";
 
 if (!getApps().length) {
   initializeApp({
@@ -41,7 +42,9 @@ export default async function handler(req, res) {
     if (!userSnap.exists) return res.status(400).json({ error: "User not found" });
 
     const user = userSnap.data().value;
-    await db.collection("data").doc(userDocId).set({ value: { ...user, password: newPassword }, updatedAt: Date.now() });
+    const passwordHash = await bcrypt.hash(String(newPassword), 12);
+    const { password, ...rest } = user;
+    await db.collection("data").doc(userDocId).set({ value: { ...rest, passwordHash }, updatedAt: Date.now() });
     await tokenDoc.delete();
 
     return res.status(200).json({ ok: true });

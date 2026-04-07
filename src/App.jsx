@@ -1515,9 +1515,13 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const fresh = await sget(`user:${user.username}`);
-    if (!fresh||fresh.password!==pwCurrent){setPwError("Current password is incorrect.");setPwLoading(false);return;}
-    await sset(`user:${user.username}`,{...fresh,password:pwNew});
+    const res = await fetch('/api/account-change-password', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
@@ -2475,9 +2479,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const fresh = await sget(`user:${user.username}`);
-    if (!fresh||fresh.password!==pwCurrent){setPwError("Current password is incorrect.");setPwLoading(false);return;}
-    await sset(`user:${user.username}`,{...fresh,password:pwNew});
+    const res = await fetch('/api/account-change-password', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
