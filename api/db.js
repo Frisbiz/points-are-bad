@@ -12,19 +12,23 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
+const READ_PREFIXES = ["group:", "groupcode:", "fixtures:"];
+const WRITE_PREFIXES = ["fixtures:"];
 
-const ALLOWED_PREFIXES = ["user:", "group:", "groupcode:", "reset:", "useremail:", "backup:", "fixtures:", "site:"];
+function validKeyFor(key, prefixes) {
+  return typeof key === "string" && key.length <= 200 && prefixes.some(p => key.startsWith(p));
+}
 
-function validKey(key) {
-  return typeof key === "string" && key.length <= 200 && ALLOWED_PREFIXES.some(p => key.startsWith(p));
+function docId(key) {
+  return key.replace(/[/\\]/g, "_");
 }
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const { key } = req.query;
-    if (!validKey(key)) return res.status(400).json({ error: "Invalid key" });
+    if (!validKeyFor(key, READ_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
     try {
-      const snap = await db.collection("data").doc(key.replace(/[/\\]/g, "_")).get();
+      const snap = await db.collection("data").doc(docId(key)).get();
       return res.status(200).json({ value: snap.exists ? snap.data().value : null });
     } catch (e) {
       console.error("db GET error", key, e);
@@ -33,10 +37,10 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { key, value } = req.body;
-    if (!validKey(key)) return res.status(400).json({ error: "Invalid key" });
+    const { key, value } = req.body || {};
+    if (!validKeyFor(key, WRITE_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
     try {
-      await db.collection("data").doc(key.replace(/[/\\]/g, "_")).set({ value, updatedAt: Date.now() });
+      await db.collection("data").doc(docId(key)).set({ value, updatedAt: Date.now() });
       return res.status(200).json({ ok: true });
     } catch (e) {
       console.error("db POST error", key, e);
@@ -46,12 +50,12 @@ export default async function handler(req, res) {
 
   if (req.method === "PATCH") {
     const { key, path, value } = req.body || {};
-    if (!validKey(key)) return res.status(400).json({ error: "Invalid key" });
+    if (!validKeyFor(key, WRITE_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
     if (!path || typeof path !== "string" || !/^[\w.-]+$/.test(path)) {
       return res.status(400).json({ error: "Invalid path" });
     }
     try {
-      await db.collection("data").doc(key.replace(/[/\\]/g, "_")).update({ [`value.${path}`]: value, updatedAt: Date.now() });
+      await db.collection("data").doc(docId(key)).update({ [`value.${path}`]: value, updatedAt: Date.now() });
       return res.status(200).json({ ok: true });
     } catch (e) {
       if (e.code === 5) return res.status(404).json({ error: "Document not found" });
@@ -62,9 +66,9 @@ export default async function handler(req, res) {
 
   if (req.method === "DELETE") {
     const { key } = req.query;
-    if (!validKey(key)) return res.status(400).json({ error: "Invalid key" });
+    if (!validKeyFor(key, WRITE_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
     try {
-      await db.collection("data").doc(key.replace(/[/\\]/g, "_")).delete();
+      await db.collection("data").doc(docId(key)).delete();
       return res.status(200).json({ ok: true });
     } catch (e) {
       console.error("db DELETE error", key, e);
