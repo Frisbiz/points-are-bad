@@ -181,200 +181,6 @@ function makeDemoPick(username, fixture, gw, season) {
   return `${h}-${a}`;
 }
 
-async function ensureDemoWCGroup() {
-  const F = (id,home,away,result,date,stage) => ({id,home,away,result,status:result?"FINISHED":"SCHEDULED",date,stage});
-  const WC_GWS = [
-    { gw:1, fixtures:[
-      F("wc-gw1-f1","Qatar","Ecuador","0-2","2026-06-12T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f2","England","Iran","6-2","2026-06-13T13:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f3","Argentina","Saudi Arabia","1-2","2026-06-13T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f4","France","Australia","4-1","2026-06-14T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f5","Morocco","Croatia","0-0","2026-06-14T10:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f6","Germany","Japan","1-2","2026-06-14T13:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f7","Brazil","Serbia","2-0","2026-06-15T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f8","Portugal","Ghana","3-2","2026-06-15T16:00:00Z","GROUP_STAGE"),
-    ]},
-    { gw:2, fixtures:[
-      F("wc-gw2-f1","Netherlands","Ecuador","1-1","2026-06-19T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f2","England","USA","0-0","2026-06-19T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f3","Argentina","Mexico","2-0","2026-06-20T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f4","France","Denmark","2-1","2026-06-20T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f5","Belgium","Morocco","0-2","2026-06-21T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f6","Croatia","Canada","4-1","2026-06-21T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f7","Brazil","Switzerland","1-0","2026-06-22T13:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f8","Portugal","Uruguay","2-0","2026-06-22T19:00:00Z","GROUP_STAGE"),
-    ]},
-    { gw:3, fixtures:[
-      F("wc-gw3-f1","Netherlands","Qatar","2-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f2","England","Wales","3-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f3","Argentina","Poland","2-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f4","Tunisia","France","1-0","2026-06-25T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f5","Japan","Spain","2-1","2026-06-25T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f6","Morocco","Canada","2-1","2026-06-25T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f7","South Korea","Portugal","2-1","2026-06-26T15:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f8","Cameroon","Brazil","1-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-    ]},
-    { gw:4, fixtures:[
-      F("wc-gw4-f1", "Netherlands","Scotland",  "2-0","2026-07-05T15:00:00Z","LAST_32"),
-      F("wc-gw4-f2", "USA",        "Jamaica",   "3-0","2026-07-05T18:00:00Z","LAST_32"),
-      F("wc-gw4-f3", "Argentina",  "El Salvador","3-1","2026-07-06T15:00:00Z","LAST_32"),
-      F("wc-gw4-f4", "Australia",  "Indonesia", "2-1","2026-07-06T18:00:00Z","LAST_32"),
-      F("wc-gw4-f5", "France",     "Algeria",   "3-0","2026-07-07T15:00:00Z","LAST_32"),
-      F("wc-gw4-f6", "Poland",     "Slovakia",  "2-1","2026-07-07T18:00:00Z","LAST_32"),
-      F("wc-gw4-f7", "England",    "Panama",    "4-1","2026-07-07T21:00:00Z","LAST_32"),
-      F("wc-gw4-f8", "Senegal",    "Ivory Coast","2-0","2026-07-08T15:00:00Z","LAST_32"),
-      F("wc-gw4-f9", "Japan",      "Vietnam",   "2-0","2026-07-08T18:00:00Z","LAST_32"),
-      F("wc-gw4-f10","Croatia",    "Romania",   "3-1","2026-07-08T21:00:00Z","LAST_32"),
-      F("wc-gw4-f11","Brazil",     "Venezuela", "5-1","2026-07-09T15:00:00Z","LAST_32"),
-      F("wc-gw4-f12","South Korea","Thailand",  "2-1","2026-07-09T18:00:00Z","LAST_32"),
-      F("wc-gw4-f13","Morocco",    "Cameroon",  "1-0","2026-07-09T21:00:00Z","LAST_32"),
-      F("wc-gw4-f14","Spain",      "Costa Rica","3-0","2026-07-10T15:00:00Z","LAST_32"),
-      F("wc-gw4-f15","Portugal",   "Ghana",     "4-1","2026-07-10T18:00:00Z","LAST_32"),
-      F("wc-gw4-f16","Switzerland","Hungary",   "2-1","2026-07-10T21:00:00Z","LAST_32"),
-    ]},
-    { gw:5, fixtures:[
-      F("wc-gw5-f1","Netherlands","USA",        "3-1","2026-07-13T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f2","Argentina",  "Australia",  "2-1","2026-07-13T19:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f3","France",     "Poland",     "3-1","2026-07-14T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f4","England",    "Senegal",    "3-0","2026-07-14T19:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f5","Japan",      "Croatia",    "1-1","2026-07-15T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f6","Brazil",     "South Korea","4-1","2026-07-15T19:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f7","Morocco",    "Spain",      "0-0","2026-07-16T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f8","Portugal",   "Switzerland","6-1","2026-07-16T19:00:00Z","ROUND_OF_16"),
-    ]},
-    { gw:6, fixtures:[
-      F("wc-gw6-f1","Argentina","Netherlands","2-2","2026-07-18T19:00:00Z","QUARTER_FINAL"),
-      F("wc-gw6-f2","Croatia",  "Brazil",     "1-1","2026-07-18T15:00:00Z","QUARTER_FINAL"),
-      F("wc-gw6-f3","Morocco",  "Portugal",   "1-0","2026-07-19T19:00:00Z","QUARTER_FINAL"),
-      F("wc-gw6-f4","England",  "France",     "1-2","2026-07-19T15:00:00Z","QUARTER_FINAL"),
-    ]},
-    { gw:7, fixtures:[
-      F("wc-gw7-f1","Argentina","Croatia","3-0","2026-07-22T19:00:00Z","SEMI_FINAL"),
-      F("wc-gw7-f2","France",   "Morocco","2-0","2026-07-23T19:00:00Z","SEMI_FINAL"),
-    ]},
-    { gw:8, fixtures:[
-      F("wc-gw8-f1","Argentina","France",null,"2026-07-26T20:00:00Z","FINAL"),
-    ]},
-  ];
-
-  const wcGroupId_lookup = await sget(`groupcode:${DEMO_WC_GROUP_CODE}`);
-  const wcGroupId = wcGroupId_lookup || "demo-wc-2026";
-  if (!wcGroupId_lookup) await sset(`groupcode:${DEMO_WC_GROUP_CODE}`, wcGroupId);
-  // clean up old demo usernames from any real accounts they contaminated
-  const OLD_DEMO_NAMES = ["faris","damon","vall","aamer"];
-  for (const old of OLD_DEMO_NAMES) {
-    const doc = await sget(`user:${old}`);
-    if (!doc) continue;
-    const cleaned = (doc.groupIds||[]).filter(id=>id!==wcGroupId&&id!=="demo-wc-2026");
-    if (cleaned.length !== (doc.groupIds||[]).length) await sset(`user:${old}`,{...doc,groupIds:cleaned});
-  }
-
-  const memberNames = DEMO_MEMBERS.map(m => m.username);
-
-  const predictions = {};
-  memberNames.forEach(u => { predictions[u] = {}; });
-  WC_GWS.forEach(({ gw, fixtures }) => {
-    fixtures.forEach(fixture => {
-      DEMO_MEMBERS.forEach(member => {
-        if (fixture.result) {
-          predictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
-        } else if (member.username !== DEMO_SHARED_USERNAME) {
-          predictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
-        }
-      });
-    });
-  });
-
-  const nextGroup = {
-    id: wcGroupId, name: "World Cup 2026", code: DEMO_WC_GROUP_CODE,
-    creatorUsername: DEMO_SHARED_USERNAME, competition: "WC", season: 2026,
-    currentGW: 8, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
-    hiddenGWs: [], hiddenFixtures: [], adminLog: [], dibsSkips: {},
-    lastAutoSync: Date.now(),
-    members: memberNames,
-    memberOrder: memberNames,
-    admins: [DEMO_SHARED_USERNAME],
-    gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
-    predictions,
-  };
-
-  await sset(`group:${wcGroupId}`, nextGroup);
-  return wcGroupId;
-}
-
-async function ensureDemoExperience() {
-  const groupId = await sget(`groupcode:${DEMO_GROUP_CODE}`);
-  if (!groupId) return null;
-  const demoGroup = await sget(`group:${groupId}`);
-  if (!demoGroup) return null;
-
-  const wcGroupId = await ensureDemoWCGroup();
-
-  // strip demo group IDs from any real accounts that were contaminated by old demo usernames
-  const OLD_DEMO_NAMES_PL = ["faris","damon","vall","aamer"];
-  for (const old of OLD_DEMO_NAMES_PL) {
-    const doc = await sget(`user:${old}`);
-    if (!doc) continue;
-    const cleaned = (doc.groupIds||[]).filter(id=>id!==groupId&&id!==wcGroupId&&id!=="demo-wc-2026");
-    if (cleaned.length !== (doc.groupIds||[]).length) await sset(`user:${old}`,{...doc,groupIds:cleaned});
-  }
-
-  for (const member of DEMO_MEMBERS) {
-    const key = `user:${member.username}`;
-    const existing = await sget(key);
-    const userDoc = existing || {
-      username: member.username,
-      displayName: member.displayName,
-      password: member.username === DEMO_SHARED_USERNAME ? "demo" : "password123",
-      email: "",
-      groupIds: [],
-    };
-    const nextUser = {
-      ...userDoc,
-      username: member.username,
-      displayName: member.displayName,
-      groupIds: Array.from(new Set([...(userDoc.groupIds || []), groupId, ...(wcGroupId ? [wcGroupId] : [])])),
-    };
-    await sset(key, nextUser);
-  }
-
-  const memberNames = DEMO_MEMBERS.map(m => m.username);
-  const now = new Date();
-  const nextPredictions = { ...(demoGroup.predictions || {}) };
-  memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
-
-  const nextGroup = {
-    ...demoGroup,
-    members: memberNames,
-    memberOrder: memberNames,
-    admins: Array.from(new Set([...(demoGroup.admins || []), DEMO_SHARED_USERNAME])),
-    predictions: nextPredictions,
-  };
-
-  (nextGroup.gameweeks || []).forEach(gwObj => {
-    const season = gwObj.season || nextGroup.season || 2025;
-    (gwObj.fixtures || []).forEach(fixture => {
-      const fixtureDone = !!fixture.result || fixture.status === "POSTPONED" || fixture.status === "FINISHED";
-      const isOpen = !fixtureDone && fixture.status !== "IN_PLAY" && fixture.status !== "PAUSED" && (!fixture.date || new Date(fixture.date) > now);
-      DEMO_MEMBERS.forEach(member => {
-        if (member.username === DEMO_SHARED_USERNAME) return;
-        if (fixtureDone || isOpen) {
-          nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gwObj.gw, season);
-        }
-      });
-      if (isOpen) {
-        delete nextPredictions[DEMO_SHARED_USERNAME][fixture.id];
-      } else if (fixtureDone && !nextPredictions[DEMO_SHARED_USERNAME][fixture.id]) {
-        nextPredictions[DEMO_SHARED_USERNAME][fixture.id] = makeDemoPick(DEMO_SHARED_USERNAME, fixture, gwObj.gw, season);
-      }
-    });
-  });
-
-  await sset(`group:${groupId}`, nextGroup);
-  const refreshedDemoUser = await sget(`user:${DEMO_SHARED_USERNAME}`);
-  return { groupId, group: nextGroup, user: refreshedDemoUser };
-}
-
 function calcPts(pred, result) {
   if (!pred || !result) return null;
   const [ph, pa] = pred.split("-").map(Number);
@@ -2129,9 +1935,14 @@ export default function App() {
     let nextUser = u;
     let nextSession = { username: u.username };
     if (u.username === DEMO_SHARED_USERNAME) {
-      const demoState = await ensureDemoExperience();
-      if (demoState?.user) nextUser = demoState.user;
-      if (demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'demo-bootstrap' })
+      });
+      const demoState = await res.json().catch(()=>({}));
+      if (res.ok && demoState?.user) nextUser = demoState.user;
+      if (res.ok && demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
       const fallbackTheme = sitePrefs?.defaultTheme || "dark";
       setTheme(fallbackTheme);
       localStorage.setItem("theme", fallbackTheme);

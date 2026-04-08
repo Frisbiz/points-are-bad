@@ -1,6 +1,7 @@
 import { getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
 import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
+import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 
 const OWNER_USERNAME = "faris";
 const SITE_DEFAULTS = { defaultTheme: "dark", landingTheme: null };
@@ -245,6 +246,44 @@ export default async function handler(req, res) {
     await setValue(`user:${username}`, nextUser);
     await setValue(`group:${groupId}`, nextGroup);
     return res.status(200).json({ ok: true, user: safeUser(nextUser), group: nextGroup });
+  }
+
+  if (action === 'demo-bootstrap' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    if (username !== DEMO_SHARED_USERNAME) return bad(res, 403, 'Forbidden');
+    const groupId = await getValue(`groupcode:${DEMO_GROUP_CODE}`);
+    if (!groupId) return bad(res, 404, 'Demo group not found');
+    const demoGroup = await getValue(`group:${groupId}`);
+    if (!demoGroup) return bad(res, 404, 'Demo group not found');
+    const memberNames = DEMO_MEMBERS.map(m => m.username);
+    for (const member of DEMO_MEMBERS) {
+      const key = `user:${member.username}`;
+      const existing = await getValue(key);
+      const nextUser = { ...(existing || {}), username: member.username, displayName: member.displayName, email: existing?.email || '', groupIds: Array.from(new Set([...(existing?.groupIds || []), groupId])) };
+      delete nextUser.password;
+      await setValue(key, nextUser);
+    }
+    const now = new Date();
+    const nextPredictions = { ...(demoGroup.predictions || {}) };
+    memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
+    const nextGroup = { ...demoGroup, members: memberNames, memberOrder: memberNames, admins: Array.from(new Set([...(demoGroup.admins || []), DEMO_SHARED_USERNAME])), predictions: nextPredictions };
+    (nextGroup.gameweeks || []).forEach(gwObj => {
+      const season = gwObj.season || nextGroup.season || 2025;
+      (gwObj.fixtures || []).forEach(fixture => {
+        const fixtureDone = !!fixture.result || fixture.status === 'POSTPONED' || fixture.status === 'FINISHED';
+        const isOpen = !fixtureDone && fixture.status !== 'IN_PLAY' && fixture.status !== 'PAUSED' && (!fixture.date || new Date(fixture.date) > now);
+        DEMO_MEMBERS.forEach(member => {
+          if (member.username === DEMO_SHARED_USERNAME) return;
+          if (fixtureDone || isOpen) nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gwObj.gw, season);
+        });
+        if (isOpen) delete nextPredictions[DEMO_SHARED_USERNAME][fixture.id];
+        else if (fixtureDone && !nextPredictions[DEMO_SHARED_USERNAME][fixture.id]) nextPredictions[DEMO_SHARED_USERNAME][fixture.id] = makeDemoPick(DEMO_SHARED_USERNAME, fixture, gwObj.gw, season);
+      });
+    });
+    await setValue(`group:${groupId}`, nextGroup);
+    const refreshedDemoUser = await getValue(`user:${DEMO_SHARED_USERNAME}`);
+    return res.status(200).json({ groupId, group: nextGroup, user: safeUser(refreshedDemoUser) });
   }
 
   if (action === 'group-admin' && req.method === 'POST') {
