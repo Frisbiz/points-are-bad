@@ -231,6 +231,39 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
+    if (payload.type === 'save-api-settings') {
+      const next = { ...group, apiKey: String(payload.apiKey || '').trim(), season: Number(payload.season) || group.season || 2025 };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'start-new-season') {
+      const season = Number(payload.season);
+      if (!season) return bad(res, 400, 'Missing season');
+      const next = { ...group, season, gameweeks: [], hiddenGWs: [], hiddenFixtures: [], predictions: {}, results: {} };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'backfill-gws') {
+      const existing = group.gameweeks || [];
+      const season = group.season || 2025;
+      const maxGw = existing.reduce((m,g)=>Math.max(m,g.gw||0),0);
+      const toAdd = Array.from({ length: Math.max(0, 38 - maxGw) }, (_,i)=>({ gw:maxGw+i+1, season, fixtures:[] }));
+      const next = { ...group, gameweeks: [...existing, ...toAdd] };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'backfill-all-gws') {
+      const season = group.season || 2025;
+      const existing = new Map((group.gameweeks || []).map(g => [g.gw, g]));
+      const gameweeks = Array.from({ length: 38 }, (_,i)=> existing.get(i+1) || ({ gw:i+1, season, fixtures:[] }));
+      const next = { ...group, gameweeks };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
     if (payload.type === 'toggle-admin') {
       const target = payload.username;
       if (!target) return bad(res, 400, 'Missing target username');

@@ -4560,48 +4560,25 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
   const save11Limit=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-11-limit',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
   const saveName=async()=>{if(!newName.trim())return;const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-name',name:newName.trim()}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);}};
-  const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:(g.apiKey||"").trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
+  const saveApiKey=async()=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-api-settings',apiKey:group.apiKey,season:parseInt(season)||2025}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);}};
   const saveScope=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-scope',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group)setGroup(data.group);};
   const startNewSeason=async()=>{
     const yr=parseInt(newSeasonYear);
     if(!yr||yr<2020||yr>2060){setSeasonMsg("Enter a valid year.");setTimeout(()=>setSeasonMsg(""),3000);return;}
-    const prevSeason=group.season||2025;
-    await updateGroup(g=>{
-      if ((g.gameweeks||[]).some(gw=>(gw.season||g.season||2025)===yr)) return g;
-      const backfilled=(g.gameweeks||[]).map(gw=>gw.season?gw:{...gw,season:prevSeason});
-      return {...g,gameweeks:[...backfilled,...makeAllGWs(yr)],season:yr,currentGW:1};
-    });
-    setNewSeasonYear("");
-    setSeasonMsg(`Season ${yr} started!`);
-    setTimeout(()=>setSeasonMsg(""),3000);
+    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'start-new-season',season:yr}})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.group){setGroup(data.group);setNewSeasonYear("");setSeasonMsg(`Season ${yr} started!`);setTimeout(()=>setSeasonMsg(""),3000);} else {setSeasonMsg(data.error||"Failed to start season.");setTimeout(()=>setSeasonMsg(""),3000);} 
   };
   const backfillGWs = async () => {
-    const seas = group.season || 2025;
-    let added = 0;
-    await updateGroup(g => {
-      const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
-      const minExisting = existing.size > 0 ? Math.min(...existing) : 1;
-      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n)&&n>=minExisting);
-      if (!missing.length) { added = 0; return g; }
-      added = missing.length;
-      const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
-      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
-    });
-    setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
+    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'backfill-gws'}})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.group){setGroup(data.group);setBackfillMsg("Backfilled missing gameweeks.");} else {setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const backfillAllGWs = async () => {
-    const seas = group.season || 2025;
-    let added = 0;
-    await updateGroup(g => {
-      const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
-      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n));
-      if (!missing.length) { added = 0; return g; }
-      added = missing.length;
-      const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
-      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
-    });
-    setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
+    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'backfill-all-gws'}})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.group){setGroup(data.group);setBackfillMsg("Rebuilt all gameweeks.");} else {setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const syncAllDates = async () => {
