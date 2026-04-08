@@ -1228,8 +1228,9 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   useEffect(()=>{
     let cancelled = false;
     (async()=>{
-      await loadGroups();
-      if (cancelled || !initialJoinCode) return;
+      if (user?.username) await loadGroups();
+      else if (!cancelled) setGroups([]);
+      if (cancelled || !initialJoinCode || !user?.username) return;
       try {
         const code = initialJoinCode.trim().toUpperCase();
         const id = await sget(`groupcode:${code}`);
@@ -1255,7 +1256,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
       }
     })();
     return ()=>{ cancelled = true; };
-  },[]);
+  },[user?.username, initialJoinCode]);
 
   useEffect(()=>{
     if (!setupMode) return;
