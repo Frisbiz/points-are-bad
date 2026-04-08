@@ -1947,9 +1947,20 @@ export default function App() {
       setTheme(fallbackTheme);
       localStorage.setItem("theme", fallbackTheme);
     }
+    const freshUser = await sget(`user:${nextUser.username}`);
+    if (freshUser) nextUser = freshUser;
     lset("session", nextSession);
     setUser(nextUser);
     setNeedsSetup(false);
+    if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
+      const onlyGroup = await sget(`group:${nextUser.groupIds[0]}`);
+      if (onlyGroup && onlyGroup.members?.includes(nextUser.username)) {
+        setGroup(onlyGroup);
+        setTab("League");
+        const sessionWithGroup = { ...nextSession, groupId: onlyGroup.id, tab: "League" };
+        lset("session", sessionWithGroup);
+      }
+    }
   };
   const handleLogout = async () => {try{await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'auth-logout'})});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
