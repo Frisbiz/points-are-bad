@@ -4381,13 +4381,24 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
     }
     setEditingNick(null);
   };
-  const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];const isNowAdmin=!a.includes(username);const entry={id:Date.now(),at:Date.now(),by:user.username,action:isNowAdmin?"make-admin":"remove-admin",for:username};return {...g,admins:isNowAdmin?[...a,username]:a.filter(x=>x!==username),adminLog:[...(g.adminLog||[]),entry]};});};
+  const toggleAdmin=async(username)=>{
+    const res = await fetch('/api/group-admin', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'toggle-admin', groupId: group.id, payload:{ username } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
+  };
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
-    const entry={id:Date.now(),at:Date.now(),by:user.username,action:"kick",for:username};
-    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==username),admins:(g.admins||[]).filter(a=>a!==username),memberOrder:(g.memberOrder||g.members||[]).filter(m=>m!==username),adminLog:[...(g.adminLog||[]),entry]}));
-    const fresh=await sget(`user:${username}`);
-    if(fresh)await sset(`user:${username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
+    const res = await fetch('/api/group-admin', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'kick', groupId: group.id, payload:{ username } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
   };
   return (
     <div style={{maxWidth:isIndex?860:560}}>
