@@ -35,6 +35,37 @@ function makeWCRounds() {
   ];
 }
 
+function getFixtureSeasonIndex(group, fixtureId) {
+  const gws = (group.gameweeks || []).filter(gw => (gw.fixtures || []).some(f => f.id === fixtureId));
+  if (!gws.length) return null;
+  const gw = gws[0].gw;
+  const season = gws[0].season || group.season || 2025;
+  const ordered = (group.gameweeks || [])
+    .filter(g => (g.season || group.season || 2025) === season)
+    .sort((a, b) => a.gw - b.gw);
+  return ordered.findIndex(g => g.gw === gw);
+}
+
+function computeDibsTurn(group, fixtureId) {
+  const memberOrder = group.memberOrder || group.members || [];
+  const n = memberOrder.length;
+  if (n === 0) return null;
+  const seasonIdx = getFixtureSeasonIndex(group, fixtureId);
+  if (seasonIdx === null) return null;
+  const skips = (group.dibsSkips || {})[fixtureId] || [];
+  const preds = group.predictions || {};
+  const rotStart = seasonIdx % n;
+  const queue = [];
+  for (let i = 0; i < n; i++) {
+    const member = memberOrder[(rotStart + i) % n];
+    if (!skips.includes(member)) queue.push(member);
+  }
+  for (const member of queue) {
+    if (!/^\d+-\d+$/.test(preds[member]?.[fixtureId] || '')) return member;
+  }
+  return null;
+}
+
 function makeDemoWCGameweeks() {
   const F = (id, home, away, result, date, stage) => ({ id, home, away, result, status: result ? 'FINISHED' : 'SCHEDULED', date, stage });
   return [
