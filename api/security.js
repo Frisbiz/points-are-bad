@@ -182,6 +182,22 @@ export default async function handler(req, res) {
     return res.status(200).json({ user: safeUser(user) });
   }
 
+  if (action === 'member-names' && req.method === 'GET') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const { groupId } = req.query || {};
+    if (!groupId) return bad(res, 400, 'Missing groupId');
+    const group = await getValue(`group:${groupId}`);
+    if (!group) return bad(res, 404, 'Group not found');
+    if (!(group.members || []).includes(username)) return bad(res, 403, 'Not a member');
+    const members = group.members || [];
+    const nameEntries = await Promise.all(members.map(async u => {
+      const userDoc = await getValue(`user:${u}`);
+      return [u, userDoc?.displayName || (u[0].toUpperCase() + u.slice(1))];
+    }));
+    return res.status(200).json({ names: Object.fromEntries(nameEntries) });
+  }
+
   if (action === 'auth-logout' && req.method === 'POST') {
     const token = readSessionToken(req);
     await destroySession(token);

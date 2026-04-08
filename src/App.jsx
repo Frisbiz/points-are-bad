@@ -567,14 +567,14 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
       <header style={{padding:"16px 24px 0",height:isIndex?76:60,position:isIndex?"fixed":undefined,top:isIndex?0:undefined,left:isIndex?0:undefined,right:isIndex?0:undefined,zIndex:isIndex?20:undefined}}>
         <div className={isIndex?"pill-nav":undefined} style={{maxWidth:isIndex?560:1120,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:isIndex?44:60,borderRadius:isIndex?18:0,padding:isIndex?"0 10px":undefined,borderBottom:isIndex?undefined:`1px solid ${"var(--border)"}`}}>
           <div style={{display:"flex",alignItems:"center",gap:1,flexShrink:0}}>
-            <div className={isIndex?"index-mobile-brand":undefined} style={{padding:"0 12px",display:"flex",flexDirection:"column",justifyContent:"center",height:isIndex?32:60,gap:2}}>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--text-bright)",lineHeight:1}}>pab.wtf</div>
-              <div style={{fontSize:9,fontWeight:500,color:"var(--text-dim)",letterSpacing:"0.12em",textTransform:"uppercase",lineHeight:1}}>Points Are Bad</div>
+            <div className={isIndex?"index-mobile-brand":undefined} style={{padding:"0 12px",display:"flex",alignItems:"center",height:isIndex?32:60,gap:6}}>
+              <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:16,color:"var(--text-bright)",lineHeight:1}}>POINTS</span>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:3,color:"var(--text-dim)",fontWeight:400,lineHeight:1}}>are bad</span>
             </div>
             {isIndex&&<div className="index-mobile-links" style={{display:"flex",alignItems:"center",gap:0}}>
               <button style={{position:"relative",padding:"0 12px",height:32,border:"none",background:"rgba(255,255,255,.5)",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--text-bright)",fontFamily:"inherit"}}>Home</button>
-              <button onClick={onContinue} className="pill-nav-link" style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Dashboard</button>
-              <button onClick={onContinue} className="pill-nav-link" style={{padding:"0 12px",height:32,border:"none",background:"transparent",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit"}}>Groups</button>
+              <button onClick={onContinue} className="pill-nav-link" style={{padding:"0 12px",height:32,border:"none",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit",cursor:"pointer"}}>Dashboard</button>
+              <button onClick={onContinue} className="pill-nav-link" style={{padding:"0 12px",height:32,border:"none",fontSize:13,fontWeight:500,color:"var(--text-dim)",fontFamily:"inherit",cursor:"pointer"}}>Groups</button>
             </div>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -601,6 +601,7 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
         {/* hero */}
         <section className={isIndex?"hero-glow land-hero":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
           <div className="fade">
+            {isIndex&&<div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1.6,marginBottom:8}}>pab.wtf</div>}
             <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.6:4,textTransform:isIndex?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
             <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isIndex?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.025em":-2,lineHeight:isIndex?1.08:1.05,marginBottom:10,maxWidth:isIndex?560:undefined}}>
               {isIndex?<>Join one group.</>:<>Predict every goal.</>}
@@ -863,8 +864,10 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
       <style>{CSS}</style>
       <div style={{width:"100%",maxWidth:isIndex?(mob?400:920):400,display:isIndex&&!mob?"grid":"block",gridTemplateColumns:isIndex&&!mob?"1.1fr .9fr":undefined,gap:isIndex&&!mob?36:undefined,alignItems:isIndex&&!mob?"center":undefined}}>
         <div style={{textAlign:isIndex?"left":"center",marginBottom:isIndex?(mob?20:0):48}}>
-          <div style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?(mob?"clamp(2rem,8vw,2.6rem)":"clamp(2.4rem,5vw,4rem)"):52,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.04em":-3,lineHeight:1.02}}>pab.wtf</div>
-          <div style={{fontSize:isIndex?12:10,color:"var(--text-dim2)",letterSpacing:isIndex?0.18:4,marginTop:10,textTransform:isIndex?"none":"uppercase"}}>Points Are Bad</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:isIndex?10:8}}>
+            <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:isIndex?(mob?"clamp(2rem,8vw,2.6rem)":"clamp(2.4rem,5vw,4rem)"):52,color:"var(--text-bright)",letterSpacing:isIndex?"-0.04em":-3,lineHeight:1.02}}>POINTS</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontWeight:400,fontSize:isIndex?(mob?11:13):14,color:"var(--text-dim)",letterSpacing:3}}>are bad</span>
+          </div>
           {!mob&&<div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Pick scores. Take the damage. Lowest total wins.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>}
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
@@ -1014,28 +1017,28 @@ function AccountSetupModal({ user, onDone, onLogout }) {
     setLoading(true);
     try {
       const normEmail = emailVal.trim().toLowerCase();
-      // Email uniqueness check
       if (needsEmail) {
-        const existing = await sget(`useremail:${normEmail}`);
-        if (existing && existing.username !== user.username) {
-          setError("Email already in use.");
-          setLoading(false);
-          return;
-        }
-      }
-      // Firebase writes
-      if (needsEmail) {
-        await sset(`useremail:${normEmail}`, { username: user.username });
-        await spatch(`user:${user.username}`, "email", normEmail);
+        const res = await fetch('/api/security', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'account-change-email', email: normEmail }),
+        });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok) { setError(data.error || "Failed to save email."); setLoading(false); return; }
       }
       if (needsPassword) {
-        await spatch(`user:${user.username}`, "password", trimmedPw);
+        const res = await fetch('/api/security', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'account-change-password', currentPassword: user.password || "password123", newPassword: trimmedPw }),
+        });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok) { setError(data.error || "Failed to save password."); setLoading(false); return; }
       }
-      // Stage updated user and trigger success flash
       pendingUser.current = {
         ...user,
         ...(needsEmail && { email: normEmail }),
-        ...(needsPassword && { password: trimmedPw }),
+        ...(needsPassword && { password: undefined, passwordHash: "set" }),
       };
       setSuccess(true);
     } catch {
@@ -1184,26 +1187,13 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     }
     setEmailLoading(true);
     try {
-      const existing = await sget(`useremail:${normEmail}`);
-      if (existing && existing.username !== user.username) {
-        setEmailError("Email already in use.");
-        return;
-      }
-      // Write sequentially
-      await sset(`useremail:${normEmail}`, { username: user.username });
-      if (user.email) {
-        const delOk = await sdel(`useremail:${user.email}`);
-        if (!delOk) {
-          // sdel failed after sset succeeded -- unrecoverable partial write
-          setEmailError("Something went wrong. Please contact support.");
-          return;
-        }
-      }
-      const patchOk = await spatch(`user:${user.username}`, "email", normEmail);
-      if (!patchOk) {
-        setEmailError("Something went wrong. Please contact support.");
-        return;
-      }
+      const res = await fetch('/api/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'account-change-email', email: normEmail }),
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) { setEmailError(data.error || "Failed to update email."); return; }
       onUpdateUser({ ...user, email: normEmail });
       setEmailSuccess(true);
       setTimeout(() => {
@@ -1300,8 +1290,10 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const loadGroups = async (usernameArg = user?.username) => {
     if (!usernameArg) { setGroups([]); setLoading(false); return; }
     setLoading(true);
-    const fresh = await sget(`user:${usernameArg}`);
-    const ids = fresh?.groupIds||[];
+    // user: reads are now server-only — use session endpoint to get current groupIds
+    const sessionRes = await fetch('/api/security?action=auth-session').catch(()=>null);
+    const sessionData = sessionRes ? await sessionRes.json().catch(()=>({user:null})) : {user:null};
+    const ids = sessionData.user?.groupIds || [];
     const gs = (await Promise.all(ids.map(id=>sget(`group:${id}`)))).filter(Boolean);
     setGroups(gs);
     setLoading(false);
@@ -1350,7 +1342,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       <style>{CSS}</style>
       <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontWeight:theme==="index"?800:900,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           {user.username===DEMO_SHARED_USERNAME?(
             <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,padding:0,color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit"}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
@@ -1825,6 +1817,7 @@ export default function App() {
   });
   const [joinParam]=useState(()=>getInviteCodeFromLocation());
   const [resetDone,setResetDone]=useState(false);
+  const [groups, setGroups] = useState([]);
   const [needsSetup, setNeedsSetup] = useState(false);
   const handleSetupDone = useCallback((updatedUser) => {
     setUser(updatedUser);
@@ -2104,7 +2097,11 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
   },[profileOpen]);
   useEffect(()=>{
     let cancelled=false;
-    (async()=>{const e=await Promise.all((group.members||[]).map(async u=>{const d=await sget(`user:${u}`);return [u,d?.displayName||(u[0].toUpperCase()+u.slice(1))];}));if(!cancelled)setNames(Object.fromEntries(e));})();
+    (async()=>{
+      const res = await fetch(`/api/security?action=member-names&groupId=${group.id}`).catch(()=>null);
+      const data = res ? await res.json().catch(()=>({})) : {};
+      if (!cancelled && data.names) setNames(n => ({ ...n, ...data.names, [user.username]: user.displayName }));
+    })();
     return()=>{cancelled=true;};
   },[group.members?.join(",")]);
 
@@ -2170,7 +2167,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
       <header style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
         <div className={theme==="index"?"pill-nav":undefined} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="index"?48:60,gap:0,borderRadius:theme==="index"?18:0,padding:theme==="index"?"0 10px":undefined}}>
           <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
-            <span style={{fontFamily:theme==="index"?"Inter,system-ui,sans-serif":theme==="excel"?"Arial,Calibri,sans-serif":"'Playfair Display',serif",fontWeight:theme==="index"?700:theme==="excel"?700:900,fontSize:theme==="index"?13:18,color:"var(--text-bright)",lineHeight:1,letterSpacing:theme==="index"?"-0.02em":undefined}}>pab.wtf</span>
+            <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:16,color:"var(--text-bright)",lineHeight:1}}>POINTS</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontWeight:400,fontSize:9,color:"var(--text-dim)",letterSpacing:3}}>are bad</span>
           </button>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           <div className="mob-hide" style={{flex:1,fontSize:theme==="index"?13:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:theme==="index"?500:undefined}}>{group.name}</div>
