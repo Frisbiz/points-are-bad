@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "rea
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
+import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "../api/_fixtureSync.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -75,20 +76,6 @@ const PL_CODE = "PL";
 // Global API key (works for all groups automatically)
 const GLOBAL_API_KEY = import.meta.env.VITE_FD_API_KEY;
 
-const TEAM_NAME_MAP = {
-  "Arsenal FC": "Arsenal", "Aston Villa FC": "Aston Villa", "AFC Bournemouth": "Bournemouth",
-  "Brentford FC": "Brentford", "Brighton & Hove Albion FC": "Brighton", "Burnley FC": "Burnley",
-  "Chelsea FC": "Chelsea", "Crystal Palace FC": "Crystal Palace", "Everton FC": "Everton",
-  "Fulham FC": "Fulham", "Ipswich Town FC": "Ipswich", "Leeds United FC": "Leeds",
-  "Leicester City FC": "Leicester", "Liverpool FC": "Liverpool",
-  "Manchester City FC": "Man City", "Manchester United FC": "Man Utd", "Newcastle United FC": "Newcastle",
-  "Nottingham Forest FC": "Nott'm Forest", "Southampton FC": "Southampton",
-  "Sunderland AFC": "Sunderland", "Tottenham Hotspur FC": "Spurs", "West Ham United FC": "West Ham",
-  "Wolverhampton Wanderers FC": "Wolves",
-};
-
-function normName(n) { return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, "").replace(/ AFC$/, "") || n; }
-
 async function fetchMatchweek(apiKey, matchday, season = 2025, competition = "PL") {
   const url = matchday != null
     ? `/api/fixtures?matchday=${matchday}&season=${season}&competition=${competition}`
@@ -109,155 +96,6 @@ async function fetchLiveMatches() {
   if (!res.ok) return [];
   const data = await res.json();
   return data.matches || [];
-}
-
-function parseMatchesToFixtures(matches, matchday, competition = "PL") {
-  const isWC = competition === "WC";
-  return matches.map((m, i) => {
-    const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
-    const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
-    const status = m.status;
-    let result = null;
-    if (status === "FINISHED") {
-      // For WC knockout rounds, use extraTime score if available (covers goals in ET),
-      // otherwise fall back to fullTime. Group stage never has ET so fullTime is always correct.
-      const isKnockout = isWC && m.stage && m.stage !== "GROUP_STAGE";
-      const scoreObj = isKnockout && m.score?.extraTime?.home != null
-        ? m.score.extraTime
-        : m.score?.fullTime;
-      if (scoreObj) {
-        const { home: h, away: a } = scoreObj;
-        if (h !== null && a !== null) result = `${h}-${a}`;
-      }
-    }
-    const date = m.utcDate ? new Date(m.utcDate) : null;
-    const scoreObj = m.score?.fullTime;
-    const liveScore = (status==="IN_PLAY"||status==="PAUSED") && scoreObj?.home!=null && scoreObj?.away!=null ? `${scoreObj.home}-${scoreObj.away}` : null;
-    const id = isWC ? `wc-gw${matchday}-f${m.id || i}` : `gw${matchday}-f${m.id || i}`;
-    const base = { id, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
-    if (isWC) {
-      base.stage = m.stage || null;
-      base.homeCrest = m.homeTeam?.crest || null;
-      base.awayCrest = m.awayTeam?.crest || null;
-    }
-    return base;
-  });
-}
-
-function mergeGlobalIntoGroup(globalDoc, g) {
-  const seas = g.season||2025;
-  const globalGWMap = {};
-  (globalDoc.gameweeks||[]).filter(gwObj=>(gwObj.season||seas)===seas).forEach(gwObj=>{globalGWMap[gwObj.gw]=gwObj.fixtures;});
-  const preds = g.predictions||{};
-  const hasPick = id=>Object.values(preds).some(up=>up[id]!==undefined);
-  const updatedGameweeks = (g.gameweeks||[]).map(gwObj=>{
-    if ((gwObj.season||seas)!==seas) return gwObj;
-    const globalFixtures = globalGWMap[gwObj.gw];
-    if (!globalFixtures||!globalFixtures.length) return gwObj;
-    const oldFixtures = gwObj.fixtures||[];
-    const gwHasPicks=oldFixtures.some(f=>hasPick(f.id));
-    if (!gwHasPicks) return {...gwObj,fixtures:globalFixtures};
-    const oldByApiId={};
-    const oldByTeams={};
-    oldFixtures.forEach(f=>{
-      if(f.apiId) oldByApiId[String(f.apiId)]=f;
-      oldByTeams[`${f.home}|${f.away}`]=f;
-    });
-    const working=[...oldFixtures];
-    const toAdd=[];
-    globalFixtures.forEach(gf=>{
-      const existing=(gf.apiId&&oldByApiId[String(gf.apiId)])||oldByTeams[`${gf.home}|${gf.away}`];
-      if(existing){
-        const idx=working.findIndex(f=>f.id===existing.id);
-        if(idx>=0) working[idx]={...existing,result:gf.result,status:gf.status,date:gf.date,apiId:gf.apiId,home:gf.home,away:gf.away};
-      } else {
-        toAdd.push(gf);
-      }
-    });
-    return {...gwObj,fixtures:[...working,...toAdd]};
-  });
-  // WC groups skip cross-GW dedup: team names change from TBD to real names after pairings,
-  // which would break the home|away key lookup. Global doc is authoritative per matchday for WC.
-  if ((g.competition || "PL") === "WC") {
-    return {...g, gameweeks:updatedGameweeks, lastAutoSync:Date.now()};
-  }
-
-  // Build index: "home|away" -> GW number from global doc
-  const globalPairToGW = {};
-  (globalDoc.gameweeks||[]).forEach(gwObj=>{
-    (gwObj.fixtures||[]).forEach(f=>{globalPairToGW[`${f.home}|${f.away}`]=gwObj.gw;});
-  });
-
-  // Remove fixtures that have been re-assigned to a different GW in the global doc
-  const deduped = updatedGameweeks.map(gwObj=>{
-    if((gwObj.season||seas)!==seas) return gwObj;
-    const filtered=(gwObj.fixtures||[]).filter(f=>{
-      const globalGW=globalPairToGW[`${f.home}|${f.away}`];
-      if(globalGW===undefined||globalGW===gwObj.gw) return true;
-      return hasPick(f.id);
-    });
-    return {...gwObj,fixtures:filtered};
-  });
-
-  return {...g,gameweeks:deduped,lastAutoSync:Date.now()};
-}
-
-function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
-  const otherGWs = (globalDoc.gameweeks||[]).filter(g=>g.gw!==gwNum);
-
-  // Compute median date of incoming fixtures
-  const dates = newFixtures
-    .filter(f=>f.date)
-    .map(f=>new Date(f.date).getTime())
-    .sort((a,b)=>a-b);
-
-  // Not enough dated fixtures to determine median - skip re-grouping
-  if (dates.length < 3) {
-    return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
-  }
-
-  const median = dates[Math.floor(dates.length/2)];
-  const THRESHOLD = 14*24*60*60*1000;
-
-  // Compute median date for each other GW already in the global doc
-  const otherMedians = {};
-  otherGWs.forEach(gwObj=>{
-    const d=(gwObj.fixtures||[]).filter(f=>f.date).map(f=>new Date(f.date).getTime()).sort((a,b)=>a-b);
-    if(d.length>=3) otherMedians[gwObj.gw]=d[Math.floor(d.length/2)];
-  });
-
-  // Split fixtures into normal and orphaned
-  const normal=[], orphaned=[];
-  newFixtures.forEach(f=>{
-    if(!f.date){normal.push(f);return;}
-    const fDate=new Date(f.date).getTime();
-    if(median-fDate>THRESHOLD){
-      let bestGW=null, bestDiff=Infinity;
-      Object.entries(otherMedians).forEach(([gw,m])=>{
-        const diff=Math.abs(m-fDate);
-        if(diff<bestDiff){bestDiff=diff;bestGW=Number(gw);}
-      });
-      bestGW!==null ? orphaned.push({fixture:f,targetGW:bestGW}) : normal.push(f);
-    } else {
-      normal.push(f);
-    }
-  });
-
-  // Abort if too few normal fixtures remain
-  if(normal.length<3&&orphaned.length>0){
-    return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
-  }
-
-  // Add orphaned fixtures to their target GWs, avoiding duplicates by home|away pair
-  const updatedOthers = otherGWs.map(gwObj=>{
-    const additions=orphaned.filter(o=>o.targetGW===gwObj.gw).map(o=>o.fixture);
-    if(!additions.length) return gwObj;
-    const addPairs=new Set(additions.map(f=>`${f.home}|${f.away}`));
-    const kept=(gwObj.fixtures||[]).filter(f=>!addPairs.has(`${f.home}|${f.away}`));
-    return {...gwObj,fixtures:[...kept,...additions]};
-  });
-
-  return {...globalDoc, updatedAt:Date.now(), gameweeks:[...updatedOthers,{gw:gwNum,fixtures:normal}]};
 }
 
 const MISSED_PICK_PTS = 4;
@@ -341,200 +179,6 @@ function makeDemoPick(username, fixture, gw, season) {
   if (rng() < 0.1) { const sw = h; h = a; a = sw; }
 
   return `${h}-${a}`;
-}
-
-async function ensureDemoWCGroup() {
-  const F = (id,home,away,result,date,stage) => ({id,home,away,result,status:result?"FINISHED":"SCHEDULED",date,stage});
-  const WC_GWS = [
-    { gw:1, fixtures:[
-      F("wc-gw1-f1","Qatar","Ecuador","0-2","2026-06-12T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f2","England","Iran","6-2","2026-06-13T13:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f3","Argentina","Saudi Arabia","1-2","2026-06-13T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f4","France","Australia","4-1","2026-06-14T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f5","Morocco","Croatia","0-0","2026-06-14T10:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f6","Germany","Japan","1-2","2026-06-14T13:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f7","Brazil","Serbia","2-0","2026-06-15T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw1-f8","Portugal","Ghana","3-2","2026-06-15T16:00:00Z","GROUP_STAGE"),
-    ]},
-    { gw:2, fixtures:[
-      F("wc-gw2-f1","Netherlands","Ecuador","1-1","2026-06-19T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f2","England","USA","0-0","2026-06-19T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f3","Argentina","Mexico","2-0","2026-06-20T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f4","France","Denmark","2-1","2026-06-20T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f5","Belgium","Morocco","0-2","2026-06-21T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f6","Croatia","Canada","4-1","2026-06-21T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f7","Brazil","Switzerland","1-0","2026-06-22T13:00:00Z","GROUP_STAGE"),
-      F("wc-gw2-f8","Portugal","Uruguay","2-0","2026-06-22T19:00:00Z","GROUP_STAGE"),
-    ]},
-    { gw:3, fixtures:[
-      F("wc-gw3-f1","Netherlands","Qatar","2-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f2","England","Wales","3-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f3","Argentina","Poland","2-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f4","Tunisia","France","1-0","2026-06-25T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f5","Japan","Spain","2-1","2026-06-25T19:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f6","Morocco","Canada","2-1","2026-06-25T16:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f7","South Korea","Portugal","2-1","2026-06-26T15:00:00Z","GROUP_STAGE"),
-      F("wc-gw3-f8","Cameroon","Brazil","1-0","2026-06-26T19:00:00Z","GROUP_STAGE"),
-    ]},
-    { gw:4, fixtures:[
-      F("wc-gw4-f1", "Netherlands","Scotland",  "2-0","2026-07-05T15:00:00Z","LAST_32"),
-      F("wc-gw4-f2", "USA",        "Jamaica",   "3-0","2026-07-05T18:00:00Z","LAST_32"),
-      F("wc-gw4-f3", "Argentina",  "El Salvador","3-1","2026-07-06T15:00:00Z","LAST_32"),
-      F("wc-gw4-f4", "Australia",  "Indonesia", "2-1","2026-07-06T18:00:00Z","LAST_32"),
-      F("wc-gw4-f5", "France",     "Algeria",   "3-0","2026-07-07T15:00:00Z","LAST_32"),
-      F("wc-gw4-f6", "Poland",     "Slovakia",  "2-1","2026-07-07T18:00:00Z","LAST_32"),
-      F("wc-gw4-f7", "England",    "Panama",    "4-1","2026-07-07T21:00:00Z","LAST_32"),
-      F("wc-gw4-f8", "Senegal",    "Ivory Coast","2-0","2026-07-08T15:00:00Z","LAST_32"),
-      F("wc-gw4-f9", "Japan",      "Vietnam",   "2-0","2026-07-08T18:00:00Z","LAST_32"),
-      F("wc-gw4-f10","Croatia",    "Romania",   "3-1","2026-07-08T21:00:00Z","LAST_32"),
-      F("wc-gw4-f11","Brazil",     "Venezuela", "5-1","2026-07-09T15:00:00Z","LAST_32"),
-      F("wc-gw4-f12","South Korea","Thailand",  "2-1","2026-07-09T18:00:00Z","LAST_32"),
-      F("wc-gw4-f13","Morocco",    "Cameroon",  "1-0","2026-07-09T21:00:00Z","LAST_32"),
-      F("wc-gw4-f14","Spain",      "Costa Rica","3-0","2026-07-10T15:00:00Z","LAST_32"),
-      F("wc-gw4-f15","Portugal",   "Ghana",     "4-1","2026-07-10T18:00:00Z","LAST_32"),
-      F("wc-gw4-f16","Switzerland","Hungary",   "2-1","2026-07-10T21:00:00Z","LAST_32"),
-    ]},
-    { gw:5, fixtures:[
-      F("wc-gw5-f1","Netherlands","USA",        "3-1","2026-07-13T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f2","Argentina",  "Australia",  "2-1","2026-07-13T19:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f3","France",     "Poland",     "3-1","2026-07-14T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f4","England",    "Senegal",    "3-0","2026-07-14T19:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f5","Japan",      "Croatia",    "1-1","2026-07-15T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f6","Brazil",     "South Korea","4-1","2026-07-15T19:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f7","Morocco",    "Spain",      "0-0","2026-07-16T15:00:00Z","ROUND_OF_16"),
-      F("wc-gw5-f8","Portugal",   "Switzerland","6-1","2026-07-16T19:00:00Z","ROUND_OF_16"),
-    ]},
-    { gw:6, fixtures:[
-      F("wc-gw6-f1","Argentina","Netherlands","2-2","2026-07-18T19:00:00Z","QUARTER_FINAL"),
-      F("wc-gw6-f2","Croatia",  "Brazil",     "1-1","2026-07-18T15:00:00Z","QUARTER_FINAL"),
-      F("wc-gw6-f3","Morocco",  "Portugal",   "1-0","2026-07-19T19:00:00Z","QUARTER_FINAL"),
-      F("wc-gw6-f4","England",  "France",     "1-2","2026-07-19T15:00:00Z","QUARTER_FINAL"),
-    ]},
-    { gw:7, fixtures:[
-      F("wc-gw7-f1","Argentina","Croatia","3-0","2026-07-22T19:00:00Z","SEMI_FINAL"),
-      F("wc-gw7-f2","France",   "Morocco","2-0","2026-07-23T19:00:00Z","SEMI_FINAL"),
-    ]},
-    { gw:8, fixtures:[
-      F("wc-gw8-f1","Argentina","France",null,"2026-07-26T20:00:00Z","FINAL"),
-    ]},
-  ];
-
-  const wcGroupId_lookup = await sget(`groupcode:${DEMO_WC_GROUP_CODE}`);
-  const wcGroupId = wcGroupId_lookup || "demo-wc-2026";
-  if (!wcGroupId_lookup) await sset(`groupcode:${DEMO_WC_GROUP_CODE}`, wcGroupId);
-  // clean up old demo usernames from any real accounts they contaminated
-  const OLD_DEMO_NAMES = ["faris","damon","vall","aamer"];
-  for (const old of OLD_DEMO_NAMES) {
-    const doc = await sget(`user:${old}`);
-    if (!doc) continue;
-    const cleaned = (doc.groupIds||[]).filter(id=>id!==wcGroupId&&id!=="demo-wc-2026");
-    if (cleaned.length !== (doc.groupIds||[]).length) await sset(`user:${old}`,{...doc,groupIds:cleaned});
-  }
-
-  const memberNames = DEMO_MEMBERS.map(m => m.username);
-
-  const predictions = {};
-  memberNames.forEach(u => { predictions[u] = {}; });
-  WC_GWS.forEach(({ gw, fixtures }) => {
-    fixtures.forEach(fixture => {
-      DEMO_MEMBERS.forEach(member => {
-        if (fixture.result) {
-          predictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
-        } else if (member.username !== DEMO_SHARED_USERNAME) {
-          predictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gw, 2026);
-        }
-      });
-    });
-  });
-
-  const nextGroup = {
-    id: wcGroupId, name: "World Cup 2026", code: DEMO_WC_GROUP_CODE,
-    creatorUsername: DEMO_SHARED_USERNAME, competition: "WC", season: 2026,
-    currentGW: 8, scoreScope: "all", draw11Limit: "unlimited", mode: "normal",
-    hiddenGWs: [], hiddenFixtures: [], adminLog: [], dibsSkips: {},
-    lastAutoSync: Date.now(),
-    members: memberNames,
-    memberOrder: memberNames,
-    admins: [DEMO_SHARED_USERNAME],
-    gameweeks: WC_GWS.map(g => ({ ...g, season: 2026 })),
-    predictions,
-  };
-
-  await sset(`group:${wcGroupId}`, nextGroup);
-  return wcGroupId;
-}
-
-async function ensureDemoExperience() {
-  const groupId = await sget(`groupcode:${DEMO_GROUP_CODE}`);
-  if (!groupId) return null;
-  const demoGroup = await sget(`group:${groupId}`);
-  if (!demoGroup) return null;
-
-  const wcGroupId = await ensureDemoWCGroup();
-
-  // strip demo group IDs from any real accounts that were contaminated by old demo usernames
-  const OLD_DEMO_NAMES_PL = ["faris","damon","vall","aamer"];
-  for (const old of OLD_DEMO_NAMES_PL) {
-    const doc = await sget(`user:${old}`);
-    if (!doc) continue;
-    const cleaned = (doc.groupIds||[]).filter(id=>id!==groupId&&id!==wcGroupId&&id!=="demo-wc-2026");
-    if (cleaned.length !== (doc.groupIds||[]).length) await sset(`user:${old}`,{...doc,groupIds:cleaned});
-  }
-
-  for (const member of DEMO_MEMBERS) {
-    const key = `user:${member.username}`;
-    const existing = await sget(key);
-    const userDoc = existing || {
-      username: member.username,
-      displayName: member.displayName,
-      password: member.username === DEMO_SHARED_USERNAME ? "demo" : "password123",
-      email: "",
-      groupIds: [],
-    };
-    const nextUser = {
-      ...userDoc,
-      username: member.username,
-      displayName: member.displayName,
-      groupIds: Array.from(new Set([...(userDoc.groupIds || []), groupId, ...(wcGroupId ? [wcGroupId] : [])])),
-    };
-    await sset(key, nextUser);
-  }
-
-  const memberNames = DEMO_MEMBERS.map(m => m.username);
-  const now = new Date();
-  const nextPredictions = { ...(demoGroup.predictions || {}) };
-  memberNames.forEach(u => { nextPredictions[u] = { ...(nextPredictions[u] || {}) }; });
-
-  const nextGroup = {
-    ...demoGroup,
-    members: memberNames,
-    memberOrder: memberNames,
-    admins: Array.from(new Set([...(demoGroup.admins || []), DEMO_SHARED_USERNAME])),
-    predictions: nextPredictions,
-  };
-
-  (nextGroup.gameweeks || []).forEach(gwObj => {
-    const season = gwObj.season || nextGroup.season || 2025;
-    (gwObj.fixtures || []).forEach(fixture => {
-      const fixtureDone = !!fixture.result || fixture.status === "POSTPONED" || fixture.status === "FINISHED";
-      const isOpen = !fixtureDone && fixture.status !== "IN_PLAY" && fixture.status !== "PAUSED" && (!fixture.date || new Date(fixture.date) > now);
-      DEMO_MEMBERS.forEach(member => {
-        if (member.username === DEMO_SHARED_USERNAME) return;
-        if (fixtureDone || isOpen) {
-          nextPredictions[member.username][fixture.id] = makeDemoPick(member.username, fixture, gwObj.gw, season);
-        }
-      });
-      if (isOpen) {
-        delete nextPredictions[DEMO_SHARED_USERNAME][fixture.id];
-      } else if (fixtureDone && !nextPredictions[DEMO_SHARED_USERNAME][fixture.id]) {
-        nextPredictions[DEMO_SHARED_USERNAME][fixture.id] = makeDemoPick(DEMO_SHARED_USERNAME, fixture, gwObj.gw, season);
-      }
-    });
-  });
-
-  await sset(`group:${groupId}`, nextGroup);
-  const refreshedDemoUser = await sget(`user:${DEMO_SHARED_USERNAME}`);
-  return { groupId, group: nextGroup, user: refreshedDemoUser };
 }
 
 function calcPts(pred, result) {
@@ -1190,20 +834,23 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
         setLoading(false);
         return;
       }
-      const ex = await sget(`user:${uname}`);
-      if (ex){setError("Username taken.");setLoading(false);return;}
-      const emailKey = `useremail:${email.trim().toLowerCase()}`;
-      const exEmail = await sget(emailKey);
-      if (exEmail){setError("Email already in use.");setLoading(false);return;}
-      const user = {username:uname,displayName:uname[0].toUpperCase()+uname.slice(1),password,email:email.trim().toLowerCase(),groupIds:[]};
-      const ok1 = await sset(`user:${uname}`,user);
-      const ok2 = await sset(emailKey,{username:uname});
-      if (!ok1||!ok2){setError("Registration failed - please try again.");setLoading(false);return;}
-      onLogin(user);
+      const res = await fetch('/api/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auth-register', username: uname, password, email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.user){setError(data.error||"Registration failed - please try again.");setLoading(false);return;}
+      onLogin(data.user);
     } else {
-      const user = await sget(`user:${username.toLowerCase()}`);
-      if (!user||user.password!==password){setError("Invalid credentials.");setLoading(false);return;}
-      onLogin(user);
+      const res = await fetch('/api/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auth-login', username: username.toLowerCase(), password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.user){setError(data.error||"Invalid credentials.");setLoading(false);return;}
+      onLogin(data.user);
     }
     setLoading(false);
   };
@@ -1512,9 +1159,13 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const fresh = await sget(`user:${user.username}`);
-    if (!fresh||fresh.password!==pwCurrent){setPwError("Current password is incorrect.");setPwLoading(false);return;}
-    await sset(`user:${user.username}`,{...fresh,password:pwNew});
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'account-change-password', currentPassword: pwCurrent, newPassword: pwNew })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
@@ -1651,36 +1302,19 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const createGroup = async () => {
     if (!createName.trim()) return;
     setCreating(true);
-    const id = Date.now().toString();
-    const code = genCode();
-    const isWC = setupCompetition === "WC";
-    let newGroup;
-    if (isWC) {
-      newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeWCRounds(),currentGW:1,apiKey:"",season:2026,competition:"WC",hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
-      try {
-        const globalDoc = await sget("fixtures:WC:2026");
-        if (globalDoc&&(globalDoc.gameweeks||[]).length) {
-          newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
-        }
-      } catch(e){ console.error("createGroup WC global seed failed",e); }
-    } else {
-      const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
-      const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
-      newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
-      try {
-        const globalDoc = await sget("fixtures:PL:2025");
-        if (globalDoc&&(globalDoc.gameweeks||[]).length) {
-          newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
-        }
-      } catch(e){ console.error("createGroup global seed failed",e); }
+    try {
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'create-group', name:createName.trim(), competition:setupCompetition, setupGW, setupLimit, setupPickMode })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.group || !data.user) return;
+      onUpdateUser(data.user);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");
+      onEnterGroup(data.group);
+    } finally {
+      setCreating(false);
     }
-    await sset(`group:${id}`,newGroup);
-    await sset(`groupcode:${code}`,id);
-    const fresh = await sget(`user:${user.username}`);
-    const updated = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
-    await sset(`user:${user.username}`,updated);
-    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");setCreating(false);
-    onEnterGroup(newGroup);
   };
 
   const joinGroup = async (codeOverride=null) => {
@@ -1688,23 +1322,16 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     if (code.length!==6){setError("Enter a 6-character code.");return;}
     setInviteLoading(true);
     try {
-      const id = await sget(`groupcode:${code}`);
-      if (!id){setError("Group not found.");return;}
-      const group = await sget(`group:${id}`);
-      if (!group){setError("Group not found.");return;}
-      if (group.members.includes(user.username)){setError("You're already in this group.");setInviteGroup(null);return;}
-      const currentOrder = group.memberOrder || group.members || [];
-      const updated = {
-        ...group,
-        members:[...group.members,user.username],
-        memberOrder: currentOrder.includes(user.username) ? currentOrder : [...currentOrder, user.username],
-      };
-      await sset(`group:${id}`,updated);
-      const fresh = await sget(`user:${user.username}`);
-      const updatedUser = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
-      await sset(`user:${user.username}`,updatedUser);
-      onUpdateUser(updatedUser);setJoinCode("");setError("");setInviteGroup(null);
-      onEnterGroup(updated);
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'join-group', code })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) { setError(data.error || 'Group not found.'); return; }
+      if (!data.group || !data.user) return;
+      onUpdateUser(data.user);setJoinCode("");setError("");setInviteGroup(null);
+      onEnterGroup(data.group);
     } finally {
       setInviteLoading(false);
     }
@@ -2203,7 +1830,9 @@ export default function App() {
 
   useEffect(()=>{
     (async()=>{
-      const prefs = await sget(SITE_PREFS_KEY).catch(()=>null);
+      const res = await fetch('/api/security?action=site-preferences').catch(()=>null);
+      const data = res ? await res.json().catch(()=>({ value:null })) : { value:null };
+      const prefs = data?.value;
       const safePrefs = prefs && typeof prefs === "object" ? prefs : { defaultTheme: "dark", landingTheme: null };
       setSitePrefs(safePrefs);
       setSitePrefsLoaded(true);
@@ -2278,12 +1907,13 @@ export default function App() {
     setBootError(false);
     setBoot(false);
     const saved=lget("session");
-    if(saved?.username){
-      const u=await sget(`user:${saved.username}`);
-      if(!u){setBootError(true);setBoot(true);return;}
+    const sessionRes = await fetch('/api/security?action=auth-session').catch(()=>null);
+    const sessionData = sessionRes ? await sessionRes.json().catch(()=>({user:null})) : { user:null };
+    const u = sessionData.user;
+    if(u){
       setUser(u);
-      setNeedsSetup(!u.email || u.password === "password123");
-      if(saved.groupId){
+      setNeedsSetup(!u.email);
+      if(saved?.groupId){
         const g=await sget(`group:${saved.groupId}`);
         if(g&&g.members?.includes(u.username)){
           setGroup(g);
@@ -2305,18 +1935,34 @@ export default function App() {
     let nextUser = u;
     let nextSession = { username: u.username };
     if (u.username === DEMO_SHARED_USERNAME) {
-      const demoState = await ensureDemoExperience();
-      if (demoState?.user) nextUser = demoState.user;
-      if (demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'demo-bootstrap' })
+      });
+      const demoState = await res.json().catch(()=>({}));
+      if (res.ok && demoState?.user) nextUser = demoState.user;
+      if (res.ok && demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
       const fallbackTheme = sitePrefs?.defaultTheme || "dark";
       setTheme(fallbackTheme);
       localStorage.setItem("theme", fallbackTheme);
     }
+    const freshUser = await sget(`user:${nextUser.username}`);
+    if (freshUser) nextUser = freshUser;
     lset("session", nextSession);
     setUser(nextUser);
     setNeedsSetup(false);
+    if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
+      const onlyGroup = await sget(`group:${nextUser.groupIds[0]}`);
+      if (onlyGroup && onlyGroup.members?.includes(nextUser.username)) {
+        setGroup(onlyGroup);
+        setTab("League");
+        const sessionWithGroup = { ...nextSession, groupId: onlyGroup.id, tab: "League" };
+        lset("session", sessionWithGroup);
+      }
+    }
   };
-  const handleLogout = async () => {ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
+  const handleLogout = async () => {try{await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'auth-logout'})});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
     setGroup(fresh||g);
@@ -2461,9 +2107,6 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     unlockSecretTheme?.();
   };
   const updateNickname = async (targetUsername, newName) => {
-    const fresh = await sget(`user:${targetUsername}`);
-    if (!fresh) return;
-    await sset(`user:${targetUsername}`, {...fresh, displayName: newName.trim()});
     setNames(n => ({...n, [targetUsername]: newName.trim()}));
   };
   const changePassword = async () => {
@@ -2471,9 +2114,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const fresh = await sget(`user:${user.username}`);
-    if (!fresh||fresh.password!==pwCurrent){setPwError("Current password is incorrect.");setPwLoading(false);return;}
-    await sset(`user:${user.username}`,{...fresh,password:pwNew});
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'account-change-password', currentPassword: pwCurrent, newPassword: pwNew })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
@@ -2968,177 +2615,101 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       }
     }
     setSaving(s=>({...s,[fixtureId]:true}));
-    await updateGroup(g => {
-      if (g.mode === "dibs") {
-        const freshTurn = computeDibsTurn(g, fixtureId);
-        if (freshTurn !== user.username) return g;
-        const takenFresh = Object.entries(g.predictions || {})
-          .filter(([u]) => u !== user.username)
-          .some(([, picks]) => picks?.[fixtureId] === val);
-        if (takenFresh) return g;
-      }
-      const p = {...(g.predictions || {})};
-      p[user.username] = {...(p[user.username] || {}), [fixtureId]: val};
-      return {...g, predictions: p};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'save-prediction', fixtureId, value: val } })
     });
-    setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
+    } else {
+      showToast(data?.error || 'Save failed - check your connection.');
+    }
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
   const saveResult = async (fixtureId) => {
     const val = resultDraft[fixtureId];
-    if (!val||!/^\d+-\d+$/.test(val)) return;
-    await updateGroup(g=>{
-      const fixture = (g.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
-      const oldVal = fixture?.result||null;
-      if (oldVal===val) return {...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:val}:f)}))};
-      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"result",fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:currentGW,old:oldVal,new:val};
-      return {...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:val}:f)})),adminLog:[...(g.adminLog||[]),entry]};
+    if (!val||!/^[0-9]+-[0-9]+$/.test(val)) return;
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'set-result', fixtureId, value: val } })
     });
-    setResultDraft(d=>{const n={...d};delete n[fixtureId];return n;});
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setResultDraft(d=>{const n={...d};delete n[fixtureId];return n;});
+    }
   };
 
   const clearResult = async (fixtureId) => {
-    await updateGroup(g=>{
-      const fixture = (g.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
-      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"result-clear",fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:currentGW,old:fixture?.result||null,new:null};
-      return {...g,gameweeks:g.gameweeks.map(gw=>({...gw,fixtures:gw.fixtures.map(f=>f.id===fixtureId?{...f,result:null}:f)})),adminLog:[...(g.adminLog||[]),entry]};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'clear-result', fixtureId } })
     });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
   };
 
   const toggleFixtureHidden = async (fixtureId) => {
-    await updateGroup(g=>{
-      const h = g.hiddenFixtures||[];
-      return {...g, hiddenFixtures: h.includes(fixtureId) ? h.filter(id=>id!==fixtureId) : [...h, fixtureId]};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'toggle-hidden-fixture', fixtureId } })
     });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
   };
 
   const fetchFromAPI = async () => {
-    const isWC = (group.competition||"PL") === "WC";
     const roundLabel = gwLabel(group, currentGW);
     setFetching(true); setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
     try {
-      const seas = group.season||2025;
-      const liveFixtures = gwFixtures.filter(f=>f.status==="IN_PLAY"||f.status==="PAUSED");
-      if (liveFixtures.length>0) {
-        setFetchMsg(`Fetching live scores for ${liveFixtures.length} match${liveFixtures.length>1?"es":""}...`);
-        const liveMatches = await fetchLiveMatches();
-        if (liveMatches.length>0) {
-          const liveByApiId = Object.fromEntries(liveMatches.map(m=>[String(m.id),m]));
-          const liveByTeams = Object.fromEntries(liveMatches.map(m=>[`${normName(m.homeTeam?.name||m.homeTeam?.shortName)}|${normName(m.awayTeam?.name||m.awayTeam?.shortName)}`,m]));
-          await updateGroup(g=>{
-            return {...g, gameweeks:g.gameweeks.map(gw=>{
-              if(gw.gw!==currentGW||(gw.season||seas)!==seas) return gw;
-              return {...gw, fixtures:gw.fixtures.map(f=>{
-                const lm = (f.apiId&&liveByApiId[String(f.apiId)]) || liveByTeams[`${f.home}|${f.away}`];
-                if(!lm) return f;
-                const score = lm.score?.fullTime;
-                const liveScore = score?.home!=null && score?.away!=null ? `${score.home}-${score.away}` : null;
-                return {...f, status:lm.status, result:lm.status==="FINISHED"?liveScore:f.result, liveScore:lm.status==="FINISHED"?null:liveScore};
-              })};
-            })};
-          });
-        }
-        setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
-      }
-      const comp = isWC ? "WC" : "PL";
-      const fetchSeason = isWC ? 2026 : seas;
-      const matches = await fetchMatchweek(group.apiKey, currentGW, fetchSeason, comp);
-      if (!matches.length) { setFetchMsg("No matches found for this round."); setFetching(false); return; }
-      const apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
-      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
-      const existingGlobal = await sget(globalKey)||{season:fetchSeason,updatedAt:0,gameweeks:[]};
-      let updatedGlobal;
-      if (isWC) {
-        // WC: direct replacement, no regroupGlobalDoc
-        const otherGWs = (existingGlobal.gameweeks||[]).filter(g=>g.gw!==currentGW);
-        updatedGlobal = {...existingGlobal, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:currentGW,fixtures:apiFixtures}]};
-      } else {
-        updatedGlobal = regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
-      }
-      await sset(globalKey, updatedGlobal);
-      await updateGroup(g => {
-        const s = g.season || 2025;
-        const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||s)===s);
-        const oldFixtures = gwObj?.fixtures||[];
-        const allTBD = oldFixtures.length>0 && oldFixtures.every(f=>f.home==="TBD"&&f.away==="TBD");
-        if (allTBD) {
-          return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||s)===s?{...gw,fixtures:apiFixtures}:gw)};
-        }
-        const oldByApiId = {};
-        const oldByTeams = {};
-        oldFixtures.forEach(f=>{
-          if(f.apiId) oldByApiId[String(f.apiId)]=f;
-          oldByTeams[`${f.home}|${f.away}`]=f;
-        });
-        const matchedIds = new Set();
-        const working = [...oldFixtures];
-        const toAdd = [];
-        apiFixtures.forEach(af=>{
-          const existing = (af.apiId&&oldByApiId[String(af.apiId)]) || oldByTeams[`${af.home}|${af.away}`];
-          if (existing) {
-            matchedIds.add(existing.id);
-            const idx = working.findIndex(f=>f.id===existing.id);
-            if (idx>=0) working[idx]={...existing,result:af.result,status:af.status,date:af.date,apiId:af.apiId,home:af.home,away:af.away};
-          } else {
-            toAdd.push(af);
-          }
-        });
-        const preds = g.predictions||{};
-        const hasPick = id => Object.values(preds).some(up=>up[id]!==undefined);
-        const gwHasPicks = oldFixtures.some(f=>hasPick(f.id));
-        const finalFixtures = [...working.filter(f=>matchedIds.has(f.id)||hasPick(f.id)), ...(gwHasPicks?[]:toAdd)];
-        return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||s)===s?{...gw,fixtures:finalFixtures}:gw)};
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'sync-fixtures', gw: currentGW } })
       });
-      const finished = apiFixtures.filter(f=>f.result).length;
-      await updateGroup(g=>{const entry={id:Date.now(),at:Date.now(),by:user.username,action:"api-sync",gw:currentGW,fixtures:apiFixtures.length,results:finished};return {...g,adminLog:[...(g.adminLog||[]),entry]};});
-      setFetchMsg(`✓ Updated ${apiFixtures.length} fixtures${finished>0?`, ${finished} with results`:""}.`);
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        setFetchMsg(data.error || 'Sync failed.');
+      } else if (data.group) {
+        setGroup(data.group);
+        setFetchMsg(`✓ Updated ${data.fixtures || 0} fixtures${(data.results || 0)>0?`, ${data.results} with results`:""}.`);
+      }
     } catch(e) { setFetchMsg(`Error: ${e.message}`); }
     setFetching(false);
     setTimeout(()=>setFetchMsg(""),6000);
   };
 
   const deleteGW = async () => {
-    const seas0 = group.season || 2025;
-    const gwToClear = currentGW;
-    await updateGroup(g=>{
-      const seas = g.season || seas0;
-      const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToClear&&(gw.season||seas)===seas);
-      const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
-      const isWC = (g.competition||"PL") === "WC";
-      const prefix = isWC ? "wc-" : seas!==2025?`${seas}-`:"";
-      const freshFixtures = isWC
-        ? []  // WC: empty array (rounds have no fallback fixtures; sync will fill them)
-        : Array.from({length:10},(_,i)=>({id:`${prefix}gw${gwToClear}-f${i}`,home:"TBD",away:"TBD",result:null,status:"SCHEDULED"}));
-      const preds = {...(g.predictions||{})};
-      Object.keys(preds).forEach(u=>{
-        const up = {...preds[u]};
-        fixtureIds.forEach(id=>{delete up[id];});
-        preds[u] = up;
-      });
-      return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===gwToClear&&(gw.season||seas)===seas ? {...gw,fixtures:freshFixtures} : gw), predictions:preds};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-gw', gw: currentGW } })
     });
-    setDeleteGWStep(0);
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setDeleteGWStep(0);
+    }
   };
 
   const removeGW = async () => {
-    const seas0 = group.season || 2025;
-    const gwToRemove = currentGW;
-    await updateGroup(g=>{
-      const seas = g.season || seas0;
-      const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToRemove&&(gw.season||seas)===seas);
-      const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
-      const preds = {...(g.predictions||{})};
-      Object.keys(preds).forEach(u=>{
-        const up = {...preds[u]};
-        fixtureIds.forEach(id=>{delete up[id];});
-        preds[u] = up;
-      });
-      const remaining = (g.gameweeks||[]).filter(gw=>!(gw.gw===gwToRemove&&(gw.season||seas)===seas));
-      const newCurrentGW = remaining.filter(gw=>(gw.season||seas)===seas).sort((a,b)=>b.gw-a.gw)[0]?.gw || 1;
-      return {...g, gameweeks:remaining, predictions:preds, currentGW:newCurrentGW};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'remove-gw', gw: currentGW } })
     });
-    setRemoveGWStep(0);
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setRemoveGWStep(0);
+    }
   };
 
   const setGW = (gw) => {setDeleteGWStep(0);setRemoveGWStep(0);setViewGW(gw);};
@@ -3185,86 +2756,32 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
 
   useEffect(()=>{
     const seas = group.season||2025;
-    const isWC = (group.competition||"PL") === "WC";
-    const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
     const incompleteGWs=(group.gameweeks||[])
       .filter(gw=>(gw.season||seas)===seas&&(gw.fixtures||[]).some(f=>!f.result));
     if(!incompleteGWs.length) return;
     const targetGW=Math.max(...incompleteGWs.map(gw=>gw.gw));
     (async()=>{
       try {
-        let globalDoc=await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
+        const isWC = (group.competition||"PL") === "WC";
         const now=Date.now();
+        const fullSyncKey=isWC?`fixtures-full-sync:WC:2026`:`fixtures-full-sync:${seas}`;
+        const cooldownKey=isWC?`gw-api-sync:WC:2026:${targetGW}`:`gw-api-sync:${seas}:${targetGW}`;
+        const globalKey=isWC?`fixtures:WC:2026`:`fixtures:PL:${seas}`;
+        const globalDoc=await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
         const existingGWNums=new Set((globalDoc.gameweeks||[]).map(g=>g.gw));
         const missingPast=Array.from({length:targetGW-1},(_,i)=>i+1).some(n=>!existingGWNums.has(n));
-        if(isWC){
-          // WC: direct replacement (no regroupGlobalDoc), separate cooldown keys
-          const fullSyncKey=`fixtures-full-sync:WC:2026`;
-          if(missingPast){
-            const lastFull=lget(fullSyncKey);
-            if(!lastFull||(now-lastFull)>86_400_000){
-              const allMatches=await fetchMatchweek(group.apiKey,null,2026,"WC");
-              if(!allMatches.length) return;
-              lset(fullSyncKey,now);
-              const byGW={};
-              allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
-              let updated={...globalDoc};
-              const otherGWs=(updated.gameweeks||[]).filter(g=>!byGW[g.gw]);
-              const newGWs=Object.entries(byGW).map(([gw,ms])=>{
-                const gwNum=Number(gw);
-                return {gw:gwNum,fixtures:parseMatchesToFixtures(ms,gwNum,"WC")};
-              });
-              updated={...updated,updatedAt:now,gameweeks:[...otherGWs,...newGWs]};
-              globalDoc=updated;
-              await sset(globalKey,globalDoc);
-            }
-          } else {
-            const cooldownKey=`gw-api-sync:WC:2026:${targetGW}`;
-            const lastSync=lget(cooldownKey);
-            if(!lastSync||(now-lastSync)>3_600_000){
-              const matches=await fetchMatchweek(group.apiKey,targetGW,2026,"WC");
-              if(!matches.length) return;
-              const apiFixtures=parseMatchesToFixtures(matches,targetGW,"WC");
-              lset(cooldownKey,now);
-              const otherGWs=(globalDoc.gameweeks||[]).filter(g=>g.gw!==targetGW);
-              globalDoc={...globalDoc,updatedAt:now,gameweeks:[...otherGWs,{gw:targetGW,fixtures:apiFixtures}]};
-              await sset(globalKey,globalDoc);
-            }
-          }
-        } else {
-          // PL: unchanged path
-          const fullSyncKey=`fixtures-full-sync:${seas}`;
-          if(missingPast){
-            const lastFull=lget(fullSyncKey);
-            if(!lastFull||(now-lastFull)>86_400_000){
-              const allMatches=await fetchMatchweek(group.apiKey,null,seas);
-              if(!allMatches.length) return;
-              lset(fullSyncKey,now);
-              const byGW={};
-              allMatches.forEach(m=>{const gw=m.matchday;if(!byGW[gw])byGW[gw]=[];byGW[gw].push(m);});
-              let updated={...globalDoc};
-              Object.entries(byGW).forEach(([gw,ms])=>{
-                const gwNum=Number(gw);
-                updated=regroupGlobalDoc(updated,gwNum,parseMatchesToFixtures(ms,gwNum));
-              });
-              globalDoc=updated;
-              await sset(globalKey,globalDoc);
-            }
-          } else {
-            const cooldownKey=`gw-api-sync:${seas}:${targetGW}`;
-            const lastSync=lget(cooldownKey);
-            if(!lastSync||(now-lastSync)>3_600_000){
-              const matches=await fetchMatchweek(group.apiKey,targetGW,seas);
-              if(!matches.length) return;
-              const apiFixtures=parseMatchesToFixtures(matches,targetGW);
-              lset(cooldownKey,now);
-              globalDoc=regroupGlobalDoc(globalDoc,targetGW,apiFixtures);
-              await sset(globalKey,globalDoc);
-            }
-          }
-        }
-        if(globalDoc.updatedAt<=(group.lastAutoSync||0)) return;
-        await updateGroup(g=>mergeGlobalIntoGroup(globalDoc,g));
+        const keyToTouch=missingPast?fullSyncKey:cooldownKey;
+        const windowMs=missingPast?86_400_000:3_600_000;
+        const last=lget(keyToTouch);
+        if(last&&(now-last)<=windowMs) return;
+        lset(keyToTouch,now);
+        const res=await fetch('/api/security',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'auto-sync-fixtures', gw: targetGW } })
+        });
+        const data=await res.json().catch(()=>({}));
+        if(res.ok&&data.updated&&data.group)setGroup(data.group);
       } catch(_){}
     })();
   },[activeSeason,group.currentGW]);
@@ -3574,12 +3091,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(group.members||[]).length>1&&(
         <div style={{marginTop:16,marginBottom:8}}>
           <Btn variant="success" style={{width:"100%"}} onClick={async()=>{
-            await updateGroup(g=>{
-              const pl=g.picksLocked||{};
-              const ul=pl[user.username]||{};
-              const sl=ul[activeSeason]||{};
-              return {...g,picksLocked:{...pl,[user.username]:{...ul,[activeSeason]:{...sl,[currentGW]:true}}}};
+            const res = await fetch('/api/security', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'lock-picks', season: activeSeason, gw: currentGW } })
             });
+            const data = await res.json().catch(()=>({}));
+            if (res.ok && data.group) setGroup(data.group);
+            else showToast(data?.error || 'Save failed - check your connection.');
           }}>
             LOCK IN PICKS
           </Btn>
@@ -3628,12 +3147,13 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
   };
   const confirmSave = async () => {
     const {u,fid,val,oldVal} = editConfirm;
-    const fixture = gwFixtures.find(f=>f.id===fid);
-    await updateGroup(g=>{
-      const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};
-      const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:viewedGW??group.currentGW,old:oldVal,new:val};
-      return {...g,predictions:p,adminLog:[...(g.adminLog||[]),entry]};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'edit-pick', username:u, fixtureId:fid, value:val, oldValue:oldVal, gw:viewedGW??group.currentGW } })
     });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
     setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
     setEditConfirm(null);
   };
@@ -4362,18 +3882,38 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const saveNick=async(username)=>{
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
-      await updateNickname(username,nickDraft.trim());
-      await updateGroup(g=>{const entry={id:Date.now(),at:Date.now(),by:user.username,action:"rename",for:username,old:oldName,new:nickDraft.trim()};return {...g,adminLog:[...(g.adminLog||[]),entry]};});
+      const newName=nickDraft.trim();
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'rename-member', username, oldName, newName } })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data.group) {
+        setGroup(data.group);
+        setNames(n => ({...n, [username]: newName}));
+      }
     }
     setEditingNick(null);
   };
-  const toggleAdmin=async(username)=>{await updateGroup(g=>{const a=g.admins||[];const isNowAdmin=!a.includes(username);const entry={id:Date.now(),at:Date.now(),by:user.username,action:isNowAdmin?"make-admin":"remove-admin",for:username};return {...g,admins:isNowAdmin?[...a,username]:a.filter(x=>x!==username),adminLog:[...(g.adminLog||[]),entry]};});};
+  const toggleAdmin=async(username)=>{
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'toggle-admin', username } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
+  };
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
-    const entry={id:Date.now(),at:Date.now(),by:user.username,action:"kick",for:username};
-    await updateGroup(g=>({...g,members:g.members.filter(m=>m!==username),admins:(g.admins||[]).filter(a=>a!==username),memberOrder:(g.memberOrder||g.members||[]).filter(m=>m!==username),adminLog:[...(g.adminLog||[]),entry]}));
-    const fresh=await sget(`user:${username}`);
-    if(fresh)await sset(`user:${username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'kick', username } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
   };
   return (
     <div style={{maxWidth:isIndex?860:560}}>
@@ -4533,133 +4073,105 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const [copiedLink,setCopiedLink]=useState(false);
   const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
-  const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
-  const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
-  const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:(g.apiKey||"").trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
-  const saveScope=async(val)=>{await updateGroup(g=>({...g,scoreScope:val}));};
+  const save11Limit=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-11-limit',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
+  const saveName=async()=>{if(!newName.trim())return;const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-name',name:newName.trim()}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);}};
+  const saveApiKey=async()=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-api-settings',apiKey:group.apiKey,season:parseInt(season)||2025}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);}};
+  const saveScope=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-scope',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group)setGroup(data.group);};
   const startNewSeason=async()=>{
     const yr=parseInt(newSeasonYear);
     if(!yr||yr<2020||yr>2060){setSeasonMsg("Enter a valid year.");setTimeout(()=>setSeasonMsg(""),3000);return;}
-    const prevSeason=group.season||2025;
-    await updateGroup(g=>{
-      if ((g.gameweeks||[]).some(gw=>(gw.season||g.season||2025)===yr)) return g;
-      const backfilled=(g.gameweeks||[]).map(gw=>gw.season?gw:{...gw,season:prevSeason});
-      return {...g,gameweeks:[...backfilled,...makeAllGWs(yr)],season:yr,currentGW:1};
-    });
-    setNewSeasonYear("");
-    setSeasonMsg(`Season ${yr} started!`);
-    setTimeout(()=>setSeasonMsg(""),3000);
+    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'start-new-season',season:yr}})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.group){setGroup(data.group);setNewSeasonYear("");setSeasonMsg(`Season ${yr} started!`);setTimeout(()=>setSeasonMsg(""),3000);} else {setSeasonMsg(data.error||"Failed to start season.");setTimeout(()=>setSeasonMsg(""),3000);} 
   };
   const backfillGWs = async () => {
-    const seas = group.season || 2025;
-    let added = 0;
-    await updateGroup(g => {
-      const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
-      const minExisting = existing.size > 0 ? Math.min(...existing) : 1;
-      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n)&&n>=minExisting);
-      if (!missing.length) { added = 0; return g; }
-      added = missing.length;
-      const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
-      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
-    });
-    setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
+    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'backfill-gws'}})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.group){setGroup(data.group);setBackfillMsg("Backfilled missing gameweeks.");} else {setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const backfillAllGWs = async () => {
-    const seas = group.season || 2025;
-    let added = 0;
-    await updateGroup(g => {
-      const existing = new Set((g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).map(gw=>gw.gw));
-      const missing = Array.from({length:38}, (_,i)=>i+1).filter(n=>!existing.has(n));
-      if (!missing.length) { added = 0; return g; }
-      added = missing.length;
-      const newGWs = missing.map(n=>({gw:n, season:seas, fixtures:makeFixturesFallback(n, seas)}));
-      return {...g, gameweeks:[...(g.gameweeks||[]),...newGWs].sort((a,b)=>(a.season||0)-(b.season||0)||a.gw-b.gw)};
-    });
-    setBackfillMsg(added > 0 ? `Added ${added} GW${added!==1?"s":""}.` : "All 38 GWs already exist.");
+    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'backfill-all-gws'}})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.group){setGroup(data.group);setBackfillMsg("Rebuilt all gameweeks.");} else {setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const syncAllDates = async () => {
     setSyncingDates(true);
     setSyncDatesMsg("Fetching full season fixtures...");
     try {
-      const matches = await fetchMatchweek(group.apiKey, null, group.season||2025);
-      if (!matches.length) { setSyncDatesMsg("No matches returned."); setSyncingDates(false); return; }
-      const dateByTeams = {};
-      matches.forEach(m => {
-        const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
-        const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
-        if (m.utcDate) dateByTeams[`${home}|${away}`] = new Date(m.utcDate).toISOString();
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'sync-all-dates' } })
       });
-      let updated = 0;
-      await updateGroup(g => {
-        updated = 0;
-        const gws = (g.gameweeks||[]).map(gw => ({
-          ...gw,
-          fixtures: gw.fixtures.map(f => {
-            if (f.date) return f;
-            const d = dateByTeams[`${f.home}|${f.away}`];
-            if (d) { updated++; return {...f, date: d}; }
-            return f;
-          })
-        }));
-        return {...g, gameweeks: gws};
-      });
-      setSyncDatesMsg(updated > 0 ? `✓ Filled in ${updated} missing date${updated!==1?"s":""}.` : "All dates already present.");
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data.group) {
+        setGroup(data.group);
+        setSyncDatesMsg(data.updated > 0 ? `✓ Filled in ${data.updated} missing date${data.updated!==1?"s":""}.` : "All dates already present.");
+      } else {
+        setSyncDatesMsg(data.error || "Sync failed.");
+      }
     } catch(e) { setSyncDatesMsg(`Error: ${e.message}`); }
     setSyncingDates(false);
     setTimeout(()=>setSyncDatesMsg(""),5000);
   };
   const issueSkip = async (playerId, fixtureId) => {
-    const current = (group.dibsSkips || {})[fixtureId] || [];
-    if (current.includes(playerId)) return;
-    const fixture = (group.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
-    await updateGroup(g => {
-      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"dibs-skip",for:playerId,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:group.currentGW};
-      return {...g,dibsSkips:{...(g.dibsSkips||{}),[fixtureId]:[...((g.dibsSkips||{})[fixtureId]||[]),playerId]},adminLog:[...(g.adminLog||[]),entry]};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'dibs-skip', playerId, fixtureId } })
     });
-    setSkipModal(null);
-    setSkipConfirm(false);
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setSkipModal(null);
+      setSkipConfirm(false);
+    }
   };
   const leaveGroup=async()=>{
     if(isCreator)return;
     if(group.code===DEMO_GROUP_CODE||group.code===DEMO_WC_GROUP_CODE)return;
-    const fresh=await sget(`user:${user.username}`);
-    if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
-    const ok=await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
-    if(ok)onLeave();
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'leave-group', groupId: group.id })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.user) {
+      onUpdateUser(data.user);
+      onLeave();
+    }
   };
   const deleteGroup = async () => {
     if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }
     if (!deletePw) { setDeleteError("Enter your password."); return; }
     setDeleteLoading(true); setDeleteError("");
-    const fresh = await sget(`user:${user.username}`);
-    if (!fresh || fresh.password !== deletePw) {
-      setDeleteError("Incorrect password.");
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-group', currentPassword: deletePw } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      setDeleteError(data.error || "Failed to delete group.");
       setDeleteLoading(false);
       return;
     }
-    await sdel(`group:${group.id}`);
-    await sdel(`groupcode:${group.code}`);
-    await Promise.all((group.members || []).map(async m => {
-      const u = await sget(`user:${m}`);
-      if (u) await sset(`user:${m}`, { ...u, groupIds: (u.groupIds || []).filter(id => id !== group.id) });
-    }));
     onLeave();
   };
 
   const createBackup = async () => {
     setBackupBusy(true);
     try {
-      const now = Date.now();
-      const id = String(now);
-      const { backups: _omit, ...snapshot } = group;
-      const ok = await sset(`backup:${group.id}:${id}`, { groupId: group.id, createdAt: now, createdBy: user.username, snapshot });
-      if (!ok) throw new Error("Failed to write backup");
-      await updateGroup(g => {
-        const list = [{ id, createdAt: now, createdBy: user.username }, ...(g.backups||[])].slice(0, 5);
-        return { ...g, backups: list };
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'create-backup' } })
       });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.group) throw new Error(data.error || 'Failed to create backup');
+      setGroup(data.group);
       setBackupMsg("✓ Backup created");
       setTimeout(() => setBackupMsg(""), 3000);
     } catch(e) {
@@ -4671,18 +4183,30 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
   const deleteBackup = async (id) => {
     setBackupBusy(true);
-    await sset(`backup:${group.id}:${id}`, null);
-    await updateGroup(g => ({ ...g, backups: (g.backups||[]).filter(b => b.id !== id) }));
-    setRestoringId(null);
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-backup', id } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setRestoringId(null);
+    }
     setBackupBusy(false);
   };
 
   const restoreBackup = async (id) => {
     setBackupBusy(true);
     try {
-      const bk = await sget(`backup:${group.id}:${id}`);
-      if (!bk || !bk.snapshot) { setBackupMsg("Backup not found."); setBackupBusy(false); return; }
-      await updateGroup(g => ({ ...bk.snapshot, backups: g.backups }));
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'restore-backup', id } })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.group) { setBackupMsg(data.error || "Backup not found."); setBackupBusy(false); return; }
+      setGroup(data.group);
       setRestoringId(null);
       setBackupMsg("✓ Restored");
       setTimeout(() => setBackupMsg(""), 3000);
@@ -4766,16 +4290,16 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                 const active=(resolvedSitePrefs.defaultTheme||"dark")===t.key;
                 return <button key={`default-${t.key}`} onClick={async()=>{
                   const next={...resolvedSitePrefs,defaultTheme:t.key,landingTheme:(resolvedSitePrefs.landingTheme===null||resolvedSitePrefs.landingTheme===undefined)?t.key:resolvedSitePrefs.landingTheme};
-                  await sset(SITE_PREFS_KEY,next);setSitePrefs(next);
+                  await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);
                 }} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Landing page theme override</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
+              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
               {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
                 const active=resolvedSitePrefs.landingTheme===t.key;
-                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await sset(SITE_PREFS_KEY,next);setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
           </div>
@@ -4865,11 +4389,11 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                 const label=gwLabel(group,g.gw);
                 const isWC=(group.competition||"PL")==="WC";
                 return (
-                  <button key={g.gw} onClick={()=>updateGroup(grp=>{
-                    const h=grp.hiddenGWs||[];
-                    const isHid=h.includes(g.gw);
-                    return {...grp,hiddenGWs:isHid?h.filter(n=>n!==g.gw):[...h,g.gw]};
-                  })} style={{
+                  <button key={g.gw} onClick={async()=>{
+                    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}})});
+                    const data=await res.json().catch(()=>({}));
+                    if(res.ok&&data.group)setGroup(data.group);
+                  }} style={{
                     background:hidden?"var(--card)":"var(--btn-bg)",
                     color:hidden?"var(--text-dim)":"var(--btn-text)",
                     border:`1px solid ${hidden?"var(--border)":"var(--btn-bg)"}`,
