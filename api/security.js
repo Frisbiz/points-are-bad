@@ -254,6 +254,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
+    if (payload.type === 'set-result') {
+      const fixtureId = payload.fixtureId;
+      const value = String(payload.value || '');
+      if (!fixtureId || !/^\d+-\d+$/.test(value)) return bad(res, 400, 'Invalid result');
+      const fixture = ((group.gameweeks || []).flatMap(gw => gw.fixtures || [])).find(f => f.id === fixtureId);
+      const oldVal = fixture?.result || null;
+      const entry = { id: Date.now(), at: Date.now(), by: username, action: 'result', fixture: fixture ? `${fixture.home} vs ${fixture.away}` : fixtureId, gw: group.currentGW, old: oldVal, new: value };
+      const next = {
+        ...group,
+        gameweeks: (group.gameweeks || []).map(gw => ({ ...gw, fixtures: (gw.fixtures || []).map(f => f.id === fixtureId ? { ...f, result: value } : f) })),
+        adminLog: oldVal === value ? (group.adminLog || []) : [...(group.adminLog || []), entry]
+      };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'clear-result') {
+      const fixtureId = payload.fixtureId;
+      if (!fixtureId) return bad(res, 400, 'Missing fixtureId');
+      const fixture = ((group.gameweeks || []).flatMap(gw => gw.fixtures || [])).find(f => f.id === fixtureId);
+      const entry = { id: Date.now(), at: Date.now(), by: username, action: 'result-clear', fixture: fixture ? `${fixture.home} vs ${fixture.away}` : fixtureId, gw: group.currentGW, old: fixture?.result || null, new: null };
+      const next = {
+        ...group,
+        gameweeks: (group.gameweeks || []).map(gw => ({ ...gw, fixtures: (gw.fixtures || []).map(f => f.id === fixtureId ? { ...f, result: null } : f) })),
+        adminLog: [...(group.adminLog || []), entry]
+      };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
     if (payload.type === 'save-api-settings') {
       const next = { ...group, apiKey: String(payload.apiKey || '').trim(), season: Number(payload.season) || group.season || 2025 };
       await setValue(groupKey, next);
