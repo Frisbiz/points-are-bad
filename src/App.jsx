@@ -1228,7 +1228,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   useEffect(()=>{
     let cancelled = false;
     (async()=>{
-      if (user?.username) await loadGroups();
+      if (user?.username) await loadGroups(user.username);
       else if (!cancelled) setGroups([]);
       if (cancelled || !initialJoinCode || !user?.username) return;
       try {
@@ -1292,12 +1292,14 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     })();
   },[setupMode]);
 
-  const loadGroups = async () => {
+  const loadGroups = async (usernameArg = user?.username) => {
+    if (!usernameArg) { setGroups([]); setLoading(false); return; }
     setLoading(true);
-    const fresh = await sget(`user:${user.username}`);
+    const fresh = await sget(`user:${usernameArg}`);
     const ids = fresh?.groupIds||[];
     const gs = (await Promise.all(ids.map(id=>sget(`group:${id}`)))).filter(Boolean);
-    setGroups(gs);setLoading(false);
+    setGroups(gs);
+    setLoading(false);
   };
 
   const createGroup = async () => {
