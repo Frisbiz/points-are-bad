@@ -433,11 +433,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
-    if (payload.type === 'log-rename') {
+    if (payload.type === 'rename-member') {
       const targetUsername = payload.username;
       const oldName = payload.oldName;
-      const newName = payload.newName;
+      const newName = String(payload.newName || '').trim();
       if (!targetUsername || !oldName || !newName) return bad(res, 400, 'Missing rename payload');
+      const targetUser = await getValue(`user:${targetUsername}`);
+      if (!targetUser) return bad(res, 404, 'User not found');
+      await setValue(`user:${targetUsername}`, { ...targetUser, displayName: newName });
       const entry = { id: Date.now(), at: Date.now(), by: username, action: 'rename', for: targetUsername, old: oldName, new: newName };
       const next = { ...group, adminLog: [...(group.adminLog || []), entry] };
       await setValue(groupKey, next);

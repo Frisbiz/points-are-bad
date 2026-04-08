@@ -2096,9 +2096,6 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     unlockSecretTheme?.();
   };
   const updateNickname = async (targetUsername, newName) => {
-    const fresh = await sget(`user:${targetUsername}`);
-    if (!fresh) return;
-    await sset(`user:${targetUsername}`, {...fresh, displayName: newName.trim()});
     setNames(n => ({...n, [targetUsername]: newName.trim()}));
   };
   const changePassword = async () => {
@@ -3929,14 +3926,16 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
       const newName=nickDraft.trim();
-      await updateNickname(username,newName);
       const res = await fetch('/api/security', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'log-rename', username, oldName, newName } })
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'rename-member', username, oldName, newName } })
       });
       const data = await res.json().catch(()=>({}));
-      if (res.ok && data.group) setGroup(data.group);
+      if (res.ok && data.group) {
+        setGroup(data.group);
+        setNames(n => ({...n, [username]: newName}));
+      }
     }
     setEditingNick(null);
   };
