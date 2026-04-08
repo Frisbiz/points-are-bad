@@ -161,11 +161,20 @@ export default async function handler(req, res) {
     if (!validEmail(nextEmail)) return bad(res, 400, "Invalid email.");
     const user = await getValue(`user:${username}`);
     if (!user) return bad(res, 404, "User not found");
+    const prevEmail = normalizeEmail(user.email || "");
+    if (prevEmail === nextEmail) return res.status(200).json({ ok: true, email: nextEmail });
     const existing = await getValue(`useremail:${nextEmail}`);
     if (existing && existing.username !== username) return bad(res, 409, "Email already in use.");
-    const prevEmail = normalizeEmail(user.email || "");
     await setValue(`useremail:${nextEmail}`, { username });
+    const claimed = await getValue(`useremail:${nextEmail}`);
+    if (!claimed || claimed.username !== username) return bad(res, 409, "Email already in use.");
     await setValue(`user:${username}`, { ...user, email: nextEmail });
+    const freshUser = await getValue(`user:${username}`);
+    if (!freshUser || normalizeEmail(freshUser.email || '') !== nextEmail) {
+      if (prevEmail) await setValue(`useremail:${prevEmail}`, { username });
+      else await deleteValue(`useremail:${nextEmail}`);
+      return bad(res, 500, "Failed to update email.");
+    }
     if (prevEmail && prevEmail !== nextEmail) await deleteValue(`useremail:${prevEmail}`);
     return res.status(200).json({ ok: true, email: nextEmail });
   }
