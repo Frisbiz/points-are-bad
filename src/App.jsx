@@ -4367,8 +4367,15 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
   const saveNick=async(username)=>{
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
-      await updateNickname(username,nickDraft.trim());
-      await updateGroup(g=>{const entry={id:Date.now(),at:Date.now(),by:user.username,action:"rename",for:username,old:oldName,new:nickDraft.trim()};return {...g,adminLog:[...(g.adminLog||[]),entry]};});
+      const newName=nickDraft.trim();
+      await updateNickname(username,newName);
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'log-rename', username, oldName, newName } })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data.group) setGroup(data.group);
     }
     setEditingNick(null);
   };
@@ -4576,29 +4583,18 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
     setSyncingDates(true);
     setSyncDatesMsg("Fetching full season fixtures...");
     try {
-      const matches = await fetchMatchweek(group.apiKey, null, group.season||2025);
-      if (!matches.length) { setSyncDatesMsg("No matches returned."); setSyncingDates(false); return; }
-      const dateByTeams = {};
-      matches.forEach(m => {
-        const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
-        const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
-        if (m.utcDate) dateByTeams[`${home}|${away}`] = new Date(m.utcDate).toISOString();
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'sync-all-dates' } })
       });
-      let updated = 0;
-      await updateGroup(g => {
-        updated = 0;
-        const gws = (g.gameweeks||[]).map(gw => ({
-          ...gw,
-          fixtures: gw.fixtures.map(f => {
-            if (f.date) return f;
-            const d = dateByTeams[`${f.home}|${f.away}`];
-            if (d) { updated++; return {...f, date: d}; }
-            return f;
-          })
-        }));
-        return {...g, gameweeks: gws};
-      });
-      setSyncDatesMsg(updated > 0 ? `✓ Filled in ${updated} missing date${updated!==1?"s":""}.` : "All dates already present.");
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data.group) {
+        setGroup(data.group);
+        setSyncDatesMsg(data.updated > 0 ? `✓ Filled in ${data.updated} missing date${data.updated!==1?"s":""}.` : "All dates already present.");
+      } else {
+        setSyncDatesMsg(data.error || "Sync failed.");
+      }
     } catch(e) { setSyncDatesMsg(`Error: ${e.message}`); }
     setSyncingDates(false);
     setTimeout(()=>setSyncDatesMsg(""),5000);

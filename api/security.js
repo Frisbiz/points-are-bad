@@ -299,6 +299,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
+    if (payload.type === 'log-rename') {
+      const targetUsername = payload.username;
+      const oldName = payload.oldName;
+      const newName = payload.newName;
+      if (!targetUsername || !oldName || !newName) return bad(res, 400, 'Missing rename payload');
+      const entry = { id: Date.now(), at: Date.now(), by: username, action: 'rename', for: targetUsername, old: oldName, new: newName };
+      const next = { ...group, adminLog: [...(group.adminLog || []), entry] };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
     if (payload.type === 'save-api-settings') {
       const next = { ...group, apiKey: String(payload.apiKey || '').trim(), season: Number(payload.season) || group.season || 2025 };
       await setValue(groupKey, next);
@@ -330,6 +341,35 @@ export default async function handler(req, res) {
       const next = { ...group, gameweeks };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'sync-all-dates') {
+      const matchesRes = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/fixtures?season=${group.season || 2025}&competition=${group.competition || 'PL'}`);
+      if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
+      const matchesData = await matchesRes.json();
+      const matches = matchesData.matches || [];
+      if (!matches.length) return res.status(200).json({ group, updated: 0 });
+      const dateByTeams = {};
+      matches.forEach(m => {
+        const home = String(m.homeTeam?.name || m.homeTeam?.shortName || '').trim();
+        const away = String(m.awayTeam?.name || m.awayTeam?.shortName || '').trim();
+        if (m.utcDate && home && away) dateByTeams[`${home}|${away}`] = new Date(m.utcDate).toISOString();
+      });
+      let updated = 0;
+      const next = {
+        ...group,
+        gameweeks: (group.gameweeks || []).map(gw => ({
+          ...gw,
+          fixtures: (gw.fixtures || []).map(f => {
+            if (f.date) return f;
+            const d = dateByTeams[`${f.home}|${f.away}`];
+            if (d) { updated++; return { ...f, date: d }; }
+            return f;
+          })
+        }))
+      };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next, updated });
     }
 
     if (payload.type === 'delete-gw') {
