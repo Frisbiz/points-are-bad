@@ -3120,46 +3120,29 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   };
 
   const deleteGW = async () => {
-    const seas0 = group.season || 2025;
-    const gwToClear = currentGW;
-    await updateGroup(g=>{
-      const seas = g.season || seas0;
-      const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToClear&&(gw.season||seas)===seas);
-      const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
-      const isWC = (g.competition||"PL") === "WC";
-      const prefix = isWC ? "wc-" : seas!==2025?`${seas}-`:"";
-      const freshFixtures = isWC
-        ? []  // WC: empty array (rounds have no fallback fixtures; sync will fill them)
-        : Array.from({length:10},(_,i)=>({id:`${prefix}gw${gwToClear}-f${i}`,home:"TBD",away:"TBD",result:null,status:"SCHEDULED"}));
-      const preds = {...(g.predictions||{})};
-      Object.keys(preds).forEach(u=>{
-        const up = {...preds[u]};
-        fixtureIds.forEach(id=>{delete up[id];});
-        preds[u] = up;
-      });
-      return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===gwToClear&&(gw.season||seas)===seas ? {...gw,fixtures:freshFixtures} : gw), predictions:preds};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-gw', gw: currentGW } })
     });
-    setDeleteGWStep(0);
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setDeleteGWStep(0);
+    }
   };
 
   const removeGW = async () => {
-    const seas0 = group.season || 2025;
-    const gwToRemove = currentGW;
-    await updateGroup(g=>{
-      const seas = g.season || seas0;
-      const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===gwToRemove&&(gw.season||seas)===seas);
-      const fixtureIds = new Set((gwObj?.fixtures||[]).map(f=>f.id));
-      const preds = {...(g.predictions||{})};
-      Object.keys(preds).forEach(u=>{
-        const up = {...preds[u]};
-        fixtureIds.forEach(id=>{delete up[id];});
-        preds[u] = up;
-      });
-      const remaining = (g.gameweeks||[]).filter(gw=>!(gw.gw===gwToRemove&&(gw.season||seas)===seas));
-      const newCurrentGW = remaining.filter(gw=>(gw.season||seas)===seas).sort((a,b)=>b.gw-a.gw)[0]?.gw || 1;
-      return {...g, gameweeks:remaining, predictions:preds, currentGW:newCurrentGW};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'remove-gw', gw: currentGW } })
     });
-    setRemoveGWStep(0);
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setRemoveGWStep(0);
+    }
   };
 
   const setGW = (gw) => {setDeleteGWStep(0);setRemoveGWStep(0);setViewGW(gw);};
@@ -3649,12 +3632,13 @@ function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,vie
   };
   const confirmSave = async () => {
     const {u,fid,val,oldVal} = editConfirm;
-    const fixture = gwFixtures.find(f=>f.id===fid);
-    await updateGroup(g=>{
-      const p={...(g.predictions||{})};p[u]={...(p[u]||{}),[fid]:val};
-      const entry={id:Date.now(),at:Date.now(),by:adminUser.username,for:u,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fid,gw:viewedGW??group.currentGW,old:oldVal,new:val};
-      return {...g,predictions:p,adminLog:[...(g.adminLog||[]),entry]};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'edit-pick', username:u, fixtureId:fid, value:val, oldValue:oldVal, gw:viewedGW??group.currentGW } })
     });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) setGroup(data.group);
     setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
     setEditConfirm(null);
   };

@@ -284,6 +284,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
+    if (payload.type === 'edit-pick') {
+      const targetUsername = payload.username;
+      const fixtureId = payload.fixtureId;
+      const value = payload.value;
+      const oldVal = payload.oldValue ?? null;
+      if (!targetUsername || !fixtureId || !value) return bad(res, 400, 'Missing edit-pick payload');
+      const fixture = ((group.gameweeks || []).flatMap(gw => gw.fixtures || [])).find(f => f.id === fixtureId);
+      const predictions = { ...(group.predictions || {}) };
+      predictions[targetUsername] = { ...(predictions[targetUsername] || {}), [fixtureId]: value };
+      const entry = { id: Date.now(), at: Date.now(), by: username, for: targetUsername, fixture: fixture ? `${fixture.home} vs ${fixture.away}` : fixtureId, gw: payload.gw ?? group.currentGW, old: oldVal, new: value };
+      const next = { ...group, predictions, adminLog: [...(group.adminLog || []), entry] };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
     if (payload.type === 'save-api-settings') {
       const next = { ...group, apiKey: String(payload.apiKey || '').trim(), season: Number(payload.season) || group.season || 2025 };
       await setValue(groupKey, next);
@@ -313,6 +328,45 @@ export default async function handler(req, res) {
       const existing = new Map((group.gameweeks || []).map(g => [g.gw, g]));
       const gameweeks = Array.from({ length: 38 }, (_,i)=> existing.get(i+1) || ({ gw:i+1, season, fixtures:[] }));
       const next = { ...group, gameweeks };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'delete-gw') {
+      const gwToClear = Number(payload.gw);
+      if (!gwToClear) return bad(res, 400, 'Missing gw');
+      const seas = group.season || 2025;
+      const gwObj = (group.gameweeks || []).find(gw => gw.gw === gwToClear && (gw.season || seas) === seas);
+      const fixtureIds = new Set((gwObj?.fixtures || []).map(f => f.id));
+      const isWC = (group.competition || 'PL') === 'WC';
+      const prefix = isWC ? 'wc-' : seas !== 2025 ? `${seas}-` : '';
+      const freshFixtures = isWC ? [] : Array.from({ length: 10 }, (_, i) => ({ id: `${prefix}gw${gwToClear}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
+      const preds = { ...(group.predictions || {}) };
+      Object.keys(preds).forEach(u => {
+        const up = { ...preds[u] };
+        fixtureIds.forEach(id => { delete up[id]; });
+        preds[u] = up;
+      });
+      const next = { ...group, gameweeks: (group.gameweeks || []).map(gw => gw.gw === gwToClear && (gw.season || seas) === seas ? { ...gw, fixtures: freshFixtures } : gw), predictions: preds };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'remove-gw') {
+      const gwToRemove = Number(payload.gw);
+      if (!gwToRemove) return bad(res, 400, 'Missing gw');
+      const seas = group.season || 2025;
+      const gwObj = (group.gameweeks || []).find(gw => gw.gw === gwToRemove && (gw.season || seas) === seas);
+      const fixtureIds = new Set((gwObj?.fixtures || []).map(f => f.id));
+      const preds = { ...(group.predictions || {}) };
+      Object.keys(preds).forEach(u => {
+        const up = { ...preds[u] };
+        fixtureIds.forEach(id => { delete up[id]; });
+        preds[u] = up;
+      });
+      const remaining = (group.gameweeks || []).filter(gw => !(gw.gw === gwToRemove && (gw.season || seas) === seas));
+      const newCurrentGW = remaining.filter(gw => (gw.season || seas) === seas).sort((a, b) => b.gw - a.gw)[0]?.gw || 1;
+      const next = { ...group, gameweeks: remaining, predictions: preds, currentGW: newCurrentGW };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
     }
