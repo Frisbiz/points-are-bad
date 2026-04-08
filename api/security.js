@@ -231,6 +231,29 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
+    if (payload.type === 'toggle-hidden-fixture') {
+      const fixtureId = payload.fixtureId;
+      if (!fixtureId) return bad(res, 400, 'Missing fixtureId');
+      const hidden = group.hiddenFixtures || [];
+      const isHidden = hidden.includes(fixtureId);
+      const next = { ...group, hiddenFixtures: isHidden ? hidden.filter(x => x !== fixtureId) : [...hidden, fixtureId] };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'dibs-skip') {
+      const playerId = payload.playerId;
+      const fixtureId = payload.fixtureId;
+      if (!playerId || !fixtureId) return bad(res, 400, 'Missing player or fixture');
+      const current = (group.dibsSkips || {})[fixtureId] || [];
+      if (current.includes(playerId)) return res.status(200).json({ group });
+      const fixture = ((group.gameweeks || []).flatMap(gw => gw.fixtures || [])).find(f => f.id === fixtureId);
+      const entry = { id: Date.now(), at: Date.now(), by: username, action: 'dibs-skip', for: playerId, fixture: fixture ? `${fixture.home} vs ${fixture.away}` : fixtureId, gw: group.currentGW };
+      const next = { ...group, dibsSkips: { ...(group.dibsSkips || {}), [fixtureId]: [...current, playerId] }, adminLog: [...(group.adminLog || []), entry] };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
     if (payload.type === 'save-api-settings') {
       const next = { ...group, apiKey: String(payload.apiKey || '').trim(), season: Number(payload.season) || group.season || 2025 };
       await setValue(groupKey, next);

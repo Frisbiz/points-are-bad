@@ -4613,15 +4613,17 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
     setTimeout(()=>setSyncDatesMsg(""),5000);
   };
   const issueSkip = async (playerId, fixtureId) => {
-    const current = (group.dibsSkips || {})[fixtureId] || [];
-    if (current.includes(playerId)) return;
-    const fixture = (group.gameweeks||[]).flatMap(gw=>gw.fixtures).find(f=>f.id===fixtureId);
-    await updateGroup(g => {
-      const entry={id:Date.now(),at:Date.now(),by:user.username,action:"dibs-skip",for:playerId,fixture:fixture?`${fixture.home} vs ${fixture.away}`:fixtureId,gw:group.currentGW};
-      return {...g,dibsSkips:{...(g.dibsSkips||{}),[fixtureId]:[...((g.dibsSkips||{})[fixtureId]||[]),playerId]},adminLog:[...(g.adminLog||[]),entry]};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'dibs-skip', playerId, fixtureId } })
     });
-    setSkipModal(null);
-    setSkipConfirm(false);
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setSkipModal(null);
+      setSkipConfirm(false);
+    }
   };
   const leaveGroup=async()=>{
     if(isCreator)return;
