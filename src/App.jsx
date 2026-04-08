@@ -1953,6 +1953,7 @@ export default function App() {
     const loginGroups = (await Promise.all((nextUser.groupIds || []).map(id=>sget(`group:${id}`)))).filter(Boolean);
     setGroups(loginGroups);
     lset("session", nextSession);
+    setShowLanding(false);
     setUser(nextUser);
     setNeedsSetup(false);
     if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
