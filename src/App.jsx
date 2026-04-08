@@ -4365,10 +4365,16 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const leaveGroup=async()=>{
     if(isCreator)return;
     if(group.code===DEMO_GROUP_CODE||group.code===DEMO_WC_GROUP_CODE)return;
-    const fresh=await sget(`user:${user.username}`);
-    if(fresh)await sset(`user:${user.username}`,{...fresh,groupIds:(fresh.groupIds||[]).filter(id=>id!==group.id)});
-    const ok=await updateGroup(g=>({...g,members:g.members.filter(m=>m!==user.username),admins:(g.admins||[]).filter(a=>a!==user.username)}));
-    if(ok)onLeave();
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'leave-group', groupId: group.id })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.user) {
+      onUpdateUser(data.user);
+      onLeave();
+    }
   };
   const deleteGroup = async () => {
     if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }

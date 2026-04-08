@@ -229,6 +229,24 @@ export default async function handler(req, res) {
     return res.status(200).json({ group: nextGroup, user: safeUser(nextUser) });
   }
 
+  if (action === 'leave-group' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const groupId = req.body?.groupId;
+    if (!groupId) return bad(res, 400, 'Missing groupId');
+    const group = await getValue(`group:${groupId}`);
+    if (!group) return bad(res, 404, 'Group not found');
+    if (group.creatorUsername === username) return bad(res, 400, 'Creator cannot leave group');
+    if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE || group.code === 'DEMO2025' || group.code === 'WC2026') return bad(res, 400, 'Cannot leave demo group');
+    const user = await getValue(`user:${username}`);
+    if (!user) return bad(res, 404, 'User not found');
+    const nextUser = { ...user, groupIds: (user.groupIds || []).filter(id => id !== groupId) };
+    const nextGroup = { ...group, members: (group.members || []).filter(m => m !== username), admins: (group.admins || []).filter(a => a !== username), memberOrder: (group.memberOrder || []).filter(m => m !== username) };
+    await setValue(`user:${username}`, nextUser);
+    await setValue(`group:${groupId}`, nextGroup);
+    return res.status(200).json({ ok: true, user: safeUser(nextUser), group: nextGroup });
+  }
+
   if (action === 'group-admin' && req.method === 'POST') {
     const { groupId, payload = {} } = req.body || {};
     if (!groupId) return bad(res, 400, 'Missing groupId');
