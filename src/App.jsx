@@ -1496,36 +1496,19 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const createGroup = async () => {
     if (!createName.trim()) return;
     setCreating(true);
-    const id = Date.now().toString();
-    const code = genCode();
-    const isWC = setupCompetition === "WC";
-    let newGroup;
-    if (isWC) {
-      newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:makeWCRounds(),currentGW:1,apiKey:"",season:2026,competition:"WC",hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
-      try {
-        const globalDoc = await sget("fixtures:WC:2026");
-        if (globalDoc&&(globalDoc.gameweeks||[]).length) {
-          newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
-        }
-      } catch(e){ console.error("createGroup WC global seed failed",e); }
-    } else {
-      const startGW = Math.max(1,Math.min(38,parseInt(setupGW)||1));
-      const startingGWs = Array.from({length:38-startGW+1},(_,i)=>({gw:startGW+i,season:2025,fixtures:makeFixturesFallback(startGW+i,2025)}));
-      newGroup = {id,name:createName.trim(),code,creatorUsername:user.username,members:[user.username],admins:[user.username],gameweeks:startingGWs,currentGW:startGW,apiKey:"",season:2025,hiddenGWs:[],scoreScope:"all",draw11Limit:setupLimit,mode:setupPickMode,memberOrder:[user.username],dibsSkips:{},hiddenFixtures:[],adminLog:[]};
-      try {
-        const globalDoc = await sget("fixtures:PL:2025");
-        if (globalDoc&&(globalDoc.gameweeks||[]).length) {
-          newGroup = mergeGlobalIntoGroup(globalDoc,newGroup);
-        }
-      } catch(e){ console.error("createGroup global seed failed",e); }
+    try {
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'create-group', name:createName.trim(), competition:setupCompetition, setupGW, setupLimit, setupPickMode })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.group || !data.user) return;
+      onUpdateUser(data.user);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");
+      onEnterGroup(data.group);
+    } finally {
+      setCreating(false);
     }
-    await sset(`group:${id}`,newGroup);
-    await sset(`groupcode:${code}`,id);
-    const fresh = await sget(`user:${user.username}`);
-    const updated = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
-    await sset(`user:${user.username}`,updated);
-    onUpdateUser(updated);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");setCreating(false);
-    onEnterGroup(newGroup);
   };
 
   const joinGroup = async (codeOverride=null) => {
@@ -1533,23 +1516,16 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     if (code.length!==6){setError("Enter a 6-character code.");return;}
     setInviteLoading(true);
     try {
-      const id = await sget(`groupcode:${code}`);
-      if (!id){setError("Group not found.");return;}
-      const group = await sget(`group:${id}`);
-      if (!group){setError("Group not found.");return;}
-      if (group.members.includes(user.username)){setError("You're already in this group.");setInviteGroup(null);return;}
-      const currentOrder = group.memberOrder || group.members || [];
-      const updated = {
-        ...group,
-        members:[...group.members,user.username],
-        memberOrder: currentOrder.includes(user.username) ? currentOrder : [...currentOrder, user.username],
-      };
-      await sset(`group:${id}`,updated);
-      const fresh = await sget(`user:${user.username}`);
-      const updatedUser = {...fresh,groupIds:[...(fresh.groupIds||[]),id]};
-      await sset(`user:${user.username}`,updatedUser);
-      onUpdateUser(updatedUser);setJoinCode("");setError("");setInviteGroup(null);
-      onEnterGroup(updated);
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'join-group', code })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) { setError(data.error || 'Group not found.'); return; }
+      if (!data.group || !data.user) return;
+      onUpdateUser(data.user);setJoinCode("");setError("");setInviteGroup(null);
+      onEnterGroup(data.group);
     } finally {
       setInviteLoading(false);
     }

@@ -9,6 +9,31 @@ function bad(res, code, error) {
   return res.status(code).json({ error });
 }
 
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function makeFixturesFallback(gw, season = 2025) {
+  const prefix = season !== 2025 ? `${season}-` : '';
+  return Array.from({ length: 10 }, (_, i) => ({ id: `${prefix}gw${gw}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
+}
+
+function makeWCRounds() {
+  return [
+    { gw: 1, season: 2026, fixtures: [] },
+    { gw: 2, season: 2026, fixtures: [] },
+    { gw: 3, season: 2026, fixtures: [] },
+    { gw: 4, season: 2026, fixtures: [] },
+    { gw: 5, season: 2026, fixtures: [] },
+    { gw: 6, season: 2026, fixtures: [] },
+    { gw: 7, season: 2026, fixtures: [] },
+    { gw: 8, season: 2026, fixtures: [] },
+  ];
+}
+
 async function requireUser(req, res) {
   const token = readSessionToken(req);
   const session = await getSession(token);
@@ -151,6 +176,57 @@ export default async function handler(req, res) {
       await setValue('site:preferences', next);
       return res.status(200).json({ value: next });
     }
+  }
+
+  if (action === 'create-group' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const { name, competition, setupGW, setupLimit, setupPickMode } = req.body || {};
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) return bad(res, 400, 'Missing group name');
+    const user = await getValue(`user:${username}`);
+    if (!user) return bad(res, 404, 'User not found');
+    const id = Date.now().toString();
+    let code = genCode();
+    for (let i = 0; i < 10; i++) {
+      const taken = await getValue(`groupcode:${code}`);
+      if (!taken) break;
+      code = genCode();
+    }
+    const isWC = competition === 'WC';
+    const startGW = Math.max(1, Math.min(38, parseInt(setupGW) || 1));
+    let group = isWC
+      ? { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], gameweeks: makeWCRounds(), currentGW: 1, apiKey: '', season: 2026, competition: 'WC', hiddenGWs: [], scoreScope: 'all', draw11Limit: setupLimit || 'unlimited', mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] }
+      : { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: 2025, fixtures: makeFixturesFallback(startGW + i, 2025) })), currentGW: startGW, apiKey: '', season: 2025, hiddenGWs: [], scoreScope: 'all', draw11Limit: setupLimit || 'unlimited', mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
+    try {
+      const globalDoc = await getValue(isWC ? 'fixtures:WC:2026' : 'fixtures:PL:2025');
+      if (globalDoc && (globalDoc.gameweeks || []).length) group = mergeGlobalIntoGroup(globalDoc, group);
+    } catch {}
+    await setValue(`group:${id}`, group);
+    await setValue(`groupcode:${code}`, id);
+    const nextUser = { ...user, groupIds: [...(user.groupIds || []), id] };
+    await setValue(`user:${username}`, nextUser);
+    return res.status(200).json({ group, user: safeUser(nextUser) });
+  }
+
+  if (action === 'join-group' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const code = String(req.body?.code || '').trim().toUpperCase();
+    if (code.length !== 6) return bad(res, 400, 'Enter a 6-character code.');
+    const id = await getValue(`groupcode:${code}`);
+    if (!id) return bad(res, 404, 'Group not found');
+    const group = await getValue(`group:${id}`);
+    if (!group) return bad(res, 404, 'Group not found');
+    if ((group.members || []).includes(username)) return bad(res, 400, "You're already in this group.");
+    const user = await getValue(`user:${username}`);
+    if (!user) return bad(res, 404, 'User not found');
+    const currentOrder = group.memberOrder || group.members || [];
+    const nextGroup = { ...group, members: [...(group.members || []), username], memberOrder: currentOrder.includes(username) ? currentOrder : [...currentOrder, username] };
+    const nextUser = { ...user, groupIds: [...(user.groupIds || []), id] };
+    await setValue(`group:${id}`, nextGroup);
+    await setValue(`user:${username}`, nextUser);
+    return res.status(200).json({ group: nextGroup, user: safeUser(nextUser) });
   }
 
   if (action === 'group-admin' && req.method === 'POST') {
