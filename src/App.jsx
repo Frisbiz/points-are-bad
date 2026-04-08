@@ -1857,8 +1857,6 @@ export default function App() {
   },[theme,effectiveTheme]);
 
   useEffect(()=>{
-    console.log("stop inspecting the app and go build something");
-    console.log("points detected. opinion lowered.");
     window.destroyPoints = () => {
       showToast("Points destroyed. For now.");
       return 0;
@@ -1898,10 +1896,12 @@ export default function App() {
       setTheme(SECRET_THEME);
       showToast("Velvet theme unlocked.");
     }
-    return sset(`user:${user.username}`, updatedUser).catch(err=>{
-      console.error("failed to persist hidden counter", err);
-      return false;
-    }).then(()=>!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME));
+    fetch('/api/security', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'unlock-theme', theme: SECRET_THEME, badClicks: clicks }),
+    }).catch(() => {});
+    return Promise.resolve(!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME));
   },[user,showToast]);
 
   const runBoot=useCallback(async()=>{
@@ -1928,8 +1928,7 @@ export default function App() {
   useEffect(()=>{runBoot();},[]);
 
   const handleDemoLogin = async () => {
-    const u = await sget(`user:${DEMO_SHARED_USERNAME}`);
-    await handleLogin(u || { username: DEMO_SHARED_USERNAME, displayName: "Demo", password: "demo", email: "", groupIds: [] });
+    await handleLogin({ username: DEMO_SHARED_USERNAME, displayName: "Demo", groupIds: [] });
   };
 
   const handleLogin = async (u) => {
@@ -1948,8 +1947,6 @@ export default function App() {
       setTheme(fallbackTheme);
       localStorage.setItem("theme", fallbackTheme);
     }
-    const freshUser = await sget(`user:${nextUser.username}`);
-    if (freshUser) nextUser = freshUser;
     const loginGroups = (await Promise.all((nextUser.groupIds || []).map(id=>sget(`group:${id}`)))).filter(Boolean);
     lset("session", nextSession);
     setGroups(loginGroups);
@@ -1980,23 +1977,6 @@ export default function App() {
   };
   const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
   const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh)setGroup(fresh);},[group?.id]);
-  const updateGroup = useCallback(async(updater)=>{
-    if(!group)return false;
-    const fresh=await sget(`group:${group.id}`);
-    const next=typeof updater==="function"?updater(fresh):updater;
-    const ok=await sset(`group:${group.id}`,next);
-    if(ok)setGroup(next);
-    else showToast("Save failed - check your connection.");
-    return ok;
-  },[group?.id,showToast]);
-  const patchGroup=useCallback(async(path,value)=>{
-    if(!group)return false;
-    const ok=await spatch(`group:${group.id}`,path,value);
-    if(ok)setGroup(g=>applyPath(g,path,value));
-    else showToast("Save failed - check your connection.");
-    return ok;
-  },[group?.id,showToast]);
-
   const isAdmin=!!(user&&group&&group.admins?.includes(user.username));
   const isCreator=!!(user&&group&&group.creatorUsername===user.username);
   return (
@@ -2061,16 +2041,15 @@ export default function App() {
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
-          updateGroup={updateGroup} patchGroup={patchGroup} refreshGroup={refreshGroup}
-          theme={theme} setTheme={setTheme} unlockSecretTheme={unlockSecretTheme}
-          sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>
+          refreshGroup={refreshGroup} theme={theme} setTheme={setTheme}
+          unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>
       )}
     </>
   );
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,updateGroup,patchGroup,refreshGroup,theme,setTheme,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{}}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refreshGroup,theme,setTheme,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{
@@ -2249,11 +2228,11 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
           </div>
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} updateGroup={updateGroup} patchGroup={patchGroup} names={names} theme={theme}/>}
+        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme}/>}
         {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
-        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} names={names} updateNickname={updateNickname} theme={theme}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} updateGroup={updateGroup} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>}
+        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>}
       </main>
     </div>
   );
@@ -2539,7 +2518,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   );
 }
 
-function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
+function FixturesTab({group,user,isAdmin,names,theme}) {
   const mob = useMobile();
   const isIndex = theme === "index";
   const gwStripRef = useRef(null);
@@ -2788,7 +2767,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
         const res=await fetch('/api/security',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'auto-sync-fixtures', gw: targetGW } })
+          body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'auto-sync-fixtures', gw: targetGW } })
         });
         const data=await res.json().catch(()=>({}));
         if(res.ok&&data.updated&&data.group)setGroup(data.group);
@@ -3118,7 +3097,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {(group.mode==="dibs"
         ? (group.members||[]).length>1
         : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} updateGroup={updateGroup} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
+      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
       {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Lock size={28} color="var(--text-dim)"/></div>
@@ -3130,7 +3109,7 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,updateGroup,adminUser,names,viewedGW,theme,dibsTurnFor={}}) {
+function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,dibsTurnFor={}}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
   const members = group.members||[];
@@ -3881,7 +3860,7 @@ function TrendsTab({group,names,theme}) {
 }
 
 /* ── MEMBERS ─────────────────────────────────────── */
-function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickname,theme}) {
+function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme}) {
   const members=group.members||[];
   const admins=group.admins||[];
   const stats = useMemo(()=>computeStats(group),[group]);
@@ -4030,7 +4009,7 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{}}) {
+function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{}}) {
   const mob = useMobile();
   const isAutoStocks = theme === "index";
   const resolvedSitePrefs = sitePrefs || { defaultTheme: "dark", landingTheme: null };

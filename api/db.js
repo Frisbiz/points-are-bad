@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getSession, readSessionToken } from "./_auth.js";
 
 if (!getApps().length) {
   initializeApp({
@@ -12,8 +13,14 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const READ_PREFIXES = ["group:", "groupcode:", "fixtures:"];
-const WRITE_PREFIXES = ["fixtures:"];
+
+// fixtures: are public (no sensitive data, needed for fixture display)
+// group: and groupcode: require a valid session - group docs contain all member picks
+const PUBLIC_READ_PREFIXES = ["fixtures:"];
+const AUTH_READ_PREFIXES = ["group:", "groupcode:"];
+
+// No direct writes allowed through this endpoint - all mutations go through /api/security
+const ALLOWED_READ_PREFIXES = [...PUBLIC_READ_PREFIXES, ...AUTH_READ_PREFIXES];
 
 function validKeyFor(key, prefixes) {
   return typeof key === "string" && key.length <= 200 && prefixes.some(p => key.startsWith(p));
@@ -26,7 +33,15 @@ function docId(key) {
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const { key } = req.query;
-    if (!validKeyFor(key, READ_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
+    if (!validKeyFor(key, ALLOWED_READ_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
+
+    // group: and groupcode: reads require a valid session
+    if (validKeyFor(key, AUTH_READ_PREFIXES)) {
+      const token = readSessionToken(req);
+      const session = await getSession(token);
+      if (!session?.username) return res.status(401).json({ error: "Unauthorized" });
+    }
+
     try {
       const snap = await db.collection("data").doc(docId(key)).get();
       return res.status(200).json({ value: snap.exists ? snap.data().value : null });
@@ -36,45 +51,6 @@ export default async function handler(req, res) {
     }
   }
 
-  if (req.method === "POST") {
-    const { key, value } = req.body || {};
-    if (!validKeyFor(key, WRITE_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
-    try {
-      await db.collection("data").doc(docId(key)).set({ value, updatedAt: Date.now() });
-      return res.status(200).json({ ok: true });
-    } catch (e) {
-      console.error("db POST error", key, e);
-      return res.status(500).json({ error: "Write failed" });
-    }
-  }
-
-  if (req.method === "PATCH") {
-    const { key, path, value } = req.body || {};
-    if (!validKeyFor(key, WRITE_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
-    if (!path || typeof path !== "string" || !/^[\w.-]+$/.test(path)) {
-      return res.status(400).json({ error: "Invalid path" });
-    }
-    try {
-      await db.collection("data").doc(docId(key)).update({ [`value.${path}`]: value, updatedAt: Date.now() });
-      return res.status(200).json({ ok: true });
-    } catch (e) {
-      if (e.code === 5) return res.status(404).json({ error: "Document not found" });
-      console.error("db PATCH error", key, path, e);
-      return res.status(500).json({ error: "Patch failed" });
-    }
-  }
-
-  if (req.method === "DELETE") {
-    const { key } = req.query;
-    if (!validKeyFor(key, WRITE_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
-    try {
-      await db.collection("data").doc(docId(key)).delete();
-      return res.status(200).json({ ok: true });
-    } catch (e) {
-      console.error("db DELETE error", key, e);
-      return res.status(500).json({ error: "Delete failed" });
-    }
-  }
-
+  // All writes go through /api/security - no direct writes via this endpoint
   return res.status(405).json({ error: "Method not allowed" });
 }

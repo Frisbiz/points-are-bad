@@ -70,10 +70,10 @@ export function readSessionToken(req) {
 
 export function setSessionCookie(res, token, expiry) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  res.setHeader("Set-Cookie", `pab_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Expires=${new Date(expiry).toUTCString()}${secure}`);
+  res.setHeader("Set-Cookie", `pab_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiry).toUTCString()}${secure}`);
 }
 
 export function clearSessionCookie(res) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  res.setHeader("Set-Cookie", `pab_session=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`);
+  res.setHeader("Set-Cookie", `pab_session=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`);
 }

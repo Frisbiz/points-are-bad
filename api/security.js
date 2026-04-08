@@ -6,6 +6,34 @@ import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS
 const OWNER_USERNAME = "faris";
 const SITE_DEFAULTS = { defaultTheme: "dark", landingTheme: null };
 
+// ── Rate limiting (Firestore-backed, reliable across serverless instances) ───
+const RATE_LIMIT_WINDOW_MS = 60_000;      // 1 minute window
+const RATE_LIMIT_MAX_AUTH   = 10;         // max login/register attempts per window
+const RATE_LIMIT_MAX_UNLOCK = 30;         // looser limit for non-auth actions
+
+function getClientIp(req) {
+  const fwd = req.headers["x-forwarded-for"];
+  return (fwd ? fwd.split(",")[0] : req.socket?.remoteAddress || "unknown").trim();
+}
+
+async function checkRateLimit(ip, action, max = RATE_LIMIT_MAX_AUTH) {
+  const key = `ratelimit:${action}:${ip}`;
+  const now = Date.now();
+  try {
+    const record = await getValue(key);
+    if (record && record.resetAt > now) {
+      if (record.count >= max) return false;
+      await setValue(key, { count: record.count + 1, resetAt: record.resetAt });
+    } else {
+      await setValue(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    }
+    return true;
+  } catch {
+    return true; // fail open rather than lock everyone out on DB error
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function bad(res, code, error) {
   return res.status(code).json({ error });
 }
@@ -206,6 +234,8 @@ export default async function handler(req, res) {
   }
 
   if (action === 'auth-register' && req.method === 'POST') {
+    const ip = getClientIp(req);
+    if (!await checkRateLimit(ip, 'auth-register')) return bad(res, 429, "Too many attempts. Try again in a minute.");
     const { username, password, email } = req.body || {};
     const uname = normalizeUsername(username);
     const mail = normalizeEmail(email);
@@ -235,6 +265,8 @@ export default async function handler(req, res) {
   }
 
   if (action === 'auth-login' && req.method === 'POST') {
+    const ip = getClientIp(req);
+    if (!await checkRateLimit(ip, 'auth-login')) return bad(res, 429, "Too many attempts. Try again in a minute.");
     const { username, password } = req.body || {};
     const uname = normalizeUsername(username);
     if (!uname || !password) return bad(res, 400, "Missing fields");
@@ -301,6 +333,19 @@ export default async function handler(req, res) {
     }
     if (prevEmail && prevEmail !== nextEmail) await deleteValue(`useremail:${prevEmail}`);
     return res.status(200).json({ ok: true, email: nextEmail });
+  }
+
+  if (action === 'unlock-theme' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const { theme, badClicks } = req.body || {};
+    if (!theme || typeof theme !== 'string') return bad(res, 400, 'Missing theme');
+    const user = await getValue(`user:${username}`);
+    if (!user) return bad(res, 404, 'User not found');
+    const unlockedThemes = Array.from(new Set([...(user.unlockedThemes || []), theme]));
+    const updatedUser = { ...user, unlockedThemes, badClicks: typeof badClicks === 'number' ? badClicks : (user.badClicks || 0) };
+    await setValue(`user:${username}`, updatedUser);
+    return res.status(200).json({ ok: true, user: safeUser(updatedUser) });
   }
 
   if (action === 'site-preferences') {
@@ -524,6 +569,55 @@ export default async function handler(req, res) {
       const next = { ...group, picksLocked: { ...pl, [username]: { ...ul, [season]: { ...sl, [gw]: true } } } };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'auto-sync-fixtures') {
+      // Any member can trigger a fixture sync - this refreshes global fixture data and applies to group
+      const targetGW = Number(payload.gw || group.currentGW || 1);
+      const isWC = (group.competition || 'PL') === 'WC';
+      const seas = group.season || 2025;
+      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
+      let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
+      const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
+      const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
+      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
+      if (missingPast) {
+        const allRes = await fetch(`${baseUrl}/api/fixtures?season=${isWC ? 2026 : seas}&competition=${isWC ? 'WC' : 'PL'}`);
+        if (!allRes.ok) return bad(res, allRes.status, `API error ${allRes.status}`);
+        const allData = await allRes.json();
+        const allMatches = allData.matches || [];
+        if (!allMatches.length) return res.status(200).json({ group, updated: false });
+        if (isWC) {
+          const byGW = {};
+          allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
+          const otherGWs = (globalDoc.gameweeks || []).filter(g => !byGW[g.gw]);
+          const newGWs = Object.entries(byGW).map(([gw, ms]) => ({ gw: Number(gw), fixtures: parseMatchesToFixtures(ms, Number(gw), 'WC') }));
+          globalDoc = { ...globalDoc, updatedAt: Date.now(), gameweeks: [...otherGWs, ...newGWs] };
+        } else {
+          let updated = { ...globalDoc };
+          const byGW = {};
+          allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
+          Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), 'PL')); });
+          globalDoc = updated;
+        }
+      } else {
+        const matchesRes = await fetch(`${baseUrl}/api/fixtures?matchday=${targetGW}&season=${isWC ? 2026 : seas}&competition=${isWC ? 'WC' : 'PL'}`);
+        if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
+        const matchesData = await matchesRes.json();
+        const matches = matchesData.matches || [];
+        if (!matches.length) return res.status(200).json({ group, updated: false });
+        const apiFixtures = parseMatchesToFixtures(matches, targetGW, isWC ? 'WC' : 'PL');
+        globalDoc = isWC
+          ? { ...globalDoc, updatedAt: Date.now(), gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== targetGW), { gw: targetGW, fixtures: apiFixtures }] }
+          : regroupGlobalDoc(globalDoc, targetGW, apiFixtures);
+      }
+      await setValue(globalKey, globalDoc);
+      if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) return res.status(200).json({ group, updated: false });
+      const merged = mergeGlobalIntoGroup(group, globalDoc, targetGW);
+      if (!merged) return res.status(200).json({ group, updated: false });
+      const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next, updated: true });
     }
 
     return bad(res, 400, 'Unsupported group user action');
@@ -834,51 +928,6 @@ export default async function handler(req, res) {
       next.adminLog = [...(next.adminLog || []), { id: Date.now(), at: Date.now(), by: username, action: 'api-sync', gw: currentGW, fixtures: apiFixtures.length, results: finished }];
       await setValue(groupKey, next);
       return res.status(200).json({ group: next, fixtures: apiFixtures.length, results: finished });
-    }
-
-    if (payload.type === 'auto-sync-fixtures') {
-      const targetGW = Number(payload.gw || group.currentGW || 1);
-      const isWC = (group.competition || 'PL') === 'WC';
-      const seas = group.season || 2025;
-      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
-      let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
-      const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
-      const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
-      if (missingPast) {
-        const allRes = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/fixtures?season=${isWC ? 2026 : seas}&competition=${isWC ? 'WC' : 'PL'}`);
-        if (!allRes.ok) return bad(res, allRes.status, `API error ${allRes.status}`);
-        const allData = await allRes.json();
-        const allMatches = allData.matches || [];
-        if (!allMatches.length) return res.status(200).json({ group, updated: false });
-        if (isWC) {
-          const byGW = {};
-          allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-          const otherGWs = (globalDoc.gameweeks || []).filter(g => !byGW[g.gw]);
-          const newGWs = Object.entries(byGW).map(([gw, ms]) => ({ gw: Number(gw), fixtures: parseMatchesToFixtures(ms, Number(gw), 'WC') }));
-          globalDoc = { ...globalDoc, updatedAt: Date.now(), gameweeks: [...otherGWs, ...newGWs] };
-        } else {
-          let updated = { ...globalDoc };
-          const byGW = {};
-          allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-          Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), 'PL')); });
-          globalDoc = updated;
-        }
-      } else {
-        const matchesRes = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/fixtures?matchday=${targetGW}&season=${isWC ? 2026 : seas}&competition=${isWC ? 'WC' : 'PL'}`);
-        if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
-        const matchesData = await matchesRes.json();
-        const matches = matchesData.matches || [];
-        if (!matches.length) return res.status(200).json({ group, updated: false });
-        const apiFixtures = parseMatchesToFixtures(matches, targetGW, isWC ? 'WC' : 'PL');
-        globalDoc = isWC
-          ? { ...globalDoc, updatedAt: Date.now(), gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== targetGW), { gw: targetGW, fixtures: apiFixtures }] }
-          : regroupGlobalDoc(globalDoc, targetGW, apiFixtures);
-      }
-      await setValue(globalKey, globalDoc);
-      if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) return res.status(200).json({ group, updated: false });
-      const next = mergeGlobalIntoGroup(globalDoc, group);
-      await setValue(groupKey, next);
-      return res.status(200).json({ group: next, updated: true });
     }
 
     if (payload.type === 'toggle-admin') {
