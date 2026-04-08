@@ -94,10 +94,20 @@ export default async function handler(req, res) {
     const passwordHash = await hashPassword(String(password));
     const user = { username: uname, displayName: uname[0].toUpperCase() + uname.slice(1), email: mail, groupIds: [], passwordHash };
     await setValue(`user:${uname}`, user);
+    const existingEmailOwner = await getValue(`useremail:${mail}`);
+    if (existingEmailOwner && existingEmailOwner.username !== uname) {
+      await deleteValue(`user:${uname}`);
+      return bad(res, 409, "Email already in use");
+    }
     await setValue(`useremail:${mail}`, { username: uname });
+    const freshUser = await getValue(`user:${uname}`);
+    if (!freshUser || normalizeEmail(freshUser.email) !== mail) {
+      await deleteValue(`useremail:${mail}`);
+      return bad(res, 409, "Username taken");
+    }
     const { token, expiry } = await createSession(uname);
     setSessionCookie(res, token, expiry);
-    return res.status(200).json({ user: safeUser(user) });
+    return res.status(200).json({ user: safeUser(freshUser) });
   }
 
   if (action === 'auth-login' && req.method === 'POST') {
