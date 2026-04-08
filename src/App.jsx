@@ -1116,9 +1116,9 @@ function AccountSetupModal({ user, onDone, onLogout }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark" }) {
-  const [groups,setGroups]=useState([]);
-  const [loading,setLoading]=useState(true);
+function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark" }) {
+  const [groups,setGroups]=useState(initialGroups);
+  const [loading,setLoading]=useState(!initialGroups.length);
   const [createName,setCreateName]=useState("");
   const [joinCode,setJoinCode]=useState(initialJoinCode||"");
   const [error,setError]=useState("");
@@ -1226,10 +1226,15 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
   const [setupPickMode,setSetupPickMode]=useState("open");
 
   useEffect(()=>{
+    setGroups(initialGroups);
+    setLoading(false);
+  },[initialGroups]);
+
+  useEffect(()=>{
     let cancelled = false;
     (async()=>{
-      if (user?.username) await loadGroups(user.username);
-      else if (!cancelled) setGroups([]);
+      if (user?.username && !initialGroups.length) await loadGroups(user.username);
+      else if (!cancelled && !user?.username) setGroups([]);
       if (cancelled || !initialJoinCode || !user?.username) return;
       try {
         const code = initialJoinCode.trim().toUpperCase();
@@ -1256,7 +1261,7 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
       }
     })();
     return ()=>{ cancelled = true; };
-  },[user?.username, initialJoinCode]);
+  },[user?.username, initialJoinCode, initialGroups.length]);
 
   useEffect(()=>{
     if (!setupMode) return;
@@ -1953,8 +1958,9 @@ export default function App() {
     const freshUser = await sget(`user:${nextUser.username}`);
     if (freshUser) nextUser = freshUser;
     const loginGroups = (await Promise.all((nextUser.groupIds || []).map(id=>sget(`group:${id}`)))).filter(Boolean);
-    setGroups(loginGroups);
     lset("session", nextSession);
+    setGroups(loginGroups);
+    setGroup(null);
     setShowLanding(false);
     setUser(nextUser);
     setNeedsSetup(false);
@@ -2058,7 +2064,7 @@ export default function App() {
           theme={effectiveTheme}
         />
       ):!group?(
-        <GroupLobby user={user} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme}/>
+        <GroupLobby user={user} groups={groups} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
