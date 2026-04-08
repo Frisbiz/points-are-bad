@@ -207,12 +207,16 @@ export default async function handler(req, res) {
     const user = await getValue(`user:${username}`);
     if (!user) return bad(res, 404, 'User not found');
     const id = Date.now().toString();
-    let code = genCode();
+    let code = '';
     for (let i = 0; i < 10; i++) {
-      const taken = await getValue(`groupcode:${code}`);
-      if (!taken) break;
-      code = genCode();
+      const candidate = genCode();
+      const taken = await getValue(`groupcode:${candidate}`);
+      if (!taken) {
+        code = candidate;
+        break;
+      }
     }
+    if (!code) return bad(res, 500, 'Failed to generate group code');
     const isWC = competition === 'WC';
     const startGW = Math.max(1, Math.min(38, parseInt(setupGW) || 1));
     let group = isWC
@@ -223,10 +227,21 @@ export default async function handler(req, res) {
       if (globalDoc && (globalDoc.gameweeks || []).length) group = mergeGlobalIntoGroup(globalDoc, group);
     } catch {}
     await setValue(`group:${id}`, group);
+    const claimedCode = await getValue(`groupcode:${code}`);
+    if (claimedCode && claimedCode !== id) {
+      await deleteValue(`group:${id}`);
+      return bad(res, 409, 'Group code collision');
+    }
     await setValue(`groupcode:${code}`, id);
-    const nextUser = { ...user, groupIds: [...(user.groupIds || []), id] };
+    const nextUser = { ...user, groupIds: Array.from(new Set([...(user.groupIds || []), id])) };
     await setValue(`user:${username}`, nextUser);
-    return res.status(200).json({ group, user: safeUser(nextUser) });
+    const freshUser = await getValue(`user:${username}`);
+    if (!freshUser || !(freshUser.groupIds || []).includes(id)) {
+      await deleteValue(`groupcode:${code}`);
+      await deleteValue(`group:${id}`);
+      return bad(res, 500, 'Failed to create group');
+    }
+    return res.status(200).json({ group, user: safeUser(freshUser) });
   }
 
   if (action === 'join-group' && req.method === 'POST') {
