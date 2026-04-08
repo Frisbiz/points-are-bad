@@ -201,6 +201,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (payload.type === 'save-name') {
+      const name = String(payload.name || '').trim();
+      if (!name) return bad(res, 400, 'Missing group name');
+      const next = { ...group, name };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'save-scope') {
+      const next = { ...group, scoreScope: payload.value };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'save-11-limit') {
+      const next = { ...group, draw11Limit: payload.value };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'toggle-hidden-gw') {
+      const gw = Number(payload.gw);
+      if (!gw) return bad(res, 400, 'Missing gw');
+      const hidden = group.hiddenGWs || [];
+      const isHidden = hidden.includes(gw);
+      const next = { ...group, hiddenGWs: isHidden ? hidden.filter(x => x !== gw) : [...hidden, gw] };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
     if (payload.type === 'toggle-admin') {
       const target = payload.username;
       if (!target) return bad(res, 400, 'Missing target username');

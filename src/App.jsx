@@ -4558,10 +4558,10 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const [copiedLink,setCopiedLink]=useState(false);
   const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
-  const save11Limit=async(val)=>{await updateGroup(g=>({...g,draw11Limit:val}));setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);};
-  const saveName=async()=>{if(!newName.trim())return;await updateGroup(g=>({...g,name:newName.trim()}));setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);};
+  const save11Limit=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-11-limit',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
+  const saveName=async()=>{if(!newName.trim())return;const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-name',name:newName.trim()}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);}};
   const saveApiKey=async()=>{await updateGroup(g=>({...g,apiKey:(g.apiKey||"").trim(),season:parseInt(season)||2025}));setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);};
-  const saveScope=async(val)=>{await updateGroup(g=>({...g,scoreScope:val}));};
+  const saveScope=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-scope',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group)setGroup(data.group);};
   const startNewSeason=async()=>{
     const yr=parseInt(newSeasonYear);
     if(!yr||yr<2020||yr>2060){setSeasonMsg("Enter a valid year.");setTimeout(()=>setSeasonMsg(""),3000);return;}
@@ -4900,11 +4900,11 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                 const label=gwLabel(group,g.gw);
                 const isWC=(group.competition||"PL")==="WC";
                 return (
-                  <button key={g.gw} onClick={()=>updateGroup(grp=>{
-                    const h=grp.hiddenGWs||[];
-                    const isHid=h.includes(g.gw);
-                    return {...grp,hiddenGWs:isHid?h.filter(n=>n!==g.gw):[...h,g.gw]};
-                  })} style={{
+                  <button key={g.gw} onClick={async()=>{
+                    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}})});
+                    const data=await res.json().catch(()=>({}));
+                    if(res.ok&&data.group)setGroup(data.group);
+                  }} style={{
                     background:hidden?"var(--card)":"var(--btn-bg)",
                     color:hidden?"var(--text-dim)":"var(--btn-text)",
                     border:`1px solid ${hidden?"var(--border)":"var(--btn-bg)"}`,
