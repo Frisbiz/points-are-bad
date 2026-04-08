@@ -1949,11 +1949,13 @@ export default function App() {
     }
     const freshUser = await sget(`user:${nextUser.username}`);
     if (freshUser) nextUser = freshUser;
+    const loginGroups = (await Promise.all((nextUser.groupIds || []).map(id=>sget(`group:${id}`)))).filter(Boolean);
+    setGroups(loginGroups);
     lset("session", nextSession);
     setUser(nextUser);
     setNeedsSetup(false);
     if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
-      const onlyGroup = await sget(`group:${nextUser.groupIds[0]}`);
+      const onlyGroup = loginGroups[0] || await sget(`group:${nextUser.groupIds[0]}`);
       if (onlyGroup && onlyGroup.members?.includes(nextUser.username)) {
         setGroup(onlyGroup);
         setTab("League");
