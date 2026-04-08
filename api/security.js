@@ -283,8 +283,15 @@ export default async function handler(req, res) {
     const nextUser = { ...user, groupIds: (user.groupIds || []).filter(id => id !== groupId) };
     const nextGroup = { ...group, members: (group.members || []).filter(m => m !== username), admins: (group.admins || []).filter(a => a !== username), memberOrder: (group.memberOrder || []).filter(m => m !== username) };
     await setValue(`user:${username}`, nextUser);
+    const freshUser = await getValue(`user:${username}`);
+    if (!freshUser || (freshUser.groupIds || []).includes(groupId)) return bad(res, 500, 'Failed to leave group');
     await setValue(`group:${groupId}`, nextGroup);
-    return res.status(200).json({ ok: true, user: safeUser(nextUser), group: nextGroup });
+    const freshGroup = await getValue(`group:${groupId}`);
+    if (!freshGroup || (freshGroup.members || []).includes(username)) {
+      await setValue(`user:${username}`, user);
+      return bad(res, 500, 'Failed to leave group');
+    }
+    return res.status(200).json({ ok: true, user: safeUser(freshUser), group: freshGroup });
   }
 
   if (action === 'demo-bootstrap' && req.method === 'POST') {
