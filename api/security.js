@@ -258,10 +258,15 @@ export default async function handler(req, res) {
     if (!user) return bad(res, 404, 'User not found');
     const currentOrder = group.memberOrder || group.members || [];
     const nextGroup = { ...group, members: [...(group.members || []), username], memberOrder: currentOrder.includes(username) ? currentOrder : [...currentOrder, username] };
-    const nextUser = { ...user, groupIds: [...(user.groupIds || []), id] };
+    const nextUser = { ...user, groupIds: Array.from(new Set([...(user.groupIds || []), id])) };
     await setValue(`group:${id}`, nextGroup);
     await setValue(`user:${username}`, nextUser);
-    return res.status(200).json({ group: nextGroup, user: safeUser(nextUser) });
+    const freshUser = await getValue(`user:${username}`);
+    if (!freshUser || !(freshUser.groupIds || []).includes(id)) {
+      await setValue(`group:${id}`, group);
+      return bad(res, 500, 'Failed to join group');
+    }
+    return res.status(200).json({ group: nextGroup, user: safeUser(freshUser) });
   }
 
   if (action === 'leave-group' && req.method === 'POST') {
