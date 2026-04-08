@@ -1190,19 +1190,19 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
         setLoading(false);
         return;
       }
-      const res = await fetch('/api/auth-register', {
+      const res = await fetch('/api/security', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: uname, password, email: email.trim().toLowerCase() }),
+        body: JSON.stringify({ action: 'auth-register', username: uname, password, email: email.trim().toLowerCase() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.user){setError(data.error||"Registration failed - please try again.");setLoading(false);return;}
       onLogin(data.user);
     } else {
-      const res = await fetch('/api/auth-login', {
+      const res = await fetch('/api/security', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.toLowerCase(), password }),
+        body: JSON.stringify({ action: 'auth-login', username: username.toLowerCase(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.user){setError(data.error||"Invalid credentials.");setLoading(false);return;}
@@ -1515,10 +1515,10 @@ function GroupLobby({ user, onEnterGroup, onUpdateUser, onLogout, initialJoinCod
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const res = await fetch('/api/account-change-password', {
+    const res = await fetch('/api/security', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew })
+      body:JSON.stringify({ action:'account-change-password', currentPassword: pwCurrent, newPassword: pwNew })
     });
     const data = await res.json().catch(()=>({}));
     if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
@@ -2210,7 +2210,7 @@ export default function App() {
 
   useEffect(()=>{
     (async()=>{
-      const res = await fetch('/api/site-preferences').catch(()=>null);
+      const res = await fetch('/api/security?action=site-preferences').catch(()=>null);
       const data = res ? await res.json().catch(()=>({ value:null })) : { value:null };
       const prefs = data?.value;
       const safePrefs = prefs && typeof prefs === "object" ? prefs : { defaultTheme: "dark", landingTheme: null };
@@ -2287,7 +2287,7 @@ export default function App() {
     setBootError(false);
     setBoot(false);
     const saved=lget("session");
-    const sessionRes = await fetch('/api/auth-session').catch(()=>null);
+    const sessionRes = await fetch('/api/security?action=auth-session').catch(()=>null);
     const sessionData = sessionRes ? await sessionRes.json().catch(()=>({user:null})) : { user:null };
     const u = sessionData.user;
     if(u){
@@ -2326,7 +2326,7 @@ export default function App() {
     setUser(nextUser);
     setNeedsSetup(false);
   };
-  const handleLogout = async () => {try{await fetch('/api/auth-logout',{method:'POST'});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
+  const handleLogout = async () => {try{await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'auth-logout'})});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
     setGroup(fresh||g);
@@ -2481,10 +2481,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,update
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const res = await fetch('/api/account-change-password', {
+    const res = await fetch('/api/security', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew })
+      body:JSON.stringify({ action:'account-change-password', currentPassword: pwCurrent, newPassword: pwNew })
     });
     const data = await res.json().catch(()=>({}));
     if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
@@ -4382,20 +4382,20 @@ function MembersTab({group,user,isAdmin,isCreator,updateGroup,names,updateNickna
     setEditingNick(null);
   };
   const toggleAdmin=async(username)=>{
-    const res = await fetch('/api/group-admin', {
+    const res = await fetch('/api/security', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'toggle-admin', groupId: group.id, payload:{ username } })
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'toggle-admin', username } })
     });
     const data = await res.json().catch(()=>({}));
     if (res.ok && data.group) setGroup(data.group);
   };
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
-    const res = await fetch('/api/group-admin', {
+    const res = await fetch('/api/security', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'kick', groupId: group.id, payload:{ username } })
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'kick', username } })
     });
     const data = await res.json().catch(()=>({}));
     if (res.ok && data.group) setGroup(data.group);
@@ -4791,16 +4791,16 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
                 const active=(resolvedSitePrefs.defaultTheme||"dark")===t.key;
                 return <button key={`default-${t.key}`} onClick={async()=>{
                   const next={...resolvedSitePrefs,defaultTheme:t.key,landingTheme:(resolvedSitePrefs.landingTheme===null||resolvedSitePrefs.landingTheme===undefined)?t.key:resolvedSitePrefs.landingTheme};
-                  await fetch('/api/site-preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});setSitePrefs(next);
+                  await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);
                 }} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Landing page theme override</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await fetch('/api/site-preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
+              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
               {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
                 const active=resolvedSitePrefs.landingTheme===t.key;
-                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await fetch('/api/site-preferences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
           </div>
