@@ -438,6 +438,50 @@ export default async function handler(req, res) {
     return res.status(200).json({ groupId, group: nextGroup, user: safeUser(refreshedDemoUser) });
   }
 
+  if (action === 'group-user' && req.method === 'POST') {
+    const { groupId, payload = {} } = req.body || {};
+    if (!groupId) return bad(res, 400, 'Missing groupId');
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const group = await getValue(`group:${groupId}`);
+    if (!group) return bad(res, 404, 'Group not found');
+    if (!(group.members || []).includes(username)) return bad(res, 403, 'Forbidden');
+    const groupKey = `group:${groupId}`;
+
+    if (payload.type === 'save-prediction') {
+      const fixtureId = payload.fixtureId;
+      const value = String(payload.value || '');
+      if (!fixtureId || !/^\d+-\d+$/.test(value)) return bad(res, 400, 'Invalid prediction');
+      if (group.mode === 'dibs') {
+        const freshTurn = computeDibsTurn(group, fixtureId);
+        if (freshTurn !== username) return bad(res, 400, 'Not your turn');
+        const takenFresh = Object.entries(group.predictions || {})
+          .filter(([u]) => u !== username)
+          .some(([, picks]) => picks?.[fixtureId] === value);
+        if (takenFresh) return bad(res, 400, 'Prediction already taken');
+      }
+      const predictions = { ...(group.predictions || {}) };
+      predictions[username] = { ...(predictions[username] || {}), [fixtureId]: value };
+      const next = { ...group, predictions };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'lock-picks') {
+      const season = Number(payload.season || group.season || 2025);
+      const gw = Number(payload.gw || group.currentGW || 1);
+      if (!gw) return bad(res, 400, 'Missing gw');
+      const pl = group.picksLocked || {};
+      const ul = pl[username] || {};
+      const sl = ul[season] || {};
+      const next = { ...group, picksLocked: { ...pl, [username]: { ...ul, [season]: { ...sl, [gw]: true } } } };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    return bad(res, 400, 'Unsupported group user action');
+  }
+
   if (action === 'group-admin' && req.method === 'POST') {
     const { groupId, payload = {} } = req.body || {};
     if (!groupId) return bad(res, 400, 'Missing groupId');

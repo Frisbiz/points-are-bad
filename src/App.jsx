@@ -2604,20 +2604,18 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       }
     }
     setSaving(s=>({...s,[fixtureId]:true}));
-    await updateGroup(g => {
-      if (g.mode === "dibs") {
-        const freshTurn = computeDibsTurn(g, fixtureId);
-        if (freshTurn !== user.username) return g;
-        const takenFresh = Object.entries(g.predictions || {})
-          .filter(([u]) => u !== user.username)
-          .some(([, picks]) => picks?.[fixtureId] === val);
-        if (takenFresh) return g;
-      }
-      const p = {...(g.predictions || {})};
-      p[user.username] = {...(p[user.username] || {}), [fixtureId]: val};
-      return {...g, predictions: p};
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'save-prediction', fixtureId, value: val } })
     });
-    setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
+    } else {
+      showToast(data?.error || 'Save failed - check your connection.');
+    }
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
@@ -3082,12 +3080,14 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
       {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(group.members||[]).length>1&&(
         <div style={{marginTop:16,marginBottom:8}}>
           <Btn variant="success" style={{width:"100%"}} onClick={async()=>{
-            await updateGroup(g=>{
-              const pl=g.picksLocked||{};
-              const ul=pl[user.username]||{};
-              const sl=ul[activeSeason]||{};
-              return {...g,picksLocked:{...pl,[user.username]:{...ul,[activeSeason]:{...sl,[currentGW]:true}}}};
+            const res = await fetch('/api/security', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'lock-picks', season: activeSeason, gw: currentGW } })
             });
+            const data = await res.json().catch(()=>({}));
+            if (res.ok && data.group) setGroup(data.group);
+            else showToast(data?.error || 'Save failed - check your connection.');
           }}>
             LOCK IN PICKS
           </Btn>
