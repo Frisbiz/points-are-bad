@@ -160,6 +160,47 @@ export default async function handler(req, res) {
     const { username, group } = auth;
     const groupKey = `group:${groupId}`;
 
+    if (payload.type === 'create-backup') {
+      const now = Date.now();
+      const id = String(now);
+      const { backups: _omit, ...snapshot } = group;
+      await setValue(`backup:${groupId}:${id}`, { groupId, createdAt: now, createdBy: username, snapshot });
+      const next = { ...group, backups: [{ id, createdAt: now, createdBy: username }, ...(group.backups || [])].slice(0, 5) };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next, backupId: id });
+    }
+
+    if (payload.type === 'delete-backup') {
+      const id = payload.id;
+      if (!id) return bad(res, 400, 'Missing backup id');
+      await deleteValue(`backup:${groupId}:${id}`);
+      const next = { ...group, backups: (group.backups || []).filter(b => b.id !== id) };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'restore-backup') {
+      const id = payload.id;
+      if (!id) return bad(res, 400, 'Missing backup id');
+      const bk = await getValue(`backup:${groupId}:${id}`);
+      if (!bk?.snapshot) return bad(res, 404, 'Backup not found');
+      const next = { ...bk.snapshot, backups: group.backups };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'delete-group') {
+      if (group.creatorUsername !== username) return bad(res, 403, 'Only creator can delete group');
+      if (group.code === 'DEMO2025' || group.code === 'WC2026') return bad(res, 400, 'Demo group cannot be deleted');
+      await deleteValue(groupKey);
+      await deleteValue(`groupcode:${group.code}`);
+      for (const member of group.members || []) {
+        const user = await getValue(`user:${member}`);
+        if (user) await setValue(`user:${member}`, { ...user, groupIds: (user.groupIds || []).filter(id => id !== groupId) });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     if (payload.type === 'toggle-admin') {
       const target = payload.username;
       if (!target) return bad(res, 400, 'Missing target username');

@@ -4658,33 +4658,31 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
     if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }
     if (!deletePw) { setDeleteError("Enter your password."); return; }
     setDeleteLoading(true); setDeleteError("");
-    const fresh = await sget(`user:${user.username}`);
-    if (!fresh || fresh.password !== deletePw) {
-      setDeleteError("Incorrect password.");
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-group', currentPassword: deletePw } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) {
+      setDeleteError(data.error || "Failed to delete group.");
       setDeleteLoading(false);
       return;
     }
-    await sdel(`group:${group.id}`);
-    await sdel(`groupcode:${group.code}`);
-    await Promise.all((group.members || []).map(async m => {
-      const u = await sget(`user:${m}`);
-      if (u) await sset(`user:${m}`, { ...u, groupIds: (u.groupIds || []).filter(id => id !== group.id) });
-    }));
     onLeave();
   };
 
   const createBackup = async () => {
     setBackupBusy(true);
     try {
-      const now = Date.now();
-      const id = String(now);
-      const { backups: _omit, ...snapshot } = group;
-      const ok = await sset(`backup:${group.id}:${id}`, { groupId: group.id, createdAt: now, createdBy: user.username, snapshot });
-      if (!ok) throw new Error("Failed to write backup");
-      await updateGroup(g => {
-        const list = [{ id, createdAt: now, createdBy: user.username }, ...(g.backups||[])].slice(0, 5);
-        return { ...g, backups: list };
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'create-backup' } })
       });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.group) throw new Error(data.error || 'Failed to create backup');
+      setGroup(data.group);
       setBackupMsg("✓ Backup created");
       setTimeout(() => setBackupMsg(""), 3000);
     } catch(e) {
@@ -4696,18 +4694,30 @@ function GroupTab({group,user,isAdmin,isCreator,updateGroup,onLeave,theme,setThe
 
   const deleteBackup = async (id) => {
     setBackupBusy(true);
-    await sset(`backup:${group.id}:${id}`, null);
-    await updateGroup(g => ({ ...g, backups: (g.backups||[]).filter(b => b.id !== id) }));
-    setRestoringId(null);
+    const res = await fetch('/api/security', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-backup', id } })
+    });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.group) {
+      setGroup(data.group);
+      setRestoringId(null);
+    }
     setBackupBusy(false);
   };
 
   const restoreBackup = async (id) => {
     setBackupBusy(true);
     try {
-      const bk = await sget(`backup:${group.id}:${id}`);
-      if (!bk || !bk.snapshot) { setBackupMsg("Backup not found."); setBackupBusy(false); return; }
-      await updateGroup(g => ({ ...bk.snapshot, backups: g.backups }));
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'restore-backup', id } })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.group) { setBackupMsg(data.error || "Backup not found."); setBackupBusy(false); return; }
+      setGroup(data.group);
       setRestoringId(null);
       setBackupMsg("✓ Restored");
       setTimeout(() => setBackupMsg(""), 3000);
