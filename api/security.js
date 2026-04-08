@@ -1,5 +1,6 @@
 import { getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
+import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
 
 const OWNER_USERNAME = "faris";
 const SITE_DEFAULTS = { defaultTheme: "dark", landingTheme: null };
@@ -409,6 +410,30 @@ export default async function handler(req, res) {
       const next = { ...group, gameweeks: remaining, predictions: preds, currentGW: newCurrentGW };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
+    }
+
+    if (payload.type === 'sync-fixtures') {
+      const currentGW = Number(payload.gw || group.currentGW || 1);
+      const isWC = (group.competition || 'PL') === 'WC';
+      const seas = group.season || 2025;
+      const comp = isWC ? 'WC' : 'PL';
+      const matchesRes = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/fixtures?matchday=${currentGW}&season=${isWC ? 2026 : seas}&competition=${comp}`);
+      if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
+      const matchesData = await matchesRes.json();
+      const matches = matchesData.matches || [];
+      if (!matches.length) return bad(res, 404, 'No matches found for this round.');
+      const apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
+      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
+      const existingGlobal = await getValue(globalKey) || { season: isWC ? 2026 : seas, updatedAt: 0, gameweeks: [] };
+      const updatedGlobal = isWC
+        ? { ...existingGlobal, updatedAt: Date.now(), gameweeks: [...(existingGlobal.gameweeks || []).filter(g => g.gw !== currentGW), { gw: currentGW, fixtures: apiFixtures }] }
+        : regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
+      await setValue(globalKey, updatedGlobal);
+      const next = mergeGlobalIntoGroup(updatedGlobal, group);
+      const finished = apiFixtures.filter(f => f.result).length;
+      next.adminLog = [...(next.adminLog || []), { id: Date.now(), at: Date.now(), by: username, action: 'api-sync', gw: currentGW, fixtures: apiFixtures.length, results: finished }];
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next, fixtures: apiFixtures.length, results: finished });
     }
 
     if (payload.type === 'toggle-admin') {

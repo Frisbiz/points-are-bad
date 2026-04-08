@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "rea
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
+import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "../api/_fixtureSync.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -75,20 +76,6 @@ const PL_CODE = "PL";
 // Global API key (works for all groups automatically)
 const GLOBAL_API_KEY = import.meta.env.VITE_FD_API_KEY;
 
-const TEAM_NAME_MAP = {
-  "Arsenal FC": "Arsenal", "Aston Villa FC": "Aston Villa", "AFC Bournemouth": "Bournemouth",
-  "Brentford FC": "Brentford", "Brighton & Hove Albion FC": "Brighton", "Burnley FC": "Burnley",
-  "Chelsea FC": "Chelsea", "Crystal Palace FC": "Crystal Palace", "Everton FC": "Everton",
-  "Fulham FC": "Fulham", "Ipswich Town FC": "Ipswich", "Leeds United FC": "Leeds",
-  "Leicester City FC": "Leicester", "Liverpool FC": "Liverpool",
-  "Manchester City FC": "Man City", "Manchester United FC": "Man Utd", "Newcastle United FC": "Newcastle",
-  "Nottingham Forest FC": "Nott'm Forest", "Southampton FC": "Southampton",
-  "Sunderland AFC": "Sunderland", "Tottenham Hotspur FC": "Spurs", "West Ham United FC": "West Ham",
-  "Wolverhampton Wanderers FC": "Wolves",
-};
-
-function normName(n) { return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, "").replace(/ AFC$/, "") || n; }
-
 async function fetchMatchweek(apiKey, matchday, season = 2025, competition = "PL") {
   const url = matchday != null
     ? `/api/fixtures?matchday=${matchday}&season=${season}&competition=${competition}`
@@ -109,155 +96,6 @@ async function fetchLiveMatches() {
   if (!res.ok) return [];
   const data = await res.json();
   return data.matches || [];
-}
-
-function parseMatchesToFixtures(matches, matchday, competition = "PL") {
-  const isWC = competition === "WC";
-  return matches.map((m, i) => {
-    const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
-    const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
-    const status = m.status;
-    let result = null;
-    if (status === "FINISHED") {
-      // For WC knockout rounds, use extraTime score if available (covers goals in ET),
-      // otherwise fall back to fullTime. Group stage never has ET so fullTime is always correct.
-      const isKnockout = isWC && m.stage && m.stage !== "GROUP_STAGE";
-      const scoreObj = isKnockout && m.score?.extraTime?.home != null
-        ? m.score.extraTime
-        : m.score?.fullTime;
-      if (scoreObj) {
-        const { home: h, away: a } = scoreObj;
-        if (h !== null && a !== null) result = `${h}-${a}`;
-      }
-    }
-    const date = m.utcDate ? new Date(m.utcDate) : null;
-    const scoreObj = m.score?.fullTime;
-    const liveScore = (status==="IN_PLAY"||status==="PAUSED") && scoreObj?.home!=null && scoreObj?.away!=null ? `${scoreObj.home}-${scoreObj.away}` : null;
-    const id = isWC ? `wc-gw${matchday}-f${m.id || i}` : `gw${matchday}-f${m.id || i}`;
-    const base = { id, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
-    if (isWC) {
-      base.stage = m.stage || null;
-      base.homeCrest = m.homeTeam?.crest || null;
-      base.awayCrest = m.awayTeam?.crest || null;
-    }
-    return base;
-  });
-}
-
-function mergeGlobalIntoGroup(globalDoc, g) {
-  const seas = g.season||2025;
-  const globalGWMap = {};
-  (globalDoc.gameweeks||[]).filter(gwObj=>(gwObj.season||seas)===seas).forEach(gwObj=>{globalGWMap[gwObj.gw]=gwObj.fixtures;});
-  const preds = g.predictions||{};
-  const hasPick = id=>Object.values(preds).some(up=>up[id]!==undefined);
-  const updatedGameweeks = (g.gameweeks||[]).map(gwObj=>{
-    if ((gwObj.season||seas)!==seas) return gwObj;
-    const globalFixtures = globalGWMap[gwObj.gw];
-    if (!globalFixtures||!globalFixtures.length) return gwObj;
-    const oldFixtures = gwObj.fixtures||[];
-    const gwHasPicks=oldFixtures.some(f=>hasPick(f.id));
-    if (!gwHasPicks) return {...gwObj,fixtures:globalFixtures};
-    const oldByApiId={};
-    const oldByTeams={};
-    oldFixtures.forEach(f=>{
-      if(f.apiId) oldByApiId[String(f.apiId)]=f;
-      oldByTeams[`${f.home}|${f.away}`]=f;
-    });
-    const working=[...oldFixtures];
-    const toAdd=[];
-    globalFixtures.forEach(gf=>{
-      const existing=(gf.apiId&&oldByApiId[String(gf.apiId)])||oldByTeams[`${gf.home}|${gf.away}`];
-      if(existing){
-        const idx=working.findIndex(f=>f.id===existing.id);
-        if(idx>=0) working[idx]={...existing,result:gf.result,status:gf.status,date:gf.date,apiId:gf.apiId,home:gf.home,away:gf.away};
-      } else {
-        toAdd.push(gf);
-      }
-    });
-    return {...gwObj,fixtures:[...working,...toAdd]};
-  });
-  // WC groups skip cross-GW dedup: team names change from TBD to real names after pairings,
-  // which would break the home|away key lookup. Global doc is authoritative per matchday for WC.
-  if ((g.competition || "PL") === "WC") {
-    return {...g, gameweeks:updatedGameweeks, lastAutoSync:Date.now()};
-  }
-
-  // Build index: "home|away" -> GW number from global doc
-  const globalPairToGW = {};
-  (globalDoc.gameweeks||[]).forEach(gwObj=>{
-    (gwObj.fixtures||[]).forEach(f=>{globalPairToGW[`${f.home}|${f.away}`]=gwObj.gw;});
-  });
-
-  // Remove fixtures that have been re-assigned to a different GW in the global doc
-  const deduped = updatedGameweeks.map(gwObj=>{
-    if((gwObj.season||seas)!==seas) return gwObj;
-    const filtered=(gwObj.fixtures||[]).filter(f=>{
-      const globalGW=globalPairToGW[`${f.home}|${f.away}`];
-      if(globalGW===undefined||globalGW===gwObj.gw) return true;
-      return hasPick(f.id);
-    });
-    return {...gwObj,fixtures:filtered};
-  });
-
-  return {...g,gameweeks:deduped,lastAutoSync:Date.now()};
-}
-
-function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
-  const otherGWs = (globalDoc.gameweeks||[]).filter(g=>g.gw!==gwNum);
-
-  // Compute median date of incoming fixtures
-  const dates = newFixtures
-    .filter(f=>f.date)
-    .map(f=>new Date(f.date).getTime())
-    .sort((a,b)=>a-b);
-
-  // Not enough dated fixtures to determine median - skip re-grouping
-  if (dates.length < 3) {
-    return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
-  }
-
-  const median = dates[Math.floor(dates.length/2)];
-  const THRESHOLD = 14*24*60*60*1000;
-
-  // Compute median date for each other GW already in the global doc
-  const otherMedians = {};
-  otherGWs.forEach(gwObj=>{
-    const d=(gwObj.fixtures||[]).filter(f=>f.date).map(f=>new Date(f.date).getTime()).sort((a,b)=>a-b);
-    if(d.length>=3) otherMedians[gwObj.gw]=d[Math.floor(d.length/2)];
-  });
-
-  // Split fixtures into normal and orphaned
-  const normal=[], orphaned=[];
-  newFixtures.forEach(f=>{
-    if(!f.date){normal.push(f);return;}
-    const fDate=new Date(f.date).getTime();
-    if(median-fDate>THRESHOLD){
-      let bestGW=null, bestDiff=Infinity;
-      Object.entries(otherMedians).forEach(([gw,m])=>{
-        const diff=Math.abs(m-fDate);
-        if(diff<bestDiff){bestDiff=diff;bestGW=Number(gw);}
-      });
-      bestGW!==null ? orphaned.push({fixture:f,targetGW:bestGW}) : normal.push(f);
-    } else {
-      normal.push(f);
-    }
-  });
-
-  // Abort if too few normal fixtures remain
-  if(normal.length<3&&orphaned.length>0){
-    return {...globalDoc, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:gwNum,fixtures:newFixtures}]};
-  }
-
-  // Add orphaned fixtures to their target GWs, avoiding duplicates by home|away pair
-  const updatedOthers = otherGWs.map(gwObj=>{
-    const additions=orphaned.filter(o=>o.targetGW===gwObj.gw).map(o=>o.fixture);
-    if(!additions.length) return gwObj;
-    const addPairs=new Set(additions.map(f=>`${f.home}|${f.away}`));
-    const kept=(gwObj.fixtures||[]).filter(f=>!addPairs.has(`${f.home}|${f.away}`));
-    return {...gwObj,fixtures:[...kept,...additions]};
-  });
-
-  return {...globalDoc, updatedAt:Date.now(), gameweeks:[...updatedOthers,{gw:gwNum,fixtures:normal}]};
 }
 
 const MISSED_PICK_PTS = 4;
@@ -3035,85 +2873,21 @@ function FixturesTab({group,user,isAdmin,updateGroup,patchGroup,names,theme}) {
   };
 
   const fetchFromAPI = async () => {
-    const isWC = (group.competition||"PL") === "WC";
     const roundLabel = gwLabel(group, currentGW);
     setFetching(true); setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
     try {
-      const seas = group.season||2025;
-      const liveFixtures = gwFixtures.filter(f=>f.status==="IN_PLAY"||f.status==="PAUSED");
-      if (liveFixtures.length>0) {
-        setFetchMsg(`Fetching live scores for ${liveFixtures.length} match${liveFixtures.length>1?"es":""}...`);
-        const liveMatches = await fetchLiveMatches();
-        if (liveMatches.length>0) {
-          const liveByApiId = Object.fromEntries(liveMatches.map(m=>[String(m.id),m]));
-          const liveByTeams = Object.fromEntries(liveMatches.map(m=>[`${normName(m.homeTeam?.name||m.homeTeam?.shortName)}|${normName(m.awayTeam?.name||m.awayTeam?.shortName)}`,m]));
-          await updateGroup(g=>{
-            return {...g, gameweeks:g.gameweeks.map(gw=>{
-              if(gw.gw!==currentGW||(gw.season||seas)!==seas) return gw;
-              return {...gw, fixtures:gw.fixtures.map(f=>{
-                const lm = (f.apiId&&liveByApiId[String(f.apiId)]) || liveByTeams[`${f.home}|${f.away}`];
-                if(!lm) return f;
-                const score = lm.score?.fullTime;
-                const liveScore = score?.home!=null && score?.away!=null ? `${score.home}-${score.away}` : null;
-                return {...f, status:lm.status, result:lm.status==="FINISHED"?liveScore:f.result, liveScore:lm.status==="FINISHED"?null:liveScore};
-              })};
-            })};
-          });
-        }
-        setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
-      }
-      const comp = isWC ? "WC" : "PL";
-      const fetchSeason = isWC ? 2026 : seas;
-      const matches = await fetchMatchweek(group.apiKey, currentGW, fetchSeason, comp);
-      if (!matches.length) { setFetchMsg("No matches found for this round."); setFetching(false); return; }
-      const apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
-      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
-      const existingGlobal = await sget(globalKey)||{season:fetchSeason,updatedAt:0,gameweeks:[]};
-      let updatedGlobal;
-      if (isWC) {
-        // WC: direct replacement, no regroupGlobalDoc
-        const otherGWs = (existingGlobal.gameweeks||[]).filter(g=>g.gw!==currentGW);
-        updatedGlobal = {...existingGlobal, updatedAt:Date.now(), gameweeks:[...otherGWs,{gw:currentGW,fixtures:apiFixtures}]};
-      } else {
-        updatedGlobal = regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
-      }
-      await sset(globalKey, updatedGlobal);
-      await updateGroup(g => {
-        const s = g.season || 2025;
-        const gwObj = (g.gameweeks||[]).find(gw=>gw.gw===currentGW&&(gw.season||s)===s);
-        const oldFixtures = gwObj?.fixtures||[];
-        const allTBD = oldFixtures.length>0 && oldFixtures.every(f=>f.home==="TBD"&&f.away==="TBD");
-        if (allTBD) {
-          return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||s)===s?{...gw,fixtures:apiFixtures}:gw)};
-        }
-        const oldByApiId = {};
-        const oldByTeams = {};
-        oldFixtures.forEach(f=>{
-          if(f.apiId) oldByApiId[String(f.apiId)]=f;
-          oldByTeams[`${f.home}|${f.away}`]=f;
-        });
-        const matchedIds = new Set();
-        const working = [...oldFixtures];
-        const toAdd = [];
-        apiFixtures.forEach(af=>{
-          const existing = (af.apiId&&oldByApiId[String(af.apiId)]) || oldByTeams[`${af.home}|${af.away}`];
-          if (existing) {
-            matchedIds.add(existing.id);
-            const idx = working.findIndex(f=>f.id===existing.id);
-            if (idx>=0) working[idx]={...existing,result:af.result,status:af.status,date:af.date,apiId:af.apiId,home:af.home,away:af.away};
-          } else {
-            toAdd.push(af);
-          }
-        });
-        const preds = g.predictions||{};
-        const hasPick = id => Object.values(preds).some(up=>up[id]!==undefined);
-        const gwHasPicks = oldFixtures.some(f=>hasPick(f.id));
-        const finalFixtures = [...working.filter(f=>matchedIds.has(f.id)||hasPick(f.id)), ...(gwHasPicks?[]:toAdd)];
-        return {...g, gameweeks:g.gameweeks.map(gw=>gw.gw===currentGW&&(gw.season||s)===s?{...gw,fixtures:finalFixtures}:gw)};
+      const res = await fetch('/api/security', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'sync-fixtures', gw: currentGW } })
       });
-      const finished = apiFixtures.filter(f=>f.result).length;
-      await updateGroup(g=>{const entry={id:Date.now(),at:Date.now(),by:user.username,action:"api-sync",gw:currentGW,fixtures:apiFixtures.length,results:finished};return {...g,adminLog:[...(g.adminLog||[]),entry]};});
-      setFetchMsg(`✓ Updated ${apiFixtures.length} fixtures${finished>0?`, ${finished} with results`:""}.`);
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) {
+        setFetchMsg(data.error || 'Sync failed.');
+      } else if (data.group) {
+        setGroup(data.group);
+        setFetchMsg(`✓ Updated ${data.fixtures || 0} fixtures${(data.results || 0)>0?`, ${data.results} with results`:""}.`);
+      }
     } catch(e) { setFetchMsg(`Error: ${e.message}`); }
     setFetching(false);
     setTimeout(()=>setFetchMsg(""),6000);
