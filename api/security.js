@@ -78,12 +78,25 @@ export default async function handler(req, res) {
     const uname = normalizeUsername(username);
     if (!uname || !password) return bad(res, 400, "Missing fields");
     const user = await getValue(`user:${uname}`);
-    if (!user?.passwordHash) return bad(res, 401, "Invalid credentials");
-    const ok = await verifyPassword(String(password), user.passwordHash);
+    if (!user) return bad(res, 401, "Invalid credentials");
+
+    let ok = false;
+    let migratedUser = user;
+
+    if (user.passwordHash) {
+      ok = await verifyPassword(String(password), user.passwordHash);
+    } else if (user.password && user.password === String(password)) {
+      ok = true;
+      const passwordHash = await hashPassword(String(password));
+      const { password: _oldPassword, ...rest } = user;
+      migratedUser = { ...rest, passwordHash };
+      await setValue(`user:${uname}`, migratedUser);
+    }
+
     if (!ok) return bad(res, 401, "Invalid credentials");
     const { token, expiry } = await createSession(uname);
     setSessionCookie(res, token, expiry);
-    return res.status(200).json({ user: safeUser(user) });
+    return res.status(200).json({ user: safeUser(migratedUser) });
   }
 
   if (action === 'account-change-password' && req.method === 'POST') {
@@ -93,8 +106,10 @@ export default async function handler(req, res) {
     if (!currentPassword || !newPassword) return bad(res, 400, "Missing fields");
     if (String(newPassword).trim().length < 6) return bad(res, 400, "Password must be at least 6 characters.");
     const user = await getValue(`user:${username}`);
-    if (!user?.passwordHash) return bad(res, 400, "Account not ready");
-    const ok = await verifyPassword(String(currentPassword), user.passwordHash);
+    if (!user) return bad(res, 404, "User not found");
+    const ok = user.passwordHash
+      ? await verifyPassword(String(currentPassword), user.passwordHash)
+      : user.password === String(currentPassword);
     if (!ok) return bad(res, 400, "Current password incorrect.");
     const passwordHash = await hashPassword(String(newPassword));
     await setValue(`user:${username}`, { ...user, passwordHash });
