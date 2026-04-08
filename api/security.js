@@ -487,10 +487,17 @@ export default async function handler(req, res) {
       const targetUser = await getValue(`user:${targetUsername}`);
       if (!targetUser) return bad(res, 404, 'User not found');
       await setValue(`user:${targetUsername}`, { ...targetUser, displayName: newName });
+      const freshUser = await getValue(`user:${targetUsername}`);
+      if (!freshUser || String(freshUser.displayName || '').trim() !== newName) return bad(res, 500, 'Failed to rename member');
       const entry = { id: Date.now(), at: Date.now(), by: username, action: 'rename', for: targetUsername, old: oldName, new: newName };
       const next = { ...group, adminLog: [...(group.adminLog || []), entry] };
       await setValue(groupKey, next);
-      return res.status(200).json({ group: next });
+      const freshGroup = await getValue(groupKey);
+      if (!freshGroup || (freshGroup.adminLog || []).length < (next.adminLog || []).length) {
+        await setValue(`user:${targetUsername}`, targetUser);
+        return bad(res, 500, 'Failed to rename member');
+      }
+      return res.status(200).json({ group: freshGroup });
     }
 
     if (payload.type === 'save-api-settings') {
@@ -679,11 +686,20 @@ export default async function handler(req, res) {
       const target = payload.username;
       if (!target) return bad(res, 400, 'Missing target username');
       if (group.creatorUsername === target) return bad(res, 400, 'Cannot kick creator');
-      const next = { ...group, members: (group.members || []).filter(x => x !== target), admins: (group.admins || []).filter(x => x !== target) };
+      const next = { ...group, members: (group.members || []).filter(x => x !== target), admins: (group.admins || []).filter(x => x !== target), memberOrder: (group.memberOrder || []).filter(x => x !== target) };
       await setValue(groupKey, next);
+      const freshGroup = await getValue(groupKey);
+      if (!freshGroup || (freshGroup.members || []).includes(target)) return bad(res, 500, 'Failed to kick member');
       const user = await getValue(`user:${target}`);
-      if (user) await setValue(`user:${target}`, { ...user, groupIds: (user.groupIds || []).filter(id => id !== groupId) });
-      return res.status(200).json({ group: next });
+      if (user) {
+        await setValue(`user:${target}`, { ...user, groupIds: (user.groupIds || []).filter(id => id !== groupId) });
+        const freshUser = await getValue(`user:${target}`);
+        if (!freshUser || (freshUser.groupIds || []).includes(groupId)) {
+          await setValue(groupKey, group);
+          return bad(res, 500, 'Failed to kick member');
+        }
+      }
+      return res.status(200).json({ group: freshGroup || next });
     }
 
     return bad(res, 400, 'Unsupported group admin action');
