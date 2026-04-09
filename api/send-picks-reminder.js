@@ -2,6 +2,7 @@ import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { Resend } from "resend";
 import { emailHtml } from "./email-template.js";
+import { getSession, readSessionToken } from "./_auth.js";
 
 if (!getApps().length) {
   initializeApp({
@@ -20,16 +21,36 @@ function docKey(key) {
   return key.replace(/[/\\]/g, "_");
 }
 
+async function requireAdmin(req, res, groupId) {
+  const token = readSessionToken(req);
+  const session = await getSession(token);
+  if (!session?.username) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const groupSnap = await db.collection("data").doc(docKey(`group:${groupId}`)).get();
+  if (!groupSnap.exists) {
+    res.status(404).json({ error: "Group not found" });
+    return null;
+  }
+  const group = groupSnap.data().value;
+  const isCreator = group.creatorUsername === session.username;
+  const isAdmin = (group.admins || []).includes(session.username);
+  if (!isCreator && !isAdmin) {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return group;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { groupId, gw, season } = req.body || {};
   if (!groupId || !gw || !season) return res.status(400).json({ error: "Missing groupId, gw, or season" });
 
-  const groupSnap = await db.collection("data").doc(docKey(`group:${groupId}`)).get();
-  if (!groupSnap.exists) return res.status(404).json({ error: "Group not found" });
-
-  const group = groupSnap.data().value;
+  const group = await requireAdmin(req, res, groupId);
+  if (!group) return;
   const gwObj = (group.gameweeks || []).find(g => g.gw === gw && (g.season || group.season || 2025) === season);
   if (!gwObj) return res.status(404).json({ error: "Gameweek not found" });
 
