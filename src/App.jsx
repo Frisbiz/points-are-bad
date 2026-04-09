@@ -509,9 +509,20 @@ function computeStats(group) {
 
 /* ── AUTH ─────────────────────────────────────────── */
 /* ── LANDING PAGE ─────────────────────────────────── */
-function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
+function LandingPage({onContinue, onDemo, onAreBadTap, theme, onOpenWhatsNew=()=>{}}) {
   const [thumbs,setThumbs]=useState([]);
   const [demoLoading,setDemoLoading]=useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+  useEffect(() => {
+    fetch("/api/changelog")
+      .then(r => r.ok ? r.json() : { entries: [] })
+      .then(data => {
+        const latest = (data.entries || [])[0]?.createdAt ?? 0;
+        const seen = lget("pab_changelog_seen") ?? 0;
+        setHasUnread(latest > seen);
+      })
+      .catch(() => {});
+  }, []);
   const [phase,setPhase]=useState("open");
   const phaseIdx=useRef(0);
   const PHASES=["open","locked","result","score"];
@@ -578,6 +589,10 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme}) {
             </div>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            <button onClick={onOpenWhatsNew} className="mob-hide" style={{position:"relative",background:"none",border:"1px solid var(--border2)",borderRadius:999,padding:"5px 12px",fontSize:10,letterSpacing:1.5,color:"var(--text-dim)",cursor:"pointer",fontFamily:"inherit",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6}}>
+              WHAT'S NEW
+              {hasUnread&&<span style={{width:6,height:6,borderRadius:"50%",background:"var(--accent, #6c5eff)",display:"inline-block",flexShrink:0}}/>}
+            </button>
             {!isIndex&&<button onClick={onContinue} className="mob-hide" style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",fontFamily:"inherit",whiteSpace:"nowrap"}}>Sign In</button>}
             <button className={isIndex?"index-mobile-cta":undefined} onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"0 16px":"8px 18px",height:isIndex?32:undefined,borderRadius:isIndex?12:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{isIndex?"Sign in / up":"Create Group"}</button>
           </div>
@@ -1113,6 +1128,216 @@ function AccountSetupModal({ user, onDone, onLogout }) {
         <button onClick={onLogout} style={{background:"none",border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>Log out</button>
       </div>
     </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ─── WHATS NEW MODAL ───────────────────────────────────────────────────────── */
+function WhatsNewModal({ user, onClose }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [formEmoji, setFormEmoji] = useState("");
+  const [formVersion, setFormVersion] = useState("");
+  const [formTitle, setFormTitle] = useState("");
+  const [formDate, setFormDate] = useState("");
+  const [formBullets, setFormBullets] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const isFaris = user?.username === "faris";
+  const adminSecret = import.meta.env.VITE_ADMIN_SECRET || "";
+
+  const fetchEntries = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/changelog");
+      if (!res.ok) throw new Error("fetch failed");
+      const data = await res.json();
+      setEntries(data.entries || []);
+      lset("pab_changelog_seen", (data.entries || [])[0]?.createdAt ?? 0);
+    } catch {
+      setError("Couldn't load entries.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchEntries(); }, []);
+
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  const openCreate = () => {
+    setEditingId("new");
+    setFormEmoji("🎉");
+    setFormVersion("");
+    setFormTitle("");
+    setFormDate(today());
+    setFormBullets("");
+    setFormError("");
+  };
+
+  const openEdit = (e) => {
+    setEditingId(e.id);
+    setFormEmoji(e.emoji || "🎉");
+    setFormVersion(e.version || "");
+    setFormTitle(e.title || "");
+    setFormDate(e.date || today());
+    setFormBullets((e.bullets || []).join("\n"));
+    setFormError("");
+  };
+
+  const cancelEdit = () => { setEditingId(null); setFormError(""); };
+
+  const saveEntry = async () => {
+    setFormError("");
+    const title = formTitle.trim();
+    const bullets = formBullets.split("\n").map(b => b.trim()).filter(Boolean);
+    if (!title) { setFormError("Title is required."); return; }
+    if (bullets.length === 0) { setFormError("At least one bullet is required."); return; }
+    setFormLoading(true);
+    try {
+      const isNew = editingId === "new";
+      const body = {
+        adminSecret,
+        title,
+        bullets,
+        version: formVersion.trim(),
+        emoji: formEmoji.trim() || "🎉",
+        date: formDate,
+        ...(isNew ? {} : { id: editingId }),
+      };
+      const res = await fetch("/api/changelog", {
+        method: isNew ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setFormError(d.error || "Save failed.");
+        return;
+      }
+      setEditingId(null);
+      await fetchEntries();
+    } catch {
+      setFormError("Something went wrong.");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const confirmDelete = async (id) => {
+    try {
+      const res = await fetch("/api/changelog", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminSecret, id }),
+      });
+      setDeleteConfirm(null);
+      if (res.ok) {
+        await fetchEntries();
+      } else {
+        setError("Delete failed. Please try again.");
+      }
+    } catch {
+      setDeleteConfirm(null);
+      setError("Delete failed. Please try again.");
+    }
+  };
+
+  const formatDate = (d) => {
+    if (!d) return "";
+    try {
+      return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    } catch { return d; }
+  };
+
+  const formBlock = (
+    <div style={{ background: "var(--card)", border: "1px solid var(--border2)", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <Input value={formEmoji} onChange={setFormEmoji} placeholder="🎉" style={{ width: 52 }} />
+        <Input value={formVersion} onChange={setFormVersion} placeholder="v2.5" style={{ width: 80 }} />
+        <Input value={formTitle} onChange={setFormTitle} placeholder="Title" style={{ flex: 1 }} />
+        <Input value={formDate} onChange={setFormDate} type="date" style={{ width: 140 }} />
+      </div>
+      <textarea
+        value={formBullets}
+        onChange={e => setFormBullets(e.target.value)}
+        placeholder={"One bullet per line\nAnother change\nAnd another"}
+        rows={4}
+        style={{ width: "100%", background: "var(--input-bg)", border: "1px solid var(--border2)", borderRadius: 6, color: "var(--text)", fontFamily: "inherit", fontSize: 12, padding: "8px 10px", resize: "vertical", boxSizing: "border-box" }}
+      />
+      {formError && <div style={{ color: "#ef4444", fontSize: 11, marginTop: 6 }}>{formError}</div>}
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <Btn onClick={saveEntry} disabled={formLoading} style={{ letterSpacing: 1.5 }}>{formLoading ? "..." : "SAVE"}</Btn>
+        <Btn variant="ghost" onClick={cancelEdit}>Cancel</Btn>
+      </div>
+    </div>
+  );
+
+  return createPortal(
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3 }}>WHAT'S NEW</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
+        </div>
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {isFaris && editingId !== "new" && (
+            <button onClick={openCreate} style={{ background: "var(--card)", border: "1px dashed var(--border2)", borderRadius: 8, padding: "8px 14px", fontSize: 11, color: "var(--text-dim)", cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, marginBottom: 12, width: "100%" }}>＋ New entry</button>
+          )}
+          {isFaris && editingId === "new" && formBlock}
+          {loading && (
+            <div style={{ display: "flex", gap: 5, justifyContent: "center", padding: 32 }}>
+              {[0, 1, 2].map(i => <div key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--text-dim)", animation: "dotP 1.2s ease-in-out infinite", animationDelay: `${0.2 * i}s` }} />)}
+            </div>
+          )}
+          {!loading && error && <div style={{ color: "#ef4444", fontSize: 12, textAlign: "center", padding: 32 }}>{error}</div>}
+          {!loading && !error && entries.length === 0 && (
+            <div style={{ color: "var(--text-dim)", fontSize: 12, textAlign: "center", padding: 32 }}>Nothing here yet.</div>
+          )}
+          {!loading && !error && entries.map(e => {
+            if (editingId === e.id) return (<div key={e.id}>{formBlock}</div>);
+            if (deleteConfirm === e.id) return (
+              <div key={e.id} style={{ background: "var(--card)", border: "1px solid #ef444440", borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: "var(--text-mid)", marginBottom: 10 }}>Delete this entry?</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Btn variant="danger" onClick={() => confirmDelete(e.id)}>Yes, delete</Btn>
+                  <Btn variant="ghost" onClick={() => setDeleteConfirm(null)}>No</Btn>
+                </div>
+              </div>
+            );
+            return (
+              <div key={e.id} style={{ background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 10, padding: 14, marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>{e.emoji || "🎉"}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{e.title}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {e.version && <span style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1 }}>{e.version}</span>}
+                    {isFaris && (
+                      <>
+                        <button onClick={() => openEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Edit">✏</button>
+                        <button onClick={() => setDeleteConfirm(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Delete">🗑</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {e.date && <div style={{ fontSize: 10, color: "var(--text-dim2)", marginBottom: 10 }}>{formatDate(e.date)}</div>}
+                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                  {(e.bullets || []).map((b, i) => (
+                    <li key={i} style={{ fontSize: 12, color: "var(--text-mid)", lineHeight: 1.7 }}>{b}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>,
     document.body
   );
@@ -1804,6 +2029,7 @@ export default function App() {
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
   const [showLanding,setShowLanding]=useState(()=>!getInviteCodeFromLocation());
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [sitePrefs,setSitePrefs]=useState(null);
   const [sitePrefsLoaded,setSitePrefsLoaded]=useState(false);
   const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"dark");
@@ -2030,7 +2256,7 @@ export default function App() {
           setResetDone(true);
         }}/>
       ):!user&&showLanding&&!joinParam&&sitePrefsLoaded?(
-        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin} onAreBadTap={unlockSecretTheme} theme={effectiveTheme}/>
+        <LandingPage onContinue={()=>setShowLanding(false)} onDemo={handleDemoLogin} onAreBadTap={unlockSecretTheme} theme={effectiveTheme} onOpenWhatsNew={()=>setWhatsNewOpen(true)}/>
       ):!user&&!sitePrefsLoaded?(
         <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}>
           <svg style={{animation:"ballspin 1s linear infinite"}} width="32" height="32" stroke-width="1.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8L15.8043 10.7639M12 8L8.1958 10.7639M12 8V5M15.8043 10.7639L14.3512 15.2361M15.8043 10.7639L18.5 9.5M14.3512 15.2361H9.64889M14.3512 15.2361L16 17.5M9.64889 15.2361L8.1958 10.7639M9.64889 15.2361L8 17.5M8.1958 10.7639L5.5 9.5M5.5 9.5L2.04938 13M5.5 9.5L4.5 5.38544M18.5 9.5L21.9506 13M18.5 9.5L19.5 5.38544M12 5L8.62434 2.58409M12 5L15.3757 2.58409M8 17.5L3.33782 17M8 17.5L10.5 21.8883M16 17.5L20.6622 17M16 17.5L13.5 21.8883M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path></svg>
@@ -2056,14 +2282,16 @@ export default function App() {
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
           refreshGroup={refreshGroup} theme={theme} setTheme={setTheme}
-          unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>
+          unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}
+          onOpenWhatsNew={() => setWhatsNewOpen(true)}/>
       )}
+      {whatsNewOpen && <WhatsNewModal user={user} onClose={() => setWhatsNewOpen(false)} />}
     </>
   );
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refreshGroup,theme,setTheme,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{}}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refreshGroup,theme,setTheme,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{
@@ -2246,7 +2474,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
         {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew}/>}
       </main>
     </div>
   );
@@ -4023,10 +4251,17 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme}) {
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{}}) {
+function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
   const mob = useMobile();
   const isAutoStocks = theme === "index";
   const resolvedSitePrefs = sitePrefs || { defaultTheme: "dark", landingTheme: null };
+  const [latestVersion, setLatestVersion] = useState("");
+  useEffect(() => {
+    fetch("/api/changelog")
+      .then(r => r.ok ? r.json() : { entries: [] })
+      .then(data => { setLatestVersion((data.entries || [])[0]?.version || ""); })
+      .catch(() => {});
+  }, []);
   const [newName,setNewName]=useState(group.name);
   const [nameSaved,setNameSaved]=useState(false);
   const [apiSaved,setApiSaved]=useState(false);
@@ -4564,6 +4799,12 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},
           <div style={{fontSize:11,color:"var(--text-dim2)",marginTop:8}}>Emails GW{reminderTargetGW} members who haven't submitted all picks yet.</div>
         </Section>
       )}
+      <Section title="What's New">
+        <button onClick={onOpenWhatsNew} style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:8,padding:"10px 14px",width:"100%",textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:12,color:"var(--text-mid)"}}>Patch notes &amp; announcements</span>
+          <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{latestVersion ? `${latestVersion} ›` : "›"}</span>
+        </button>
+      </Section>
       {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
       {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
       {skipModal&&createPortal(
