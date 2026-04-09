@@ -1134,7 +1134,7 @@ function AccountSetupModal({ user, onDone, onLogout }) {
 }
 
 /* ─── WHATS NEW MODAL ───────────────────────────────────────────────────────── */
-function WhatsNewModal({ user, onClose }) {
+function WhatsNewModal({ user, onClose, theme="dark" }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1278,14 +1278,14 @@ function WhatsNewModal({ user, onClose }) {
 
   return createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3 }}>WHAT'S NEW</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit", fontWeight: theme==="index"?600:undefined }}>WHAT'S NEW</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
         </div>
         <div style={{ overflowY: "auto", flex: 1 }}>
           {isFaris && editingId !== "new" && (
-            <button onClick={openCreate} style={{ background: "var(--card)", border: "1px dashed var(--border2)", borderRadius: 8, padding: "8px 14px", fontSize: 11, color: "var(--text-dim)", cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, marginBottom: 12, width: "100%" }}>＋ New entry</button>
+            <button onClick={openCreate} style={{ background: "var(--card)", border: "1px dashed var(--border2)", borderRadius: 8, padding: "8px 14px", fontSize: 11, color: "var(--text-dim)", cursor: "pointer", fontFamily: "inherit", letterSpacing: 1, marginBottom: 12, width: "100%", fontWeight: theme==="index"?600:undefined }}>＋ New entry</button>
           )}
           {isFaris && editingId === "new" && formBlock}
           {loading && (
@@ -1313,10 +1313,10 @@ function WhatsNewModal({ user, onClose }) {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 18 }}>{e.emoji || "🎉"}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{e.title}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)", fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>{e.title}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {e.version && <span style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1 }}>{e.version}</span>}
+                    {e.version && <span style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>{e.version}</span>}
                     {isFaris && (
                       <>
                         <button onClick={() => openEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Edit">✏</button>
@@ -1325,10 +1325,10 @@ function WhatsNewModal({ user, onClose }) {
                     )}
                   </div>
                 </div>
-                {e.date && <div style={{ fontSize: 10, color: "var(--text-dim2)", marginBottom: 10 }}>{formatDate(e.date)}</div>}
+                {e.date && <div style={{ fontSize: 10, color: "var(--text-dim2)", marginBottom: 10, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>{formatDate(e.date)}</div>}
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {(e.bullets || []).map((b, i) => (
-                    <li key={i} style={{ fontSize: 12, color: "var(--text-mid)", lineHeight: 1.7 }}>{b}</li>
+                    <li key={i} style={{ fontSize: 12, color: "var(--text-mid)", lineHeight: 1.7, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>{b}</li>
                   ))}
                 </ul>
               </div>
@@ -2283,7 +2283,7 @@ export default function App() {
           unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}
           onOpenWhatsNew={() => setWhatsNewOpen(true)}/>
       )}
-      {whatsNewOpen && <WhatsNewModal user={user} onClose={() => setWhatsNewOpen(false)} />}
+      {whatsNewOpen && <WhatsNewModal user={user} theme={theme} onClose={() => setWhatsNewOpen(false)} />}
     </>
   );
 }
