@@ -2279,7 +2279,7 @@ export default function App() {
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
-          refreshGroup={refreshGroup} theme={theme} setTheme={setTheme}
+          refreshGroup={refreshGroup} theme={theme} setTheme={setTheme} setGroup={setGroup}
           unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}
           onOpenWhatsNew={() => setWhatsNewOpen(true)}/>
       )}
@@ -2289,7 +2289,7 @@ export default function App() {
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refreshGroup,theme,setTheme,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refreshGroup,theme,setTheme,setGroup,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{
