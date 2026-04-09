@@ -388,7 +388,7 @@ const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},
 
 const Section = ({title,children}) => (
   <div style={{marginBottom:32}}>
-    <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
+    <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
     {children}
   </div>
 );
@@ -2451,13 +2451,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
 )}
       <nav className="bot-nav">
         {nav.map(t=>(
-          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
+          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:11,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
       </nav>
       <main style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
           <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div style={{fontSize:11,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
+            <div style={{fontSize:12,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
               <span style={{opacity:0.6,marginRight:10}}>{gwLabel(group,recapContent.gwNum)} RECAP</span>
               {recapContent.winners.length > 0 && <span style={{marginRight:8}}>{recapContent.winners.map(w => names[w.username] || w.username).join(" & ")} won the week <span style={{opacity:0.7}}>({recapContent.minPts} pts)</span></span>}
               {recapContent.totalGoals > 0 && <span style={{opacity:0.7}}>· {recapContent.totalGoals} goals total</span>}
@@ -2656,13 +2656,13 @@ function LeagueTab({group,user,names,theme}) {
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
                 <Avatar name={names[p.username]||p.username} size={mob?28:34} color={PALETTE[(group.members||[]).indexOf(p.username)%PALETTE.length]}/>
                 <div style={{display:"flex",flexDirection:"column",justifyContent:"center",minWidth:0,flex:1,overflow:"visible",position:"relative",zIndex:1}}>
-                  <div style={{fontSize:mob?12:14,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",lineHeight:1.2}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
+                  <div style={{fontSize:mob?13:15,color:p.username===user.username?"#8888cc":"var(--text-mid)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",lineHeight:1.2}}>{names[p.username]||p.username}{p.username===user.username&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>you</span>}</div>
                   <TitleBadge title={title} />
                 </div>
               </div>
-              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
-              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
-              <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:10,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:theme==="index"?800:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
+              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
+              {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
+              <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:11,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:theme==="index"?800:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
             </div>
           )})}
         </div>
@@ -2744,12 +2744,12 @@ function NextMatchCountdown({ group, myPreds = {} }) {
         <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
         <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",lineHeight:1.3,marginTop:4}}>{deadpanLine}</div>
       </div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:13,color:"var(--text-mid)"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
         <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
         <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
       </div>
       <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)"}}>vs</div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0,fontSize:13,color:"var(--text-mid)"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
         <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
         <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
       </div>
@@ -3143,7 +3143,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         </div>
       )}
 
-      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:10,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
+      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:11,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
         <div style={{textAlign:"right"}}>Home</div>
         <div style={{textAlign:"center"}}>Result</div>
@@ -3276,16 +3276,16 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
           </div>
         );
         if (mob) return (
-          <div key={f.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:8,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
                 <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
                 <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               </div>
             </div>
@@ -3301,16 +3301,16 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
           </div>
         );
         return (
-          <div key={f.id} className={`frow${isIndex?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:8,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
+          <div key={f.id} className={`frow${isIndex?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
               <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
@@ -3545,8 +3545,8 @@ function TrendsTab({group,names,theme}) {
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
   const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
-  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:14,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:10,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
-  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:9,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
+  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
   const filteredGWs = gws;
@@ -4145,7 +4145,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
     if (res.ok && data.group) setGroup(data.group);
   };
   return (
-    <div style={{maxWidth:isIndex?860:560}}>
+    <div>
       <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Members</h1>
         <p style={{color:"var(--text-dim)",fontSize:isIndex?12:11,letterSpacing:isIndex?0.2:2}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
@@ -4168,7 +4168,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
                     </div>
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:14,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
+                      <span style={{fontSize:15,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
                       {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",padding:"0 2px",lineHeight:1,display:"flex",alignItems:"center"}}><EditLine size={13} color="currentColor"/></button>}
                     </div>
                   )}
@@ -4456,7 +4456,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},
   const isIndex = theme === "index";
 
   return (
-    <div style={{maxWidth:isIndex?920:520}}>
+    <div>
       <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Group</h1>
         {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Manage appearance, invites, visibility, reminders, and the chaos behind the curtain.</p>}
