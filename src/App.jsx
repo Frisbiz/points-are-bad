@@ -4168,7 +4168,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
                     </div>
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:14,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
+                      <span style={{fontSize:15,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
                       {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",padding:"0 2px",lineHeight:1,display:"flex",alignItems:"center"}}><EditLine size={13} color="currentColor"/></button>}
                     </div>
                   )}
