@@ -1148,7 +1148,6 @@ function WhatsNewModal({ user, onClose }) {
   const [formError, setFormError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const isFaris = user?.username === "faris";
-  const adminSecret = import.meta.env.VITE_ADMIN_SECRET || "";
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -1202,7 +1201,6 @@ function WhatsNewModal({ user, onClose }) {
     try {
       const isNew = editingId === "new";
       const body = {
-        adminSecret,
         title,
         bullets,
         version: formVersion.trim(),
@@ -1234,7 +1232,7 @@ function WhatsNewModal({ user, onClose }) {
       const res = await fetch("/api/changelog", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminSecret, id }),
+        body: JSON.stringify({ id }),
       });
       setDeleteConfirm(null);
       if (res.ok) {
