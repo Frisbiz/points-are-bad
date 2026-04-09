@@ -4145,7 +4145,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
     if (res.ok && data.group) setGroup(data.group);
   };
   return (
-    <div style={{maxWidth:isIndex?860:560}}>
+    <div style={{maxWidth:isIndex?860:undefined}}>
       <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Members</h1>
         <p style={{color:"var(--text-dim)",fontSize:isIndex?12:11,letterSpacing:isIndex?0.2:2}}>{members.length} PLAYER{members.length!==1?"S":""}</p>
@@ -4456,7 +4456,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},
   const isIndex = theme === "index";
 
   return (
-    <div style={{maxWidth:isIndex?920:520}}>
+    <div style={{maxWidth:isIndex?920:undefined}}>
       <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Group</h1>
         {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Manage appearance, invites, visibility, reminders, and the chaos behind the curtain.</p>}
