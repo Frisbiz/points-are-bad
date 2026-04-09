@@ -3242,7 +3242,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
                   pickInputRefs.current[`${f.id}:away`]?.focus();
                 }
               }}
-              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
+              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${(draftHome||myPreds[f.id])?"#5b5bd655":"var(--border2)"}`,color:(draftHome||myPreds[f.id])?"#2f2f8f":"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
             />
             <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>
             <input
@@ -3271,7 +3271,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
                   e.currentTarget.blur();
                 }
               }}
-              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${myPreds[f.id]?"#8888cc55":"var(--border2)"}`,color:"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
+              style={{width:mob?30:26,background:"var(--input-bg)",borderRadius:6,textAlign:"center",border:`1px solid ${(draftAway||myPreds[f.id])?"#5b5bd655":"var(--border2)"}`,color:(draftAway||myPreds[f.id])?"#2f2f8f":"#8888cc",padding:"5px 0",fontFamily:"inherit",fontSize:mob?16:12,outline:"none"}}
             />
           </div>
         );
