@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
 import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "../api/_fixtureSync.js";
+import { Analytics } from "@vercel/analytics/react";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -2219,6 +2220,7 @@ export default function App() {
   const isCreator=!!(user&&group&&group.creatorUsername===user.username);
   return (
     <>
+      <Analytics />
       {toast&&(
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
           background:"#ef444418",border:"1px solid #ef4444",borderRadius:8,padding:"10px 20px",
