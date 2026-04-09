@@ -2468,11 +2468,11 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
           </div>
         )}
         {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme}/>}
+        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup}/>}
         {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
-        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew}/>}
+        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
       </main>
     </div>
   );
@@ -2758,7 +2758,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   );
 }
 
-function FixturesTab({group,user,isAdmin,names,theme}) {
+function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   const mob = useMobile();
   const isIndex = theme === "index";
   const gwStripRef = useRef(null);
@@ -3337,7 +3337,7 @@ function FixturesTab({group,user,isAdmin,names,theme}) {
       {(group.mode==="dibs"
         ? (group.members||[]).length>1
         : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor}/>}
+      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup}/>}
       {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Lock size={28} color="var(--text-dim)"/></div>
@@ -3349,7 +3349,7 @@ function FixturesTab({group,user,isAdmin,names,theme}) {
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,dibsTurnFor={}}) {
+function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,dibsTurnFor={},setGroup}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
   const members = group.members||[];
@@ -4100,7 +4100,7 @@ function TrendsTab({group,names,theme}) {
 }
 
 /* ── MEMBERS ─────────────────────────────────────── */
-function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme}) {
+function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,setGroup,setNames}) {
   const members=group.members||[];
   const admins=group.admins||[];
   const stats = useMemo(()=>computeStats(group),[group]);
@@ -4249,7 +4249,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme}) {
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
+function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{},setGroup}) {
   const mob = useMobile();
   const isAutoStocks = theme === "index";
   const resolvedSitePrefs = sitePrefs || { defaultTheme: "dark", landingTheme: null };
