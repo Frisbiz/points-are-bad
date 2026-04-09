@@ -388,7 +388,7 @@ const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},
 
 const Section = ({title,children}) => (
   <div style={{marginBottom:32}}>
-    <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
+    <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,textTransform:"uppercase",marginBottom:14,borderBottom:"1px solid var(--border)",paddingBottom:8}}>{title}</div>
     {children}
   </div>
 );
@@ -2451,7 +2451,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
 )}
       <nav className="bot-nav">
         {nav.map(t=>(
-          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:9,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
+          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:11,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
         ))}
       </nav>
       <main style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
