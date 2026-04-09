@@ -1927,6 +1927,20 @@ export default function App() {
 
   useEffect(()=>{runBoot();},[]);
 
+  useEffect(()=>{
+    const eggs = [
+      ()=>{ console.log("oh. you opened devtools."); console.log("bold move."); },
+      ()=>{ console.error("SECURITY BREACH DETECTED"); console.log("(nah you're fine, just checking if you'd panic)"); },
+      ()=>{ console.log("nothing to see here."); console.log("seriously. close this tab."); console.log("why are you still reading."); },
+      ()=>{ console.log("we're not hiring."); console.log("but if we were, this wouldn't be how."); },
+      ()=>{ console.log("👀 hello"); console.log("👀👀 we see you"); console.log("👀👀👀 please predict your scores and leave"); },
+      ()=>{ console.log("there are no easter eggs here."); console.log("you imagined this."); },
+      ()=>{ console.log("inspecting element won't help your predictions."); console.log("touch grass instead."); },
+      ()=>{ console.log("congrats, you found the console."); console.log("your prize is knowing this app has no bugs."); console.log("(please don't look too hard)"); },
+    ];
+    eggs[Math.floor(Math.random()*eggs.length)]();
+  },[]);
+
   const handleDemoLogin = async () => {
     await handleLogin({ username: DEMO_SHARED_USERNAME, displayName: "Demo", groupIds: [] });
   };
