@@ -33,25 +33,25 @@ This causes a visible layout jump between tabs. Additionally, many labels use 9�
 
 ## Change 1: Width Consistency
 
-**MembersTab** — remove the inner `maxWidth` constraint:
+**MembersTab** — remove the non-index `maxWidth` constraint while preserving the `isIndex` value:
 ```jsx
 // Before
 <div style={{maxWidth: isIndex ? 860 : 560}}>
 
 // After
-<div>
+<div style={{maxWidth: isIndex ? 860 : undefined}}>
 ```
 
-**GroupTab** — remove the inner `maxWidth` constraint:
+**GroupTab** — remove the non-index `maxWidth` constraint while preserving the `isIndex` value:
 ```jsx
 // Before
 <div style={{maxWidth: isIndex ? 920 : 520}}>
 
 // After
-<div>
+<div style={{maxWidth: isIndex ? 920 : undefined}}>
 ```
 
-Both tabs now fill the full 940px container set by `<main>` in `GameUI`, the same as League, Fixtures, and Trends.
+Both tabs now fill the full 940px container set by `<main>` in `GameUI` for all non-index themes, the same as League, Fixtures, and Trends. The `isIndex` maxWidth values (860 / 920) are preserved so the index theme layout is unchanged.
 
 ---
 
@@ -61,19 +61,21 @@ All text that communicates information (labels, headers, counts, meta text) must
 
 | Location | Before | After |
 |---|---|---|
-| Bot-nav tab labels (`.bot-nav .nb`) | `fontSize: 9` | `fontSize: 11` |
+| Bot-nav tab labels (inline JSX on `<button>` in `GameUI`) | `fontSize: 9` (inline style, not CSS class) | `fontSize: 11` (change inline style) |
 | `Section` component title | `fontSize: 10` | `fontSize: 11` |
 | Fixture column headers row (Home/Result/Away/Pick/Pts) | `fontSize: 10` | `fontSize: 11` |
 | League tab meta ("X RESULTS COUNTED") | `fontSize: 11` | stays 11 (no change) |
 | LeagueTab "PERFECT" / "AVG" column sub-labels | `fontSize: 10` | `fontSize: 11` |
 | MembersTab member count ("X PLAYERS") | `fontSize: 11` | stays 11 (no change) |
-| Recap banner text | `fontSize: 11` | `fontSize: 12` |
+| Recap banner text | `fontSize: 11` (already meets floor; deliberate bump for visibility) | `fontSize: 12` |
 | TrendsTab `CC` component title | `fontSize: 10` | `fontSize: 11` |
+| TrendsTab `SH` divider label (section header spans) | `fontSize: 9` | `fontSize: 11` |
 | GroupTab `Section` separator labels (via `Section` component) | `fontSize: 10` | `fontSize: 11` |
 
-**Exceptions — intentionally micro (stay at 9px):**
-- "FT" / "LIVE" / "POSTPONED" match status badges — decorative micro-indicators
-- Fixture date strings inside mobile cards
+**Exceptions — intentionally micro (stay at current size):**
+- "FT" / "LIVE" / "POSTPONED" match status badges — decorative micro-indicators (9px)
+- Fixture date strings inside mobile cards (9px)
+- TrendsTab `CC` sub-text on mobile (`mob?10:11`) — mobile value of 10px is acceptable; mobile layout is out of scope
 
 ---
 
@@ -81,8 +83,8 @@ All text that communicates information (labels, headers, counts, meta text) must
 
 | Element | Before | After |
 |---|---|---|
-| Fixture rows (desktop and mobile) | `borderRadius: 8` | `borderRadius: 10` |
-| TrendsTab `CC` (chart card) component | `borderRadius: 14` | `borderRadius: 12` |
+| Fixture rows (desktop and mobile) | `borderRadius: isIndex ? 20 : 8` | `borderRadius: isIndex ? 20 : 10` |
+| TrendsTab `CC` (chart card) component | `borderRadius: isIndex ? 22 : 14` | `borderRadius: isIndex ? 22 : 12` |
 | League rows | `borderRadius: 10` | stays 10 |
 | Member rows | `borderRadius: 10` | stays 10 |
 | Alert / info banners | `borderRadius: 8` | stays 8 |
@@ -96,7 +98,7 @@ Consistent rule: **card rows = 10px, chart panels = 12px, controls/banners = 8px
 
 | Location | Before | After |
 |---|---|---|
-| Player names in LeagueTab rows | `fontSize: 14` | `fontSize: 15` |
+| Player names in LeagueTab rows | `fontSize: mob?12:14` | `fontSize: mob?13:15` (both mobile and desktop bump by 1) |
 | Player names in MembersTab rows | `fontSize: 14` | `fontSize: 15` |
 | Team names in Fixtures desktop rows | `fontSize: 13` | `fontSize: 14` |
 | Team names in NextMatchCountdown | `fontSize: 13` | `fontSize: 14` |
