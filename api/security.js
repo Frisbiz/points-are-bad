@@ -911,7 +911,8 @@ export default async function handler(req, res) {
       const isWC = (group.competition || 'PL') === 'WC';
       const seas = group.season || 2025;
       const comp = isWC ? 'WC' : 'PL';
-      const matchesRes = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/fixtures?matchday=${currentGW}&season=${isWC ? 2026 : seas}&competition=${comp}`);
+      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
+      const matchesRes = await fetch(`${baseUrl}/api/fixtures?matchday=${currentGW}&season=${isWC ? 2026 : seas}&competition=${comp}`);
       if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
       const matchesData = await matchesRes.json();
       const matches = matchesData.matches || [];
