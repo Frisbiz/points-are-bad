@@ -3,6 +3,15 @@ import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassw
 import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 
+async function fetchFromFD(matchday, season, competition = 'PL') {
+  let url = `https://api.football-data.org/v4/competitions/${competition}/matches?season=${season}`;
+  if (matchday != null) url += `&matchday=${matchday}`;
+  const r = await fetch(url, { headers: { 'X-Auth-Token': process.env.VITE_FD_API_KEY } });
+  if (!r.ok) { const err = new Error(`API error ${r.status}`); err.status = r.status; throw err; }
+  const data = await r.json();
+  return data.matches || [];
+}
+
 const OWNER_USERNAME = "faris";
 const SITE_DEFAULTS = { defaultTheme: "dark", landingTheme: null };
 
@@ -580,37 +589,32 @@ export default async function handler(req, res) {
       let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
       const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
       const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
-      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
-      if (missingPast) {
-        const allRes = await fetch(`${baseUrl}/api/fixtures?season=${isWC ? 2026 : seas}&competition=${isWC ? 'WC' : 'PL'}`);
-        if (!allRes.ok) return bad(res, allRes.status, `API error ${allRes.status}`);
-        const allData = await allRes.json();
-        const allMatches = allData.matches || [];
-        if (!allMatches.length) return res.status(200).json({ group, updated: false });
-        if (isWC) {
-          const byGW = {};
-          allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-          const otherGWs = (globalDoc.gameweeks || []).filter(g => !byGW[g.gw]);
-          const newGWs = Object.entries(byGW).map(([gw, ms]) => ({ gw: Number(gw), fixtures: parseMatchesToFixtures(ms, Number(gw), 'WC') }));
-          globalDoc = { ...globalDoc, updatedAt: Date.now(), gameweeks: [...otherGWs, ...newGWs] };
+      try {
+        if (missingPast) {
+          const allMatches = await fetchFromFD(null, isWC ? 2026 : seas, isWC ? 'WC' : 'PL');
+          if (!allMatches.length) return res.status(200).json({ group, updated: false });
+          if (isWC) {
+            const byGW = {};
+            allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
+            const otherGWs = (globalDoc.gameweeks || []).filter(g => !byGW[g.gw]);
+            const newGWs = Object.entries(byGW).map(([gw, ms]) => ({ gw: Number(gw), fixtures: parseMatchesToFixtures(ms, Number(gw), 'WC') }));
+            globalDoc = { ...globalDoc, updatedAt: Date.now(), gameweeks: [...otherGWs, ...newGWs] };
+          } else {
+            let updated = { ...globalDoc };
+            const byGW = {};
+            allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
+            Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), 'PL')); });
+            globalDoc = updated;
+          }
         } else {
-          let updated = { ...globalDoc };
-          const byGW = {};
-          allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-          Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), 'PL')); });
-          globalDoc = updated;
+          const matches = await fetchFromFD(targetGW, isWC ? 2026 : seas, isWC ? 'WC' : 'PL');
+          if (!matches.length) return res.status(200).json({ group, updated: false });
+          const apiFixtures = parseMatchesToFixtures(matches, targetGW, isWC ? 'WC' : 'PL');
+          globalDoc = isWC
+            ? { ...globalDoc, updatedAt: Date.now(), gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== targetGW), { gw: targetGW, fixtures: apiFixtures }] }
+            : regroupGlobalDoc(globalDoc, targetGW, apiFixtures);
         }
-      } else {
-        const matchesRes = await fetch(`${baseUrl}/api/fixtures?matchday=${targetGW}&season=${isWC ? 2026 : seas}&competition=${isWC ? 'WC' : 'PL'}`);
-        if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
-        const matchesData = await matchesRes.json();
-        const matches = matchesData.matches || [];
-        if (!matches.length) return res.status(200).json({ group, updated: false });
-        const apiFixtures = parseMatchesToFixtures(matches, targetGW, isWC ? 'WC' : 'PL');
-        globalDoc = isWC
-          ? { ...globalDoc, updatedAt: Date.now(), gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== targetGW), { gw: targetGW, fixtures: apiFixtures }] }
-          : regroupGlobalDoc(globalDoc, targetGW, apiFixtures);
-      }
+      } catch (e) { return bad(res, e.status || 500, e.message); }
       await setValue(globalKey, globalDoc);
       if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) return res.status(200).json({ group, updated: false });
       const merged = mergeGlobalIntoGroup(group, globalDoc, targetGW);
@@ -911,11 +915,9 @@ export default async function handler(req, res) {
       const isWC = (group.competition || 'PL') === 'WC';
       const seas = group.season || 2025;
       const comp = isWC ? 'WC' : 'PL';
-      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://127.0.0.1:${process.env.PORT || 3000}`;
-      const matchesRes = await fetch(`${baseUrl}/api/fixtures?matchday=${currentGW}&season=${isWC ? 2026 : seas}&competition=${comp}`);
-      if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
-      const matchesData = await matchesRes.json();
-      const matches = matchesData.matches || [];
+      let matches;
+      try { matches = await fetchFromFD(currentGW, isWC ? 2026 : seas, comp); }
+      catch (e) { return bad(res, e.status || 500, e.message); }
       if (!matches.length) return bad(res, 404, 'No matches found for this round.');
       const apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
       const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
