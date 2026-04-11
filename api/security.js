@@ -617,7 +617,7 @@ export default async function handler(req, res) {
       } catch (e) { return bad(res, e.status || 500, e.message); }
       await setValue(globalKey, globalDoc);
       if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) return res.status(200).json({ group, updated: false });
-      const merged = mergeGlobalIntoGroup(group, globalDoc, targetGW);
+      const merged = mergeGlobalIntoGroup(globalDoc, group);
       if (!merged) return res.status(200).json({ group, updated: false });
       const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
       await setValue(groupKey, next);
