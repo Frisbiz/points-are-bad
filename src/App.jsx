@@ -495,7 +495,7 @@ function computeStats(group) {
     let total=0, scored=0, perfects=0;
     const gwTotals = filteredGWs.map(g => {
       let gwPts=0;
-      g.fixtures.forEach(f => {
+      (g.fixtures || []).forEach(f => {
         if (!f.result) return;
         const pts = calcPts(preds[username]?.[f.id], f.result);
         if (pts!==null){total+=pts;scored++;gwPts+=pts;if(pts===0)perfects++;}
@@ -2356,7 +2356,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
   const myRank = stats.findIndex(s => s.username === user.username) + 1;
   const activeSeason = group.season || 2025;
   const completedGWs = (group.gameweeks || [])
-    .filter(g => (g.season || activeSeason) === activeSeason && g.fixtures.length > 0 && g.fixtures.every(f => f.result || f.status === "POSTPONED"));
+    .filter(g => (g.season || activeSeason) === activeSeason && (g.fixtures || []).length > 0 && (g.fixtures || []).every(f => f.result || f.status === "POSTPONED"));
   const recapGW = completedGWs.length > 0 ? completedGWs.reduce((a, b) => a.gw > b.gw ? a : b) : null;
   const recapKey = recapGW ? `recap:${group.id}:${user.username}:gw${recapGW.gw}` : null;
   const [recapDismissed, setRecapDismissed] = useState(() => recapKey ? !!lget(recapKey) : true);
@@ -2631,7 +2631,7 @@ function LeagueTab({group,user,names,theme}) {
   const isIndex = theme === "index";
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
-  const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+g.fixtures.filter(f=>f.result).length,0);
+  const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
   return (
     <div>
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isIndex?"26px 28px":"0",borderRadius:isIndex?28:0}}>
@@ -3539,12 +3539,12 @@ function TrendsTab({group,names,theme}) {
   const hasData = stats.some(p=>p.scored>0);
   const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = stats.map(p=>({...p,dn:names[p.username]||p.username}));
-  const completedGws = gws.filter(g=>g.fixtures.length>0&&g.fixtures.every(f=>f.result||f.status==="POSTPONED"));
+  const completedGws = gws.filter(g=>(g.fixtures||[]).length>0&&(g.fixtures||[]).every(f=>f.result||f.status==="POSTPONED"));
   const gwLine=completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw&&e.season===(g.season||activeSeason))?.points??0;});return r;});
   const cumLine=completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))).reduce((a,e)=>a+e.points,0);});return r;});
   const perfectsData=ds.map(p=>({name:p.dn,perfects:p.perfects}));
   const preds=group.predictions||{};
-  const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>g.fixtures.forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
+  const distData=[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>(g.fixtures||[]).forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;});
   const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
