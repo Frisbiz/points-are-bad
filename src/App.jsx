@@ -2069,7 +2069,8 @@ function getInviteCodeFromLocation() {
 }
 
 export default function App() {
-  const [user,setUser]=useState(null);
+  const [user,setUserRaw]=useState(null);
+  const setUser=useCallback((u)=>{ userRef.current=u; setUserRaw(u); },[]);
   const [group,setGroup]=useState(null);
   const [tab,setTab]=useState("League");
   const [boot,setBoot]=useState(false);
@@ -2077,7 +2078,12 @@ export default function App() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [sitePrefs,setSitePrefs]=useState(null);
   const [sitePrefsLoaded,setSitePrefsLoaded]=useState(false);
-  const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"dark");
+  const [theme,setThemeRaw]=useState(()=>localStorage.getItem("theme")||"dark");
+  const userRef=useRef(null);
+  const setTheme=useCallback((t)=>{
+    setThemeRaw(t);
+    if(userRef.current?.username)spatch(`user:${userRef.current.username}`,"theme",t).catch(()=>{});
+  },[]);
   const [toast,setToast]=useState(null);
   const konamiIndexRef=useRef(0);
   const [bootError,setBootError]=useState(false);
@@ -2185,6 +2191,7 @@ export default function App() {
     const u = sessionData.user;
     if(u){
       setUser(u);
+      if(u.theme)setThemeRaw(u.theme);
       setNeedsSetup(!u.email);
       if(saved?.groupId){
         const g=await sget(`group:${saved.groupId}`);
@@ -2239,6 +2246,7 @@ export default function App() {
     setGroup(null);
     setShowLanding(false);
     setUser(nextUser);
+    if(nextUser.theme)setThemeRaw(nextUser.theme);
     setNeedsSetup(false);
     if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
       const onlyGroup = loginGroups[0] || await sget(`group:${nextUser.groupIds[0]}`);
@@ -2484,7 +2492,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
       <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
         <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:12,fontWeight:theme==="index"?600:undefined}}>THEME</div>
         <div style={{position:"relative"}}>
-        <div onWheel={e=>{e.currentTarget.scrollLeft+=e.deltaY;}} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+        <div ref={node=>{if(node&&!node._wheelBound){node._wheelBound=true;node.addEventListener("wheel",e=>{e.preventDefault();node.scrollLeft+=e.deltaY;},{passive:false});}}} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
           {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
             const active=theme===t.key;
             return (
