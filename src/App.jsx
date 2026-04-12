@@ -437,8 +437,8 @@ const CSS = `
   .pts-label-pulse{animation:ptsPulse 1.6s ease-in-out infinite;display:inline-block}
   .pts-label-shimmer{background:linear-gradient(90deg,currentColor 0%, #fff 45%, currentColor 90%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ptsShimmer 1.8s linear infinite;display:inline-block}
   .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
-  .bot-nav .nb{height:54px;border-top:none!important;}
-  .bot-nav .nb.active{border-bottom-color:var(--text)!important;}
+  .bot-nav .nb{height:54px;border:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;padding:5px 2px 0!important;}
+  .bot-nav .nb.active{border:none!important;}
   [data-theme="index"] body{background-attachment:fixed;}
   [data-theme="index"] .frow:hover{background:#f5f5f6!important;}
   [data-theme="index"] .nb{border-bottom-width:1px;font-weight:500;letter-spacing:.2px;color:var(--text-dim2)!important;}
@@ -507,7 +507,7 @@ const CSS = `
 
   [data-theme="spotify"] .bot-nav{background:linear-gradient(180deg,#121212ee,#121212)!important;border-top:none!important;box-shadow:0 -6px 24px rgba(0,0,0,0.7)!important;backdrop-filter:blur(12px)!important;}
   [data-theme="spotify"] .bot-nav .nb{border:none!important;border-bottom:none!important;}
-  [data-theme="spotify"] .bot-nav .nb.active{background:transparent!important;color:#1ed760!important;border:none!important;border-bottom:2px solid #1ed760!important;}
+  [data-theme="spotify"] .bot-nav .nb.active{background:transparent!important;color:#1ed760!important;border:none!important;}
 
   [data-theme="spotify"] .frow:hover{background:#282828!important;}
   [data-theme="spotify"] .gw-strip button{border-radius:500px!important;font-weight:700!important;}
@@ -1783,6 +1783,14 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
 
 /* ── MAIN APP ────────────────────────────────────── */
 const NAV = ["League","Fixtures","Trends","Members","Group"];
+const BOT_NAV_ICONS = {
+  League:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12v8a6 6 0 01-12 0V3zM6 6H3a1 1 0 00-1 1v1a4 4 0 003.8 4M18 6h3a1 1 0 011 1v1a4 4 0 01-3.8 4M12 17v4M8 21h8"/></svg>,
+  Fixtures: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="8" cy="15" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="15" r="1" fill="currentColor" stroke="none"/></svg>,
+  Trends:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,18 9,11 13,14 21,6"/><path d="M3 21h18"/></svg>,
+  Members:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  Group:    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
+  Bracket:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="6" height="4" rx="1"/><rect x="1" y="16" width="6" height="4" rx="1"/><rect x="9" y="10" width="6" height="4" rx="1"/><rect x="17" y="10" width="6" height="4" rx="1"/><path d="M7 6h1v10H7M15 12h2"/></svg>,
+};
 const SECRET_THEME = "velvet";
 const SECRET_THEME_CLICKS_REQUIRED = 99;
 const KONAMI_SEQUENCE = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
@@ -2490,9 +2498,17 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
   document.body
 )}
       <nav className="bot-nav">
-        {nav.map(t=>(
-          <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:11,letterSpacing:1.5,padding:"6px 6px 0",textTransform:"uppercase",flex:1}}>{t}</button>
-        ))}
+        {nav.map(t=>{
+          const active=tab===t;
+          return (
+            <button key={t} onClick={()=>setTab(t)} className={`nb${active?" active":""}`} style={{flex:1,color:active?"var(--btn-bg)":"var(--text-dim2)"}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"3px 10px 4px",borderRadius:10,background:active?"var(--card)":"transparent",border:active?"1px solid var(--border)":"1px solid transparent",transition:"background 0.15s, border-color 0.15s",minWidth:44}}>
+                {BOT_NAV_ICONS[t]}
+                <span style={{fontSize:9,letterSpacing:0.3,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--text-bright)":"var(--text-dim2)",lineHeight:1.2}}>{t}</span>
+              </div>
+            </button>
+          );
+        })}
       </nav>
       <main style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
