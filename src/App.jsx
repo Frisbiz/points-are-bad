@@ -506,7 +506,7 @@ const CSS = `
   [data-theme="spotify"] .nb.active{background:#333!important;color:#1ed760!important;border:none!important;border-bottom:none!important;}
 
   [data-theme="spotify"] .bot-nav{background:linear-gradient(180deg,#121212ee,#121212)!important;border-top:none!important;box-shadow:0 -6px 24px rgba(0,0,0,0.7)!important;backdrop-filter:blur(12px)!important;}
-  [data-theme="spotify"] .bot-nav .nb{border:none!important;border-bottom:none!important;}
+  [data-theme="spotify"] .bot-nav .nb{border:none!important;border-bottom:none!important;border-radius:0!important;padding:5px 2px 0!important;margin:0!important;letter-spacing:0!important;}
   [data-theme="spotify"] .bot-nav .nb.active{background:transparent!important;color:#1ed760!important;border:none!important;}
 
   [data-theme="spotify"] .frow:hover{background:#282828!important;}
