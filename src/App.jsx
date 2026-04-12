@@ -1380,7 +1380,7 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark" }) {
+function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark", setTheme=()=>{} }) {
   const [groups,setGroups]=useState(initialGroups);
   const [loading,setLoading]=useState(!initialGroups.length);
   const [createName,setCreateName]=useState("");
@@ -1677,6 +1677,24 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
             </div>
           )}
         </div>
+      </div>
+      <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
+        <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>THEME</div>
+        <div style={{position:"relative"}}>
+          <div ref={node=>{if(node&&!node._wheelBound){node._wheelBound=true;node.addEventListener("wheel",e=>{e.preventDefault();node.scrollLeft+=e.deltaY;},{passive:false});}}} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+            {[...getSecretThemeMeta(user),...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
+              const active=theme===t.key;
+              return (
+                <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
+                  <div style={{display:"flex",gap:4}}>{t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}</div>
+                  <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{position:"absolute",right:0,top:0,bottom:0,width:32,background:"linear-gradient(to right, transparent, var(--bg))",pointerEvents:"none"}}/>
+        </div>
+        {isSecretThemeUnlockedForUser(user)&&<div style={{fontSize:10,color:"var(--text-dim3)",marginTop:4}}>Secret theme unlocked.</div>}
       </div>
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CHANGE PASSWORD</div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -2331,7 +2349,7 @@ export default function App() {
           theme={effectiveTheme}
         />
       ):!group?(
-        <GroupLobby user={user} groups={groups} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme}/>
+        <GroupLobby user={user} groups={groups} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme} setTheme={setTheme}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
