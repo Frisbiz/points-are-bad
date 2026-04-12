@@ -436,8 +436,8 @@ const CSS = `
   .pts-label-glitch{animation:ptsGlitch 1.1s ease-in-out infinite alternate;display:inline-block}
   .pts-label-pulse{animation:ptsPulse 1.6s ease-in-out infinite;display:inline-block}
   .pts-label-shimmer{background:linear-gradient(90deg,currentColor 0%, #fff 45%, currentColor 90%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ptsShimmer 1.8s linear infinite;display:inline-block}
-  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:space-around;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));}
-  .bot-nav .nb{height:54px;border:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;padding:5px 2px 0!important;}
+  .bot-nav{display:none;position:fixed;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--bg);z-index:100;justify-content:stretch;align-items:flex-start;height:calc(54px + env(safe-area-inset-bottom));overflow:hidden;}
+  .bot-nav .nb{height:54px;border:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;padding:5px 2px 0!important;transition:color 0.15s!important;}
   .bot-nav .nb.active{border:none!important;}
   [data-theme="index"] body{background-attachment:fixed;}
   [data-theme="index"] .frow:hover{background:#f5f5f6!important;}
@@ -2481,6 +2481,23 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
           <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-bright)",fontWeight:theme==="index"?500:undefined}}>{user.email||"—"}</span>
         </div>
       </div>
+      <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
+        <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:12,fontWeight:theme==="index"?600:undefined}}>THEME</div>
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none",WebkitOverflowScrolling:"touch",margin:"0 -2px",padding:"2px 2px 6px"}}>
+          {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
+            const active=theme===t.key;
+            return (
+              <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
+                <div style={{display:"flex",gap:4}}>
+                  {t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}
+                </div>
+                <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {isSecretThemeUnlockedForUser(user)&&<div style={{fontSize:10,color:"var(--text-dim3)",marginTop:4}}>Secret theme unlocked.</div>}
+      </div>
       <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:14,fontWeight:theme==="index"?600:undefined}}>CHANGE PASSWORD</div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
@@ -2502,7 +2519,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
           const active=tab===t;
           return (
             <button key={t} onClick={()=>setTab(t)} className={`nb${active?" active":""}`} style={{flex:1,color:active?"var(--btn-bg)":"var(--text-dim2)"}}>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"3px 10px 4px",borderRadius:10,background:active?"var(--card)":"transparent",border:active?"1px solid var(--border)":"1px solid transparent",transition:"background 0.15s, border-color 0.15s",minWidth:44}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"3px 6px 4px",borderRadius:10,background:active?"var(--card-hi)":"transparent",transition:"background 0.15s",width:"100%"}}>
                 {BOT_NAV_ICONS[t]}
                 <span style={{fontSize:9,letterSpacing:0.3,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--text-bright)":"var(--text-dim2)",lineHeight:1.2}}>{t}</span>
               </div>
@@ -4573,8 +4590,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},
         );
       })()}
 
-      <Section title="Appearance">
-        {user?.username==="faris" && user?.username!==DEMO_SHARED_USERNAME &&(
+      {(user?.username==="faris" && user?.username!==DEMO_SHARED_USERNAME) && <Section title="Appearance">
+        {true &&(
           <div style={{marginBottom:18,padding:"14px 16px",border:"1px solid var(--border3)",borderRadius:isAutoStocks?20:10,background:isAutoStocks?"var(--card-hi)":"var(--card)"}}>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Default theme for new users</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
@@ -4596,21 +4613,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},
             </div>
           </div>
         )}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-          {[...getSecretThemeMeta(user), ...(theme==="clarity" ? [{key:"clarity",label:"Post-Optimization Clarity",swatches:["#111","#666","#fff"],secret:true}] : [])].map(t=>(
-            <button key={t.key} onClick={()=>setTheme(t.key)}
-              style={{background:"var(--card)",border:`2px solid ${theme===t.key?"var(--btn-bg)":"var(--border)"}`,borderRadius:10,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8,transition:"border-color 0.15s",fontFamily:"inherit"}}>
-              <div style={{display:"flex",gap:4}}>
-                {t.swatches.map((c,i)=><div key={i} style={{width:14,height:14,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.2)"}}/>)}
-              </div>
-              <div style={{fontSize:10,color:theme===t.key?"var(--btn-bg)":"var(--text-dim)",letterSpacing:1.5,textTransform:"uppercase",fontWeight:theme===t.key?700:400}}>
-                {t.label}{theme===t.key&&" ✓"}
-              </div>
-            </button>
-          ))}
-        </div>
-        {isSecretThemeUnlockedForUser(user) && <div style={{fontSize:11,color:"var(--text-dim)",marginTop:10}}>Secret theme unlocked. Tiny reward for aggressively agreeing that points are, in fact, bad.</div>}
-      </Section>
+      </Section>}
 
       {isAdmin&&(group.competition||"PL")==="PL"&&(
         <Section title="Seasons">
