@@ -492,7 +492,7 @@ const CSS = `
   [data-theme="spotify"] header{background:linear-gradient(180deg,#121212 0%,#121212ee 100%)!important;border-bottom:none!important;box-shadow:0 4px 20px rgba(0,0,0,0.5)!important;backdrop-filter:blur(12px)!important;}
 
   [data-theme="spotify"] button{border-radius:500px!important;font-weight:700!important;letter-spacing:0.8px!important;text-transform:uppercase!important;font-size:12px!important;transition:all 0.2s ease,transform 0.1s ease!important;border-color:transparent!important;}
-  [data-theme="spotify"] button:hover{transform:scale(1.03);filter:brightness(1.1);}
+  [data-theme="spotify"] button:hover{transform:scale(1.03);}
   [data-theme="spotify"] button:active{transform:scale(0.97);}
 
   [data-theme="spotify"] input{border-radius:500px!important;border:none!important;box-shadow:rgb(18,18,18) 0px 1px 0px, rgb(62,62,62) 0px 0px 0px 1px inset!important;background:#2a2a2a!important;padding:12px 20px!important;font-weight:600!important;font-size:14px!important;color:#fff!important;}
@@ -515,6 +515,11 @@ const CSS = `
   [data-theme="spotify"] ::selection{background:#1ed76040;color:#fff;}
 
   [data-theme="spotify"] div[style*="dashed"]{border-style:solid!important;border-color:#333!important;}
+  [data-theme="spotify"] .land-hero-btns button{font-size:14px!important;padding:14px 32px!important;letter-spacing:1.4px!important;-webkit-font-smoothing:antialiased!important;-moz-osx-font-smoothing:grayscale!important;backface-visibility:hidden!important;transform:translateZ(0)!important;}
+  [data-theme="spotify"] .land-hero-btns button:hover{transform:translateZ(0) scale(1.03)!important;filter:none!important;}
+  [data-theme="spotify"] .land-hero-btns button:active{transform:translateZ(0) scale(0.97)!important;}
+  [data-theme="spotify"] .land-cta-section button{font-size:14px!important;padding:14px 32px!important;letter-spacing:1.4px!important;-webkit-font-smoothing:antialiased!important;backface-visibility:hidden!important;transform:translateZ(0)!important;}
+  [data-theme="spotify"] .land-cta-section button:hover{transform:translateZ(0) scale(1.03)!important;filter:none!important;}
 
   @keyframes spotifyPulse{0%,100%{box-shadow:0 0 0 0 rgba(30,215,96,0.35);}50%{box-shadow:0 0 0 8px rgba(30,215,96,0);}}
 `;
@@ -2101,10 +2106,11 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
+    if (!boot) return;
     const available = [...getAvailableThemes(user), "clarity"];
     const fallback = sitePrefs?.defaultTheme || "dark";
     if (!available.includes(theme)) setTheme(fallback);
-  },[theme,user,sitePrefs]);
+  },[theme,user,sitePrefs,boot]);
 
   const landingTheme = sitePrefs?.landingTheme || null;
   const effectiveTheme = (!user && landingTheme) ? landingTheme : theme;
