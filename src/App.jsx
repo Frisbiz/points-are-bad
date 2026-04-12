@@ -2483,7 +2483,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
       </div>
       <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
         <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:12,fontWeight:theme==="index"?600:undefined}}>THEME</div>
-        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none",WebkitOverflowScrolling:"touch",margin:"0 -2px",padding:"2px 2px 6px"}}>
+        <div style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"thin"}}>
           {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
             const active=theme===t.key;
             return (
