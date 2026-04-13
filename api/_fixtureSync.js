@@ -134,7 +134,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
       const existing = (gf.apiId && oldByApiId[String(gf.apiId)]) || oldByTeams[`${gf.home}|${gf.away}`];
       if (existing) {
         const idx = working.findIndex(f => f.id === existing.id);
-        if (idx >= 0) working[idx] = { ...existing, result: gf.result, status: gf.status, date: gf.date, apiId: gf.apiId, home: gf.home, away: gf.away };
+        if (idx >= 0) working[idx] = { ...existing, result: gf.result, status: gf.status, date: gf.date, apiId: gf.apiId, home: gf.home, away: gf.away, liveScore: gf.liveScore || null };
       } else {
         toAdd.push(gf);
       }

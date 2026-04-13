@@ -2998,7 +2998,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
 
   const fetchFromAPI = async () => {
     const roundLabel = gwLabel(group, currentGW);
-    setFetching(true); setFetchMsg(`Syncing ${roundLabel} from football-data.org...`);
+    setFetching(true); setFetchMsg(`Syncing ${roundLabel}...`);
     try {
       const res = await fetch('/api/security', {
         method:'POST',
@@ -3010,7 +3010,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         setFetchMsg(data.error || 'Sync failed.');
       } else if (data.group) {
         setGroup(data.group);
-        setFetchMsg(`✓ Updated ${data.fixtures || 0} fixtures${(data.results || 0)>0?`, ${data.results} with results`:""}.`);
+        setFetchMsg(`✓ Updated ${data.fixtures || 0} fixtures${(data.results || 0)>0?`, ${data.results} with results`:""}`);
       }
     } catch(e) { setFetchMsg(`Error: ${e.message}`); }
     setFetching(false);
