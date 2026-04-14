@@ -2354,7 +2354,7 @@ export default function App() {
         <GroupLobby user={user} groups={groups} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme} setTheme={setTheme}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
-          isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout}
+          isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} onUpdateUser={u=>setUser(u)}
           refreshGroup={refreshGroup} theme={theme} setTheme={setTheme} setGroup={setGroup}
           unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}
           onOpenWhatsNew={() => setWhatsNewOpen(true)}/>
@@ -2365,7 +2365,7 @@ export default function App() {
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refreshGroup,theme,setTheme,setGroup,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpdateUser,refreshGroup,theme,setTheme,setGroup,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
   const [names,setNames]=useState(()=>{
@@ -2576,7 +2576,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,refres
         {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
         {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
         {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
+        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
       </main>
     </div>
   );
@@ -4353,7 +4353,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
 }
 
 /* ── GROUP TAB ───────────────────────────────────── */
-function GroupTab({group,user,isAdmin,isCreator,onLeave,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{},setGroup}) {
+function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{},setGroup}) {
   const mob = useMobile();
   const isAutoStocks = theme === "index";
   const resolvedSitePrefs = sitePrefs || { defaultTheme: "dark", landingTheme: null };
