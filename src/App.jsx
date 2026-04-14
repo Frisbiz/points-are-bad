@@ -1457,6 +1457,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const [pwError,setPwError]=useState("");
   const [pwSuccess,setPwSuccess]=useState(false);
   const [pwLoading,setPwLoading]=useState(false);
+  const [themePickerOpen,setThemePickerOpen]=useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailChanging, setEmailChanging] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
@@ -1677,22 +1678,22 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
 )}
       {accountOpen&&createPortal(
   <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
-      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:20}}>ACCOUNT</div>
-      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"6px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-mid)"}}>{user.username}</span>
+    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
+      <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:12,fontWeight:600}}>PROFILE</div>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
+          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-bright)",fontWeight:500}}>{user.username}</span>
         </div>
         <div style={{borderBottom:"1px solid var(--border3)",paddingBottom:8,marginBottom:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"6px 0"}}>
             <span style={{color:"var(--text-dim)"}}>Email</span>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{color:"var(--text-mid)"}}>{user.email||"—"}</span>
+              <span style={{color:"var(--text-bright)",fontWeight:500}}>{user.email||"--"}</span>
               <button
                 onClick={()=>{setEmailChanging(o=>!o);setEmailInput("");setEmailError("");setEmailSuccess(false);setEmailLoading(false);}}
                 style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,
                   letterSpacing:1,fontFamily:"inherit",padding:0}}>
-                {emailChanging?"CANCEL":user.email?"CHANGE →":"ADD →"}
+                {emailChanging?"CANCEL":user.email?"CHANGE":"ADD"}
               </button>
             </div>
           </div>
@@ -1703,42 +1704,54 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
               {emailError&&<div style={{color:"#ef4444",fontSize:12}}>{emailError}</div>}
               {emailSuccess&&<div style={{color:"#22c55e",fontSize:12}}>Email updated.</div>}
               <Btn onClick={saveEmail} disabled={emailLoading||emailSuccess}
-                style={{padding:"8px 0",textAlign:"center",letterSpacing:2}}>
+                style={{padding:"8px 0",textAlign:"center"}}>
                 {emailLoading?<Spinner/>:"SAVE"}
               </Btn>
             </div>
           )}
         </div>
       </div>
-      <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
-        <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>THEME</div>
-        <div style={{position:"relative"}}>
-          <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
-            {[...getSecretThemeMeta(user),...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
-              const active=theme===t.key;
-              return (
-                <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
-                  <div style={{display:"flex",gap:4}}>{t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}</div>
-                  <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
-                </button>
-              );
-            })}
+      <div style={{marginBottom:24}}>
+        <button onClick={()=>setThemePickerOpen(p=>!p)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+          <span style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,fontWeight:600}}>APPEARANCE</span>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:11,color:"var(--text-dim)"}}>{THEMES.find(t=>t.id===theme)?.label||theme}</span>
+            <span style={{fontSize:11,color:"var(--text-dim2)",transition:"transform 0.2s",transform:themePickerOpen?"rotate(180deg)":"rotate(0deg)"}}>&#9662;</span>
           </div>
-          <div style={{position:"absolute",right:0,top:0,bottom:0,width:32,background:"linear-gradient(to right, transparent, var(--bg))",pointerEvents:"none"}}/>
+        </button>
+        {themePickerOpen && (
+          <div style={{marginTop:12}}>
+            <div style={{position:"relative"}}>
+              <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+                {[...getSecretThemeMeta(user),...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
+                  const active=theme===t.key;
+                  return (
+                    <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
+                      <div style={{display:"flex",gap:4}}>{t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}</div>
+                      <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{position:"absolute",right:0,top:0,bottom:0,width:32,background:"linear-gradient(to right, transparent, var(--bg))",pointerEvents:"none"}}/>
+            </div>
+            {isSecretThemeUnlockedForUser(user)&&<div style={{fontSize:10,color:"var(--text-dim3)",marginTop:4}}>Secret theme unlocked.</div>}
+          </div>
+        )}
+      </div>
+      <div style={{borderTop:"1px solid var(--border3)",paddingTop:18}}>
+        <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:14,fontWeight:600}}>SECURITY</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
+          <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
+          <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password" onKeyDown={e=>e.key==="Enter"&&changePassword()} />
         </div>
-        {isSecretThemeUnlockedForUser(user)&&<div style={{fontSize:10,color:"var(--text-dim3)",marginTop:4}}>Secret theme unlocked.</div>}
-      </div>
-      <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>CHANGE PASSWORD</div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
-        <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
-        <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password" onKeyDown={e=>e.key==="Enter"&&changePassword()} />
-      </div>
-      {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
-      {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
-      <div style={{display:"flex",gap:10,marginTop:16}}>
-        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>{pwLoading?<Spinner/>:"SAVE"}</Btn>
-        <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
+        {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
+        {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
+        <div style={{display:"flex",gap:10,marginTop:18}}>
+          <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center"}}>{pwLoading?<Spinner/>:"SAVE"}</Btn>
+          <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
+        </div>
       </div>
     </div>
   </div>,
@@ -2405,6 +2418,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
   const [pwError,setPwError]=useState("");
   const [pwSuccess,setPwSuccess]=useState(false);
   const [pwLoading,setPwLoading]=useState(false);
+  const [themePickerOpen,setThemePickerOpen]=useState(false);
   const hScrollRef = useHorizontalScroll();
   const profileRef=useRef(null);
   useEffect(()=>{
@@ -2517,47 +2531,59 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       </header>
       {accountOpen&&createPortal(
   <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} className={theme==="index"?"liquid-card":undefined} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420}}>
-      <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:16,fontWeight:theme==="index"?600:undefined}}>ACCOUNT</div>
-      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
+    <div onClick={e=>e.stopPropagation()} className={theme==="index"?"liquid-card":undefined} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
+      <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:12,fontWeight:600}}>PROFILE</div>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-bright)",fontWeight:theme==="index"?600:undefined}}>{user.username}</span>
+          <span style={{color:"var(--text-dim)"}}>Username</span><span style={{color:"var(--text-bright)",fontWeight:500}}>{user.username}</span>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
-          <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-bright)",fontWeight:theme==="index"?500:undefined}}>{user.email||"—"}</span>
+          <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-bright)",fontWeight:500}}>{user.email||"--"}</span>
         </div>
       </div>
-      <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
-        <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:12,fontWeight:theme==="index"?600:undefined}}>THEME</div>
-        <div style={{position:"relative"}}>
-        <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
-          {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
-            const active=theme===t.key;
-            return (
-              <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
-                <div style={{display:"flex",gap:4}}>
-                  {t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}
-                </div>
-                <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div style={{position:"absolute",right:0,top:0,bottom:0,width:32,background:"linear-gradient(to right, transparent, var(--bg))",pointerEvents:"none"}}/>
-        </div>
-        {isSecretThemeUnlockedForUser(user)&&<div style={{fontSize:10,color:"var(--text-dim3)",marginTop:4}}>Secret theme unlocked.</div>}
+      <div style={{marginBottom:24}}>
+        <button onClick={()=>setThemePickerOpen(p=>!p)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+          <span style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,fontWeight:600}}>APPEARANCE</span>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:11,color:"var(--text-dim)"}}>{THEMES.find(t=>t.id===theme)?.label||theme}</span>
+            <span style={{fontSize:11,color:"var(--text-dim2)",transition:"transform 0.2s",transform:themePickerOpen?"rotate(180deg)":"rotate(0deg)"}}>&#9662;</span>
+          </div>
+        </button>
+        {themePickerOpen && (
+          <div style={{marginTop:12}}>
+            <div style={{position:"relative"}}>
+              <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+                {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
+                  const active=theme===t.key;
+                  return (
+                    <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
+                      <div style={{display:"flex",gap:4}}>
+                        {t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}
+                      </div>
+                      <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{position:"absolute",right:0,top:0,bottom:0,width:32,background:"linear-gradient(to right, transparent, var(--bg))",pointerEvents:"none"}}/>
+            </div>
+            {isSecretThemeUnlockedForUser(user)&&<div style={{fontSize:10,color:"var(--text-dim3)",marginTop:4}}>Secret theme unlocked.</div>}
+          </div>
+        )}
       </div>
-      <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:14,fontWeight:theme==="index"?600:undefined}}>CHANGE PASSWORD</div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
-        <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
-        <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password" onKeyDown={e=>e.key==="Enter"&&changePassword()} />
-      </div>
-      {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
-      {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
-      <div style={{display:"flex",gap:10,marginTop:18}}>
-        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:theme==="index"?0.2:2}}>{pwLoading?<Spinner/>:"SAVE"}</Btn>
-        <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
+      <div style={{borderTop:"1px solid var(--border3)",paddingTop:18}}>
+        <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:14,fontWeight:600}}>SECURITY</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <Input value={pwCurrent} onChange={setPwCurrent} placeholder="Current password" type="password" />
+          <Input value={pwNew} onChange={setPwNew} placeholder="New password" type="password" />
+          <Input value={pwConfirm} onChange={setPwConfirm} placeholder="Confirm new password" type="password" onKeyDown={e=>e.key==="Enter"&&changePassword()} />
+        </div>
+        {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
+        {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
+        <div style={{display:"flex",gap:10,marginTop:18}}>
+          <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center"}}>{pwLoading?<Spinner/>:"SAVE"}</Btn>
+          <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
+        </div>
       </div>
     </div>
   </div>,
