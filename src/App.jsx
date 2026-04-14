@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
@@ -240,6 +240,18 @@ function computeDibsTurn(group, fixtureId) {
 
 function genCode() { const chars="ABCDEFGHJKMNPQRSTUVWXYZ23456789"; return Array.from({length:6},()=>chars[Math.floor(Math.random()*chars.length)]).join(""); }
 const PALETTE = ["#60a5fa","#f472b6","#4ade80","#fb923c","#a78bfa","#facc15","#34d399","#f87171"];
+const THEMES = [
+  { id: "dark", label: "Dark", group: "core", swatches: ["#080810","#1a1a26","#e8e4d9"] },
+  { id: "light", label: "Light", group: "core", swatches: ["#f4f1e8","#dddad0","#1a1814"] },
+  { id: "nord", label: "Nord", group: "core", swatches: ["#2e3440","#434c5e","#eceff4"] },
+  { id: "index", label: "Index", group: "core", swatches: ["#f6f6f7","#e0e0e0","#121417"] },
+  { id: "pitch", label: "Pitch", group: "fun", swatches: ["#0d1f0d","#1a3a1a","#d4ecd4"] },
+  { id: "terminal", label: "Terminal", group: "fun", swatches: ["#000000","#1a3a1a","#00cc44"] },
+  { id: "excel", label: "Excel", group: "fun", swatches: ["#ffffff","#107c41","#1a1a1a"] },
+  { id: "spotify", label: "Spotify", group: "fun", swatches: ["#121212","#1ed760","#ffffff"] },
+  { id: "velvet", label: "Velvet", group: "secret", swatches: ["#120816","#3a2344","#f7d6ea"] },
+  { id: "clarity", label: "Clarity", group: "secret", swatches: ["#111","#666","#fff"] },
+];
 const CLUB_COLORS = {
   "Arsenal":"#EF0107","Aston Villa":"#95BFE5","Bournemouth":"#DA291C","Brentford":"#E30613",
   "Brighton":"#0057B8","Chelsea":"#034694","Crystal Palace":"#1B458F","Everton":"#003399",
@@ -396,6 +408,12 @@ const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}})
   return <button onClick={disabled?undefined:onClick} style={{...base,...V[variant],...extra}}>{children}</button>;
 };
 
+const Spinner = ({ size = 4 }) => (
+  <span style={{display:"inline-flex",gap:4,alignItems:"center"}}>
+    {[0,1,2].map(i => <span key={i} style={{width:size,height:size,borderRadius:"50%",background:"currentColor",animation:`pulse 1.2s ease-in-out infinite`,animationDelay:`${0.2*i}s`}}/>)}
+  </span>
+);
+
 const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus}) => (
   <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus}
     style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
@@ -408,6 +426,33 @@ const Section = ({title,children}) => (
   </div>
 );
 
+class TabErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error(`TabErrorBoundary [${this.props.tabName}]:`, error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{padding:40,textAlign:"center"}}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:32,maxWidth:400,margin:"0 auto"}}>
+            <div style={{fontSize:24,marginBottom:12}}>Something went wrong</div>
+            <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20}}>{this.props.tabName || "This tab"} ran into an error.</div>
+            <button onClick={()=>this.setState({hasError:false,error:null})} style={{background:"var(--btn-bg)",color:"var(--btn-text)",border:"none",borderRadius:8,padding:"10px 22px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Mono',monospace"}}>Try again</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function useMobile() {
   const [m, setM] = useState(() => window.innerWidth < 640);
   useEffect(() => {
@@ -416,6 +461,17 @@ function useMobile() {
     return () => window.removeEventListener("resize", fn);
   }, []);
   return m;
+}
+
+function useHorizontalScroll() {
+  return useCallback(node => {
+    if (!node || node._wheelBound) return;
+    node._wheelBound = true;
+    node.addEventListener("wheel", e => {
+      e.preventDefault();
+      node.scrollLeft += e.deltaY;
+    }, { passive: false });
+  }, []);
 }
 
 const CSS = `
@@ -1406,6 +1462,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [emailSuccess, setEmailSuccess] = useState(false);
+  const hScrollRef = useHorizontalScroll();
   const profileRef=useRef(null);
   useEffect(()=>{
     if(!profileOpen)return;
@@ -1656,7 +1713,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
         <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>THEME</div>
         <div style={{position:"relative"}}>
-          <div ref={node=>{if(node&&!node._wheelBound){node._wheelBound=true;node.addEventListener("wheel",e=>{e.preventDefault();node.scrollLeft+=e.deltaY;},{passive:false});}}} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+          <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
             {[...getSecretThemeMeta(user),...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
               const active=theme===t.key;
               return (
@@ -1787,7 +1844,6 @@ const BOT_NAV_ICONS = {
 const SECRET_THEME = "velvet";
 const SECRET_THEME_CLICKS_REQUIRED = 99;
 const KONAMI_SEQUENCE = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
-const THEMES=["dark","light","excel","terminal","nord","pitch","index","spotify",SECRET_THEME];
 const THEME_META=[
   {key:"dark",   label:"Dark",     swatches:["#080810","#0e0e1a","#e8e4d9"]},
   {key:"light",  label:"Light",    swatches:["#f4f1e8","#fff","#1a1814"]},
@@ -1805,7 +1861,7 @@ function isSecretThemeUnlockedForUser(user) {
 }
 
 function getAvailableThemes(user) {
-  return THEMES.filter(t => t !== SECRET_THEME || isSecretThemeUnlockedForUser(user));
+  return THEMES.filter(t => t.id !== SECRET_THEME || isSecretThemeUnlockedForUser(user)).map(t => t.id);
 }
 
 function getSecretThemeMeta(user) {
@@ -2349,6 +2405,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
   const [pwError,setPwError]=useState("");
   const [pwSuccess,setPwSuccess]=useState(false);
   const [pwLoading,setPwLoading]=useState(false);
+  const hScrollRef = useHorizontalScroll();
   const profileRef=useRef(null);
   useEffect(()=>{
     if(!profileOpen)return;
@@ -2473,7 +2530,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       <div style={{margin:"20px 0",borderTop:"1px solid var(--border3)",paddingTop:18}}>
         <div style={{fontSize:theme==="index"?12:10,color:"var(--text-dim2)",letterSpacing:theme==="index"?0.18:3,marginBottom:12,fontWeight:theme==="index"?600:undefined}}>THEME</div>
         <div style={{position:"relative"}}>
-        <div ref={node=>{if(node&&!node._wheelBound){node._wheelBound=true;node.addEventListener("wheel",e=>{e.preventDefault();node.scrollLeft+=e.deltaY;},{passive:false});}}} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
+        <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
           {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
             const active=theme===t.key;
             return (
@@ -2532,12 +2589,14 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
               style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
           </div>
         )}
-        {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
-        {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup}/>}
-        {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
-        {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
-        {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
-        {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
+        <TabErrorBoundary key={tab} tabName={tab}>
+          {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
+          {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup}/>}
+          {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
+          {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
+          {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
+          {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
+        </TabErrorBoundary>
       </main>
     </div>
   );
@@ -2823,6 +2882,17 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   );
 }
 
+function computeGWStatus(gwObj, hiddenGWs = [], isAdmin = false) {
+  const locked = !isAdmin && hiddenGWs.includes(gwObj.gw);
+  if (locked) return "locked";
+  const fixtures = (gwObj.fixtures || []).filter(f => f.status !== "POSTPONED");
+  if (fixtures.length === 0) return "empty";
+  const withResult = fixtures.filter(f => f.result || f.status === "FINISHED");
+  if (withResult.length === fixtures.length) return "complete";
+  if (withResult.length > 0) return "active";
+  return "future";
+}
+
 function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   const mob = useMobile();
   const isIndex = theme === "index";
@@ -2855,6 +2925,14 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     return group.currentGW||1;
   });
   const currentGW = viewGW;
+  const activeGW = useMemo(() => {
+    const seas = group.season || 2025;
+    const seasonGWs = (group.gameweeks || []).filter(g => (g.season || seas) === seas).sort((a, b) => a.gw - b.gw);
+    const found = seasonGWs.find(gwObj =>
+      (gwObj.fixtures || []).some(f => !f.result && f.status !== "FINISHED" && f.status !== "POSTPONED")
+    );
+    return found?.gw || null;
+  }, [group.gameweeks, group.season]);
   const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
@@ -2985,7 +3063,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     if (!gwStripRef.current) return;
     const seas = group.season||2025;
     const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
-    const idx = seasonGWs.findIndex(g=>g.gw===viewGW);
+    const targetGW = activeGW || viewGW; const idx = seasonGWs.findIndex(g=>g.gw===targetGW);
     if (idx<0) return;
     const pos = idx*57 - gwStripRef.current.clientWidth/2 + 27;
     gwStripRef.current.scrollLeft = Math.max(0, pos);
@@ -3104,16 +3182,17 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
-            <div ref={gwStripRef} className="gw-strip" style={{display:"flex",gap:3,maxWidth:396,overflowX:"auto",flex:1}}>
+            <div style={{position:"relative",flex:1,maxWidth:396}}>
+            <div ref={node => { gwStripRef.current = node; if (node && !node._wheelBound) { node._wheelBound = true; node.addEventListener("wheel", e => { e.preventDefault(); node.scrollLeft += e.deltaY; }, { passive: false }); } }} className="gw-strip" style={{display:"flex",gap:3,overflowX:"auto",flex:1}}>
               {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>{
                 const adminHidden = !isAdmin && (group.hiddenGWs||[]).includes(g.gw);
                 return (
                   <button key={g.gw} onClick={()=>setGW(g.gw)} style={{
                     background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
                     color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
-                    border:"1px solid var(--border)",
+                    border:g.gw===activeGW&&currentGW!==g.gw?"1.5px solid var(--text-dim)":"1px solid var(--border)",
                     borderRadius:isIndex?999:6,
-                    padding:isIndex?"7px 12px":"5px 0",
+                    padding:isIndex?"6px 12px":"4px 0",
                     fontSize:11,
                     cursor:"pointer",
                     fontFamily:"inherit",
@@ -3122,11 +3201,23 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
                     minWidth:isIndex?64:54,
                     textAlign:"center",
                     opacity:adminHidden?0.4:1,
+                    display:"flex",
+                    flexDirection:"column",
+                    alignItems:"center",
+                    gap:2,
                   }}>
-                    {adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{isWC?`R${g.gw}`:gwLabel(group,g.gw)}
+                    <span>{adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{isWC?`R${g.gw}`:gwLabel(group,g.gw)}</span>
+                    {(()=>{
+                      const status = computeGWStatus(g, group.hiddenGWs, isAdmin);
+                      const dotColor = status==="complete"?"#22c55e":status==="active"?"#f59e0b":status==="locked"?"#ef4444":null;
+                      return dotColor ? <span style={{width:5,height:5,borderRadius:"50%",background:dotColor,flexShrink:0}}/> : <span style={{width:5,height:5}}/>;
+                    })()}
                   </button>
                 );
               })}
+            </div>
+              <div style={{position:"absolute",left:0,top:0,bottom:0,width:20,background:"linear-gradient(to right, var(--bg), transparent)",pointerEvents:"none",zIndex:1}}/>
+              <div style={{position:"absolute",right:0,top:0,bottom:0,width:20,background:"linear-gradient(to left, var(--bg), transparent)",pointerEvents:"none",zIndex:1}}/>
             </div>
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
