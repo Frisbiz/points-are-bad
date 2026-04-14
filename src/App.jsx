@@ -1659,7 +1659,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       </header>
       {inviteGroup&&createPortal(
   <div onClick={()=>setInviteGroup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>GROUP INVITE</div>
       <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:28,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:10}}>{inviteGroup.name}</div>
       <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
@@ -2959,7 +2959,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     );
     return found?.gw || null;
   }, [group.gameweeks, group.season]);
-  const gwFixtures = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[];
+  const gwFixtures = ((group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[]).slice().sort((a,b)=>{
+    const da=a.date?new Date(a.date).getTime():Infinity;
+    const db=b.date?new Date(b.date).getTime():Infinity;
+    return da-db;
+  });
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
     const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
@@ -4997,7 +5001,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
       )}
       {deleteModalOpen&&createPortal(
         <div onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
             <div style={{fontSize:10,color:"#ef4444",letterSpacing:3,marginBottom:12}}>DELETE GROUP</div>
             <div style={{fontSize:13,color:"var(--text)",marginBottom:6}}>This permanently deletes <strong>{group.name}</strong> and all its data.</div>
             <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20}}>Enter your password to confirm.</div>
