@@ -993,7 +993,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
               <Input value={forgotEmail} onChange={setForgotEmail} placeholder="Email" type="email" autoFocus onKeyDown={e=>e.key==="Enter"&&sendReset()} />
               {forgotMsg&&<div style={{fontSize:12,color:"#22c55e"}}>{forgotMsg}</div>}
               <Btn onClick={sendReset} disabled={forgotLoading||!forgotEmail.trim()||!!forgotMsg} style={{width:"100%",padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
-                {forgotLoading?"...":"SEND LINK"}
+                {forgotLoading?<Spinner/>:"SEND LINK"}
               </Btn>
               <button onClick={()=>{setForgotMode(false);setForgotMsg("");setForgotEmail("");}} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back to sign in</button>
             </div>
@@ -1015,7 +1015,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
               {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
               {successMsg&&<div style={{color:"#22c55e",fontSize:12,marginTop:12}}>{successMsg}</div>}
               <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
-                {loading?"...":mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
+                {loading?<Spinner/>:mode==="login"?"SIGN IN":"CREATE ACCOUNT"}
               </Btn>
               {mode==="login"&&<div style={{textAlign:"center",marginTop:12}}>
                 <button onClick={()=>setForgotMode(true)} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>Forgot password?</button>
@@ -1033,7 +1033,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
           onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--text-dim)";e.currentTarget.style.color="var(--text)";}}
           onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border2)";e.currentTarget.style.color="var(--text-dim)";}}
         >
-          {demoLoading?"...":"TRY DEMO"}
+          {demoLoading?<Spinner/>:"TRY DEMO"}
         </button>
         {onBack&&<div style={{textAlign:"center",marginTop:16}}>
           <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
@@ -1087,7 +1087,7 @@ function ResetPasswordScreen({ token, onDone }) {
           </div>
           {error&&<div style={{color:"#ef4444",fontSize:12,marginTop:12}}>{error}</div>}
           <Btn onClick={handle} disabled={loading} style={{width:"100%",marginTop:20,padding:"12px 0",display:"block",textAlign:"center",letterSpacing:2}}>
-            {loading?"...":"SET PASSWORD"}
+            {loading?<Spinner/>:"SET PASSWORD"}
           </Btn>
         </div>
       </div>
@@ -1209,7 +1209,7 @@ function AccountSetupModal({ user, onDone, onLogout }) {
 
             {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 12 }}>{error}</div>}
             <Btn onClick={handle} disabled={loading} style={{ width: "100%", marginTop: 20, padding: "12px 0", display: "block", textAlign: "center", letterSpacing: 2 }}>
-              {loading ? "..." : "SAVE & CONTINUE"}
+              {loading ? <Spinner/> : "SAVE & CONTINUE"}
             </Btn>
           </>
         )}
@@ -1359,7 +1359,7 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
       />
       {formError && <div style={{ color: "#ef4444", fontSize: 11, marginTop: 6 }}>{formError}</div>}
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <Btn onClick={saveEntry} disabled={formLoading} style={{ letterSpacing: 1.5 }}>{formLoading ? "..." : "SAVE"}</Btn>
+        <Btn onClick={saveEntry} disabled={formLoading} style={{ letterSpacing: 1.5 }}>{formLoading ? <Spinner/> : "SAVE"}</Btn>
         <Btn variant="ghost" onClick={cancelEdit}>Cancel</Btn>
       </div>
     </div>
@@ -1669,7 +1669,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       </div>
       <div style={{display:"flex",gap:10}}>
         <Btn variant="ghost" onClick={()=>setInviteGroup(null)} style={{flex:1,textAlign:"center"}}>Cancel</Btn>
-        <Btn onClick={()=>joinGroup(inviteGroup.code)} disabled={inviteLoading} style={{flex:1,textAlign:"center"}}>{inviteLoading?"...":"Join Group"}</Btn>
+        <Btn onClick={()=>joinGroup(inviteGroup.code)} disabled={inviteLoading} style={{flex:1,textAlign:"center"}}>{inviteLoading?<Spinner/>:"Join Group"}</Btn>
       </div>
     </div>
   </div>,
@@ -1704,7 +1704,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
               {emailSuccess&&<div style={{color:"#22c55e",fontSize:12}}>Email updated.</div>}
               <Btn onClick={saveEmail} disabled={emailLoading||emailSuccess}
                 style={{padding:"8px 0",textAlign:"center",letterSpacing:2}}>
-                {emailLoading?"...":"SAVE"}
+                {emailLoading?<Spinner/>:"SAVE"}
               </Btn>
             </div>
           )}
@@ -1737,7 +1737,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
       {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
       <div style={{display:"flex",gap:10,marginTop:16}}>
-        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>{pwLoading?"...":"SAVE"}</Btn>
+        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>{pwLoading?<Spinner/>:"SAVE"}</Btn>
         <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
       </div>
     </div>
@@ -1814,7 +1814,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
                   <Btn variant="ghost" small onClick={()=>{setSetupMode(false);setSetupPickMode("open");setSetupCompetition("PL");}}>← Back</Btn>
-                  <Btn onClick={createGroup} disabled={creating} style={{flex:1,textAlign:"center"}}>{creating?"...":"Create Group →"}</Btn>
+                  <Btn onClick={createGroup} disabled={creating} style={{flex:1,textAlign:"center"}}>{creating?<Spinner/>:"Create Group →"}</Btn>
                 </div>
               </div>
             )}
@@ -2556,7 +2556,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       {pwError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{pwError}</div>}
       {pwSuccess&&<div style={{color:"#22c55e",fontSize:12,marginTop:10}}>Password updated.</div>}
       <div style={{display:"flex",gap:10,marginTop:18}}>
-        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:theme==="index"?0.2:2}}>{pwLoading?"...":"SAVE"}</Btn>
+        <Btn onClick={changePassword} disabled={pwLoading||pwSuccess} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:theme==="index"?0.2:2}}>{pwLoading?<Spinner/>:"SAVE"}</Btn>
         <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
       </div>
     </div>
@@ -4887,7 +4887,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
             {deleteError&&<div style={{color:"#ef4444",fontSize:12,marginTop:10}}>{deleteError}</div>}
             <div style={{display:"flex",gap:10,marginTop:16}}>
               <Btn variant="danger" onClick={deleteGroup} disabled={deleteLoading} style={{flex:1,textAlign:"center"}}>
-                {deleteLoading?"...":"Delete permanently"}
+                {deleteLoading?<Spinner/>:"Delete permanently"}
               </Btn>
               <Btn variant="ghost" onClick={()=>setDeleteModalOpen(false)} style={{flex:1,textAlign:"center"}}>Cancel</Btn>
             </div>
