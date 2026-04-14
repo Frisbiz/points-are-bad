@@ -2279,9 +2279,11 @@ export default function App() {
   const handleLogout = async () => {try{await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'auth-logout'})});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
-    setGroup(fresh||g);
+    const resolved = fresh || g;
+    setGroup(resolved);
+    setGroups(prev => prev.some(x => x.id === resolved.id) ? prev : [...prev, resolved]);
     setTab("League");
-    lset("session",{...lget("session"),groupId:g.id,tab:"League"});
+    lset("session",{...lget("session"),groupId:resolved.id,tab:"League"});
   };
   const handleLeaveGroup = () => {
     setGroup(null);
