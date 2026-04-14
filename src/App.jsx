@@ -51,6 +51,21 @@ async function spatch(key, path, value) {
   } catch(e) { console.error("spatch error", key, path, e); return false; }
 }
 
+async function callAPI(action, payload = {}) {
+  try {
+    const res = await fetch('/api/security', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: data.error || `Error ${res.status}`, status: res.status, data };
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: 'Network error. Please try again.', data: {} };
+  }
+}
+
 const SITE_PREFS_KEY = "site:preferences";
 
 function applyPath(obj, dotPath, value) {
@@ -888,22 +903,12 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
         setLoading(false);
         return;
       }
-      const res = await fetch('/api/security', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'auth-register', username: uname, password, email: email.trim().toLowerCase() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.user){setError(data.error||"Registration failed - please try again.");setLoading(false);return;}
+      const { ok, data } = await callAPI('auth-register', { username: uname, password, email: email.trim().toLowerCase() });
+      if (!ok || !data.user){setError(data.error||"Registration failed - please try again.");setLoading(false);return;}
       onLogin(data.user);
     } else {
-      const res = await fetch('/api/security', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'auth-login', username: username.toLowerCase(), password }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.user){setError(data.error||"Invalid credentials.");setLoading(false);return;}
+      const { ok, data } = await callAPI('auth-login', { username: username.toLowerCase(), password });
+      if (!ok || !data.user){setError(data.error||"Invalid credentials.");setLoading(false);return;}
       onLogin(data.user);
     }
     setLoading(false);
@@ -1071,22 +1076,12 @@ function AccountSetupModal({ user, onDone, onLogout }) {
     try {
       const normEmail = emailVal.trim().toLowerCase();
       if (needsEmail) {
-        const res = await fetch('/api/security', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'account-change-email', email: normEmail }),
-        });
-        const data = await res.json().catch(()=>({}));
-        if (!res.ok) { setError(data.error || "Failed to save email."); setLoading(false); return; }
+        const { ok, data } = await callAPI('account-change-email', { email: normEmail });
+        if (!ok) { setError(data.error || "Failed to save email."); setLoading(false); return; }
       }
       if (needsPassword) {
-        const res = await fetch('/api/security', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'account-change-password', currentPassword: user.password || "password123", newPassword: trimmedPw }),
-        });
-        const data = await res.json().catch(()=>({}));
-        if (!res.ok) { setError(data.error || "Failed to save password."); setLoading(false); return; }
+        const { ok, data } = await callAPI('account-change-password', { currentPassword: user.password || "password123", newPassword: trimmedPw });
+        if (!ok) { setError(data.error || "Failed to save password."); setLoading(false); return; }
       }
       pendingUser.current = {
         ...user,
@@ -1423,13 +1418,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'account-change-password', currentPassword: pwCurrent, newPassword: pwNew })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
+    const { ok, data } = await callAPI('account-change-password', { currentPassword: pwCurrent, newPassword: pwNew });
+    if (!ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
@@ -1448,13 +1438,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     }
     setEmailLoading(true);
     try {
-      const res = await fetch('/api/security', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'account-change-email', email: normEmail }),
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok) { setEmailError(data.error || "Failed to update email."); return; }
+      const { ok, data } = await callAPI('account-change-email', { email: normEmail });
+      if (!ok) { setEmailError(data.error || "Failed to update email."); return; }
       onUpdateUser({ ...user, email: normEmail });
       setEmailSuccess(true);
       setTimeout(() => {
@@ -1564,13 +1549,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     if (!createName.trim()) return;
     setCreating(true);
     try {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'create-group', name:createName.trim(), competition:setupCompetition, setupGW, setupLimit, setupPickMode })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok || !data.group || !data.user) return;
+      const { ok, data } = await callAPI('create-group', { name:createName.trim(), competition:setupCompetition, setupGW, setupLimit, setupPickMode });
+      if (!ok || !data.group || !data.user) return;
       onUpdateUser(data.user);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");
       onEnterGroup(data.group);
     } finally {
@@ -1583,13 +1563,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     if (code.length!==6){setError("Enter a 6-character code.");return;}
     setInviteLoading(true);
     try {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'join-group', code })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok) { setError(data.error || 'Group not found.'); return; }
+      const { ok, data } = await callAPI('join-group', { code });
+      if (!ok) { setError(data.error || 'Group not found.'); return; }
       if (!data.group || !data.user) return;
       onUpdateUser(data.user);setJoinCode("");setError("");setInviteGroup(null);
       onEnterGroup(data.group);
@@ -2192,11 +2167,7 @@ export default function App() {
       setTheme(SECRET_THEME);
       showToast("Velvet theme unlocked.");
     }
-    fetch('/api/security', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'unlock-theme', theme: SECRET_THEME, badClicks: clicks }),
-    }).catch(() => {});
+    callAPI('unlock-theme', { theme: SECRET_THEME, badClicks: clicks });
     return Promise.resolve(!alreadyUnlocked && unlockedThemes.includes(SECRET_THEME));
   },[user,showToast]);
 
@@ -2246,14 +2217,9 @@ export default function App() {
     let nextUser = u;
     let nextSession = { username: u.username };
     if (u.username === DEMO_SHARED_USERNAME) {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'demo-bootstrap' })
-      });
-      const demoState = await res.json().catch(()=>({}));
-      if (res.ok && demoState?.user) nextUser = demoState.user;
-      if (res.ok && demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
+      const { ok: demoOk, data: demoState } = await callAPI('demo-bootstrap');
+      if (demoOk && demoState?.user) nextUser = demoState.user;
+      if (demoOk && demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
       const fallbackTheme = sitePrefs?.defaultTheme || "dark";
       setTheme(fallbackTheme);
       localStorage.setItem("theme", fallbackTheme);
@@ -2276,7 +2242,7 @@ export default function App() {
       }
     }
   };
-  const handleLogout = async () => {try{await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'auth-logout'})});}catch{} ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
+  const handleLogout = async () => {await callAPI('auth-logout'); ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
     const resolved = fresh || g;
@@ -2418,13 +2384,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     if (pwNew.trim().length<6){setPwError("Password must be at least 6 characters.");return;}
     if (pwNew!==pwConfirm){setPwError("New passwords do not match.");return;}
     setPwLoading(true);setPwError("");
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'account-change-password', currentPassword: pwCurrent, newPassword: pwNew })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
+    const { ok, data } = await callAPI('account-change-password', { currentPassword: pwCurrent, newPassword: pwNew });
+    if (!ok){setPwError(data.error||"Failed to change password.");setPwLoading(false);return;}
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
@@ -2950,13 +2911,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
       }
     }
     setSaving(s=>({...s,[fixtureId]:true}));
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'save-prediction', fixtureId, value: val } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) {
+    const { ok, data } = await callAPI('group-user', { groupId: group.id, payload:{ type:'save-prediction', fixtureId, value: val } });
+    if (ok && data.group) {
       setGroup(data.group);
       setPredDraft(d=>{const n={...d};delete n[fixtureId];return n;});
     } else {
@@ -2968,49 +2924,29 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   const saveResult = async (fixtureId) => {
     const val = resultDraft[fixtureId];
     if (!val||!/^[0-9]+-[0-9]+$/.test(val)) return;
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'set-result', fixtureId, value: val } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) {
+    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'set-result', fixtureId, value: val } });
+    if (ok && data.group) {
       setGroup(data.group);
       setResultDraft(d=>{const n={...d};delete n[fixtureId];return n;});
     }
   };
 
   const clearResult = async (fixtureId) => {
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'clear-result', fixtureId } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) setGroup(data.group);
+    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'clear-result', fixtureId } });
+    if (ok && data.group) setGroup(data.group);
   };
 
   const toggleFixtureHidden = async (fixtureId) => {
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'toggle-hidden-fixture', fixtureId } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) setGroup(data.group);
+    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'toggle-hidden-fixture', fixtureId } });
+    if (ok && data.group) setGroup(data.group);
   };
 
   const fetchFromAPI = async () => {
     const roundLabel = gwLabel(group, currentGW);
     setFetching(true); setFetchMsg(`Syncing ${roundLabel}...`);
     try {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'sync-fixtures', gw: currentGW } })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok) {
+      const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'sync-fixtures', gw: currentGW } });
+      if (!ok) {
         setFetchMsg(data.error || 'Sync failed.');
       } else if (data.group) {
         setGroup(data.group);
@@ -3022,26 +2958,16 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   };
 
   const deleteGW = async () => {
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-gw', gw: currentGW } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) {
+    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'delete-gw', gw: currentGW } });
+    if (ok && data.group) {
       setGroup(data.group);
       setDeleteGWStep(0);
     }
   };
 
   const removeGW = async () => {
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'remove-gw', gw: currentGW } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) {
+    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'remove-gw', gw: currentGW } });
+    if (ok && data.group) {
       setGroup(data.group);
       setRemoveGWStep(0);
     }
@@ -3110,13 +3036,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         const last=lget(keyToTouch);
         if(last&&(now-last)<=windowMs) return;
         lset(keyToTouch,now);
-        const res=await fetch('/api/security',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'auto-sync-fixtures', gw: targetGW } })
-        });
-        const data=await res.json().catch(()=>({}));
-        if(res.ok&&data.updated&&data.group)setGroup(data.group);
+        const{ok,data}=await callAPI('group-user',{groupId:group.id,payload:{type:'auto-sync-fixtures',gw:targetGW}});
+        if(ok&&data.updated&&data.group)setGroup(data.group);
       } catch(_){}
     })();
   },[activeSeason,group.currentGW]);
@@ -3426,14 +3347,9 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
       {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(group.members||[]).length>1&&(
         <div style={{marginTop:16,marginBottom:8}}>
           <Btn variant="success" style={{width:"100%"}} onClick={async()=>{
-            const res = await fetch('/api/security', {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({ action:'group-user', groupId: group.id, payload:{ type:'lock-picks', season: activeSeason, gw: currentGW } })
-            });
-            const data = await res.json().catch(()=>({}));
-            if (res.ok && data.group) setGroup(data.group);
-            else showToast(data?.error || 'Save failed - check your connection.');
+            const{ok,data}=await callAPI('group-user',{groupId:group.id,payload:{type:'lock-picks',season:activeSeason,gw:currentGW}});
+            if(ok&&data.group)setGroup(data.group);
+            else showToast(data?.error||'Save failed - check your connection.');
           }}>
             LOCK IN PICKS
           </Btn>
@@ -3482,13 +3398,8 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
   };
   const confirmSave = async () => {
     const {u,fid,val,oldVal} = editConfirm;
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'edit-pick', username:u, fixtureId:fid, value:val, oldValue:oldVal, gw:viewedGW??group.currentGW } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) setGroup(data.group);
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'edit-pick',username:u,fixtureId:fid,value:val,oldValue:oldVal,gw:viewedGW??group.currentGW}});
+    if(ok&&data.group)setGroup(data.group);
     setEditing(e=>{const n={...e};delete n[editKey(u,fid)];return n;});
     setEditConfirm(null);
   };
@@ -4218,13 +4129,8 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
     if(nickDraft.trim()&&nickDraft.trim()!==(names[username]||username)){
       const oldName=names[username]||username;
       const newName=nickDraft.trim();
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'rename-member', username, oldName, newName } })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (res.ok && data.group) {
+      const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'rename-member',username,oldName,newName}});
+      if(ok&&data.group){
         setGroup(data.group);
         setNames(n => ({...n, [username]: newName}));
       }
@@ -4232,23 +4138,13 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
     setEditingNick(null);
   };
   const toggleAdmin=async(username)=>{
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'toggle-admin', username } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) setGroup(data.group);
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'toggle-admin',username}});
+    if(ok&&data.group)setGroup(data.group);
   };
   const kick=async(username)=>{
     if(username===group.creatorUsername)return;
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'kick', username } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) setGroup(data.group);
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'kick',username}});
+    if(ok&&data.group)setGroup(data.group);
   };
   return (
     <div>
@@ -4415,40 +4311,32 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const [copiedLink,setCopiedLink]=useState(false);
   const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
-  const save11Limit=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-11-limit',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
-  const saveName=async()=>{if(!newName.trim())return;const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-name',name:newName.trim()}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);}};
-  const saveApiKey=async()=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-api-settings',apiKey:group.apiKey,season:parseInt(season)||2025}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group){setGroup(data.group);setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);}};
-  const saveScope=async(val)=>{const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'save-scope',value:val}})});const data=await res.json().catch(()=>({}));if(res.ok&&data.group)setGroup(data.group);};
+  const save11Limit=async(val)=>{const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-11-limit',value:val}});if(ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
+  const saveName=async()=>{if(!newName.trim())return;const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-name',name:newName.trim()}});if(ok&&data.group){setGroup(data.group);setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);}};
+  const saveApiKey=async()=>{const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-api-settings',apiKey:group.apiKey,season:parseInt(season)||2025}});if(ok&&data.group){setGroup(data.group);setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);}};
+  const saveScope=async(val)=>{const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-scope',value:val}});if(ok&&data.group)setGroup(data.group);};
   const startNewSeason=async()=>{
     const yr=parseInt(newSeasonYear);
     if(!yr||yr<2020||yr>2060){setSeasonMsg("Enter a valid year.");setTimeout(()=>setSeasonMsg(""),3000);return;}
-    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'start-new-season',season:yr}})});
-    const data=await res.json().catch(()=>({}));
-    if(res.ok&&data.group){setGroup(data.group);setNewSeasonYear("");setSeasonMsg(`Season ${yr} started!`);setTimeout(()=>setSeasonMsg(""),3000);} else {setSeasonMsg(data.error||"Failed to start season.");setTimeout(()=>setSeasonMsg(""),3000);} 
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'start-new-season',season:yr}});
+    if(ok&&data.group){setGroup(data.group);setNewSeasonYear("");setSeasonMsg(`Season ${yr} started!`);setTimeout(()=>setSeasonMsg(""),3000);}else{setSeasonMsg(data.error||"Failed to start season.");setTimeout(()=>setSeasonMsg(""),3000);}
   };
   const backfillGWs = async () => {
-    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'backfill-gws'}})});
-    const data=await res.json().catch(()=>({}));
-    if(res.ok&&data.group){setGroup(data.group);setBackfillMsg("Backfilled missing gameweeks.");} else {setBackfillMsg(data.error||"Backfill failed.");}
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'backfill-gws'}});
+    if(ok&&data.group){setGroup(data.group);setBackfillMsg("Backfilled missing gameweeks.");}else{setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const backfillAllGWs = async () => {
-    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'backfill-all-gws'}})});
-    const data=await res.json().catch(()=>({}));
-    if(res.ok&&data.group){setGroup(data.group);setBackfillMsg("Rebuilt all gameweeks.");} else {setBackfillMsg(data.error||"Backfill failed.");}
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'backfill-all-gws'}});
+    if(ok&&data.group){setGroup(data.group);setBackfillMsg("Rebuilt all gameweeks.");}else{setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const syncAllDates = async () => {
     setSyncingDates(true);
     setSyncDatesMsg("Fetching full season fixtures...");
     try {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'sync-all-dates' } })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (res.ok && data.group) {
+      const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'sync-all-dates'}});
+      if(ok&&data.group){
         setGroup(data.group);
         setSyncDatesMsg(data.updated > 0 ? `✓ Filled in ${data.updated} missing date${data.updated!==1?"s":""}.` : "All dates already present.");
       } else {
@@ -4459,13 +4347,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
     setTimeout(()=>setSyncDatesMsg(""),5000);
   };
   const issueSkip = async (playerId, fixtureId) => {
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'dibs-skip', playerId, fixtureId } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) {
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'dibs-skip',playerId,fixtureId}});
+    if(ok&&data.group){
       setGroup(data.group);
       setSkipModal(null);
       setSkipConfirm(false);
@@ -4474,13 +4357,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const leaveGroup=async()=>{
     if(isCreator)return;
     if(group.code===DEMO_GROUP_CODE||group.code===DEMO_WC_GROUP_CODE)return;
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'leave-group', groupId: group.id })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.user) {
+    const{ok,data}=await callAPI('leave-group',{groupId:group.id});
+    if(ok&&data.user){
       onUpdateUser(data.user);
       onLeave();
     }
@@ -4489,13 +4367,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
     if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) { setDeleteError("The demo group cannot be deleted."); return; }
     if (!deletePw) { setDeleteError("Enter your password."); return; }
     setDeleteLoading(true); setDeleteError("");
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-group', currentPassword: deletePw } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (!res.ok) {
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'delete-group',currentPassword:deletePw}});
+    if(!ok){
       setDeleteError(data.error || "Failed to delete group.");
       setDeleteLoading(false);
       return;
@@ -4506,13 +4379,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const createBackup = async () => {
     setBackupBusy(true);
     try {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'create-backup' } })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok || !data.group) throw new Error(data.error || 'Failed to create backup');
+      const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'create-backup'}});
+      if(!ok||!data.group)throw new Error(data.error||'Failed to create backup');
       setGroup(data.group);
       setBackupMsg("✓ Backup created");
       setTimeout(() => setBackupMsg(""), 3000);
@@ -4525,13 +4393,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
 
   const deleteBackup = async (id) => {
     setBackupBusy(true);
-    const res = await fetch('/api/security', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'delete-backup', id } })
-    });
-    const data = await res.json().catch(()=>({}));
-    if (res.ok && data.group) {
+    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'delete-backup',id}});
+    if(ok&&data.group){
       setGroup(data.group);
       setRestoringId(null);
     }
@@ -4541,13 +4404,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const restoreBackup = async (id) => {
     setBackupBusy(true);
     try {
-      const res = await fetch('/api/security', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ action:'group-admin', groupId: group.id, payload:{ type:'restore-backup', id } })
-      });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok || !data.group) { setBackupMsg(data.error || "Backup not found."); setBackupBusy(false); return; }
+      const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'restore-backup',id}});
+      if(!ok||!data.group){setBackupMsg(data.error||"Backup not found.");setBackupBusy(false);return;}
       setGroup(data.group);
       setRestoringId(null);
       setBackupMsg("✓ Restored");
@@ -4632,16 +4490,16 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                 const active=(resolvedSitePrefs.defaultTheme||"dark")===t.key;
                 return <button key={`default-${t.key}`} onClick={async()=>{
                   const next={...resolvedSitePrefs,defaultTheme:t.key,landingTheme:(resolvedSitePrefs.landingTheme===null||resolvedSitePrefs.landingTheme===undefined)?t.key:resolvedSitePrefs.landingTheme};
-                  await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);
+                  await callAPI('site-preferences',next);setSitePrefs(next);
                 }} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
             <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10}}>Landing page theme override</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
+              <button onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:null};await callAPI('site-preferences',next);setSitePrefs(next);}} style={{background:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-bg)":"var(--card)",color:(resolvedSitePrefs.landingTheme??null)===null?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Use default</button>
               {getSecretThemeMeta(user).filter(t=>!t.secret).map(t=>{
                 const active=resolvedSitePrefs.landingTheme===t.key;
-                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ action:'site-preferences', ...next })});setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
+                return <button key={`landing-${t.key}`} onClick={async()=>{const next={...resolvedSitePrefs,landingTheme:t.key,defaultTheme:resolvedSitePrefs.defaultTheme||t.key};await callAPI('site-preferences',next);setSitePrefs(next);}} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:999,padding:"7px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{t.label}</button>;
               })}
             </div>
           </div>
@@ -4718,9 +4576,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                 const isWC=(group.competition||"PL")==="WC";
                 return (
                   <button key={g.gw} onClick={async()=>{
-                    const res=await fetch('/api/security',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'group-admin',groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}})});
-                    const data=await res.json().catch(()=>({}));
-                    if(res.ok&&data.group)setGroup(data.group);
+                    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}});
+                    if(ok&&data.group)setGroup(data.group);
                   }} style={{
                     background:hidden?"var(--card)":"var(--btn-bg)",
                     color:hidden?"var(--text-dim)":"var(--btn-text)",
