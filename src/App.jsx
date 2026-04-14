@@ -4341,6 +4341,50 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
   );
 }
 
+/* ── ACCORDION ──────────────────────────────────── */
+function Accordion({ sections, openId, setOpenId }) {
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {sections.map(s => {
+        if (s.hidden) return null;
+        const isOpen = openId === s.id;
+        return (
+          <div key={s.id} style={{
+            background:"var(--card)",
+            border:s.danger?"1px solid #ef444430":"1px solid var(--border)",
+            borderRadius:10,
+            overflow:"hidden",
+          }}>
+            <button onClick={()=>setOpenId(isOpen?null:s.id)} style={{
+              width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:"14px 18px",background:"none",border:"none",cursor:"pointer",
+              fontFamily:"inherit",textAlign:"left",
+            }}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:12,fontWeight:600,color:"var(--text-bright)",letterSpacing:0.5}}>{s.title}</span>
+                {s.admin&&<span style={{fontSize:9,letterSpacing:1.5,color:"var(--text-dim)",border:"1px solid var(--border)",borderRadius:4,padding:"1px 6px"}}>ADMIN</span>}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                {s.summary&&<span style={{fontSize:11,color:"var(--text-dim)"}}>{s.summary}</span>}
+                <span style={{fontSize:11,color:"var(--text-dim2)",transition:"transform 0.2s",transform:isOpen?"rotate(180deg)":"rotate(0deg)"}}>&#9662;</span>
+              </div>
+            </button>
+            <div style={{
+              display:"grid",
+              gridTemplateRows:isOpen?"1fr":"0fr",
+              transition:"grid-template-rows 0.25s ease",
+            }}>
+              <div style={{overflow:"hidden"}}>
+                <div style={{padding:"0 18px 18px"}}>{s.content}</div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── GROUP TAB ───────────────────────────────────── */
 function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTheme,names={},sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{},setGroup}) {
   const mob = useMobile();
@@ -4375,6 +4419,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [reminderLoading, setReminderLoading] = useState(false);
   const [reminderMsg, setReminderMsg] = useState("");
+  const [openSection, setOpenSection] = useState("info");
 
   const activeSeason=group.season||2025;
   const seasonStats = useMemo(()=>computeStats(group),[group]);
@@ -4510,12 +4555,305 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
 
   const isIndex = theme === "index";
 
+  const drawLimitLabel = (group.draw11Limit||"unlimited")==="unlimited"?"Unlimited":(group.draw11Limit||"unlimited")==="none"?"No 1-1s":`${group.draw11Limit} / week`;
+  const scopeLabel = (group.scoreScope||"all")==="all"?"All seasons":"Current only";
+
+  const sections = [
+    {
+      id:"info", title:"Group Info", summary:group.name,
+      content:(
+        <div style={{display:"flex",flexDirection:"column",gap:18}}>
+          {/* Invite code */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>INVITE CODE</div>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isIndex?24:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:36,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?2:8,lineHeight:1}}>{group.code}</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn onClick={copyCode} variant={copied?"success":"ghost"} small>{copied?"Copied!":"Copy Code"}</Btn>
+                  <Btn onClick={copyLink} variant={copiedLink?"success":"ghost"} small>{copiedLink?"Copied!":"Copy Link"}</Btn>
+                </div>
+                <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:0.3}}>Share the link or code with friends to join.</div>
+              </div>
+            </div>
+          </div>
+          {/* Group name (creator only) */}
+          {isCreator&&(
+            <div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>GROUP NAME</div>
+              <div style={{display:"flex",gap:8}}>
+                <Input value={newName} onChange={setNewName} onKeyDown={e=>e.key==="Enter"&&saveName()}/>
+                <Btn onClick={saveName} variant={nameSaved?"success":"default"}>{nameSaved?"Saved!":"Save"}</Btn>
+              </div>
+            </div>
+          )}
+          {/* Info card */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>INFO</div>
+            <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
+              {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
+                  <span style={{color:"var(--text-dim)"}}>{l}</span>
+                  <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* What's New */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>WHAT'S NEW</div>
+            <button onClick={onOpenWhatsNew} style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:8,padding:"10px 14px",width:"100%",textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:12,color:"var(--text-mid)"}}>Patch notes &amp; announcements</span>
+              <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{latestVersion ? `${latestVersion} >` : ">"}</span>
+            </button>
+          </div>
+        </div>
+      )
+    },
+    {
+      id:"rules", title:"Rules", summary:`${drawLimitLabel} · ${scopeLabel}`,
+      content:(
+        <div style={{display:"flex",flexDirection:"column",gap:18}}>
+          {/* Prediction limits */}
+          {isAdmin ? (
+            <div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>MAX 1-1 PREDICTIONS PER GAMEWEEK</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {[["unlimited","Unlimited"],["2","2 / week"],["1","1 / week"],["none","None"]].map(([val,label])=>{
+                  const active=(group.draw11Limit||"unlimited")===val;
+                  return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+                })}
+              </div>
+              {limitSaved&&<div style={{fontSize:11,color:"#22c55e",marginTop:8}}>Saved</div>}
+            </div>
+          ) : (
+            <div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>1-1 DRAW LIMIT</div>
+              <div style={{fontSize:12,color:"var(--text-mid)"}}>{drawLimitLabel}</div>
+            </div>
+          )}
+          {/* Score scope */}
+          {isAdmin ? (
+            <div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>INCLUDE IN SCORES &amp; TRENDS</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {[["all","All Seasons"],["current","Current Season Only"]].map(([val,label])=>{
+                  const active=(group.scoreScope||"all")===val;
+                  return <button key={val} onClick={()=>saveScope(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+                })}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>SCORE SCOPE</div>
+              <div style={{fontSize:12,color:"var(--text-mid)"}}>{scopeLabel}</div>
+            </div>
+          )}
+          {/* Scoring rules */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>SCORING</div>
+            <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+              <div style={{color:"var(--text-mid)",marginBottom:8,fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
+              <div>Each goal your prediction is off = 1 point.</div>
+              <div style={{marginTop:6}}><span style={{color:"var(--text-dim)"}}>Predict 1-1, actual 2-3 = 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts</strong></div>
+              <div><span style={{color:"var(--text-dim)"}}>Predict 2-1, actual 2-1 = 0+0 = </span><strong style={{color:"#22c55e"}}>0 pts</strong></div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id:"gameweeks", title:"Gameweeks", admin:true, hidden:!isAdmin,
+      content:(
+        <div style={{display:"flex",flexDirection:"column",gap:18}}>
+          {/* GW visibility */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>VISIBILITY</div>
+            <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:12,letterSpacing:0.3,lineHeight:1.5}}>Choose which rounds players can submit picks for.</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {(group.gameweeks||[])
+                .filter(g=>(g.season||group.season||2025)===(group.season||2025))
+                .sort((a,b)=>a.gw-b.gw)
+                .map(g=>{
+                  const hidden=(group.hiddenGWs||[]).includes(g.gw);
+                  const label=gwLabel(group,g.gw);
+                  const isWC=(group.competition||"PL")==="WC";
+                  return (
+                    <button key={g.gw} onClick={async()=>{
+                      const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}});
+                      if(ok&&data.group)setGroup(data.group);
+                    }} style={{
+                      background:hidden?"var(--card)":"var(--btn-bg)",
+                      color:hidden?"var(--text-dim)":"var(--btn-text)",
+                      border:`1px solid ${hidden?"var(--border)":"var(--btn-bg)"}`,
+                      borderRadius:999,
+                      padding:mob?"8px 12px":"9px 14px",
+                      minHeight:mob?36:38,
+                      fontSize:isWC?10:11,
+                      cursor:"pointer",
+                      fontFamily:"'DM Mono',monospace",
+                      letterSpacing:isWC?0.6:0.9,
+                      lineHeight:1.2,
+                      flexShrink:0,
+                      display:"inline-flex",
+                      alignItems:"center",
+                      justifyContent:"center",
+                      textAlign:"center",
+                      whiteSpace:"nowrap",
+                      opacity:hidden?0.6:1,
+                      transition:"all 0.15s ease",
+                      boxShadow:hidden?"none":"0 0 0 1px #ffffff0a inset",
+                    }} title={`${hidden?"Hidden":"Visible"}: ${label}`}>
+                      {label}
+                    </button>
+                  );
+                })}
+            </div>
+            <div style={{fontSize:10,color:"var(--text-dim)",marginTop:10,letterSpacing:0.4,lineHeight:1.5}}>Visible rounds are bright. Hidden rounds are dimmed.</div>
+          </div>
+          {/* Create GWs + Sync dates */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>MANAGE</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <Btn variant="muted" small onClick={backfillGWs}>Create future GWs</Btn>
+              <Btn variant="muted" small onClick={backfillAllGWs}>Create all GWs</Btn>
+              {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
+              <Btn variant="amber" small onClick={syncAllDates} disabled={syncingDates}>{syncingDates?"Syncing...":"Sync all dates"}</Btn>
+              {syncDatesMsg&&<span style={{fontSize:11,color:syncDatesMsg.startsWith("\u2713")?"#22c55e":"#ef4444"}}>{syncDatesMsg}</span>}
+            </div>
+          </div>
+          {/* Live Data */}
+          <div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>LIVE DATA</div>
+            <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"18px 20px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
+                <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
+              </div>
+              <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
+                Live Premier League data is active for all groups automatically.<br/>
+                <br/><span style={{color:"var(--text-dim)"}}>Go to </span><strong style={{color:"#f59e0b"}}>Fixtures &gt; Sync Fixtures</strong><span style={{color:"var(--text-dim)"}}> to pull the latest matches and results at any time.</span>
+              </div>
+              <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
+                <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <Input value={season} onChange={setSeason} placeholder="2025" style={{width:90}}/>
+                  <Btn onClick={saveApiKey} variant={apiSaved?"success":"default"} small>{apiSaved?"Saved!":"Save"}</Btn>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||(group.competition||"PL")!=="PL", summary:`Season ${activeSeason}`,
+      content:(()=>{
+        const allSeasons=[...new Set((group.gameweeks||[]).map(g=>g.season||activeSeason))].sort((a,b)=>a-b);
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {allSeasons.map(s=>{
+                const gwCount=(group.gameweeks||[]).filter(g=>(g.season||activeSeason)===s).length;
+                const isActive=s===activeSeason;
+                return (
+                  <div key={s} style={{background:isActive?"var(--card-hi)":"var(--card)",border:`1px solid ${isActive?"#3a3a6a":"var(--border)"}`,borderRadius:8,padding:"8px 14px",fontSize:11,display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{color:isActive?"var(--text-bright)":"var(--text-mid)",fontWeight:isActive?700:400}}>{s}</span>
+                    <span style={{color:"var(--text-dim)"}}>{gwCount} GW{gwCount!==1?"s":""}</span>
+                    {isActive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:3,padding:"1px 5px"}}>ACTIVE</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Start a new season</div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <Input value={newSeasonYear} onChange={setNewSeasonYear} placeholder="Year e.g. 2026" style={{width:150}} onKeyDown={e=>e.key==="Enter"&&startNewSeason()}/>
+                <Btn onClick={startNewSeason} disabled={!newSeasonYear.trim()} small>Start</Btn>
+              </div>
+              {seasonMsg&&<div style={{fontSize:11,color:seasonMsg.includes("started")?"#22c55e":"#ef4444",marginTop:8}}>{seasonMsg}</div>}
+            </div>
+          </div>
+        );
+      })()
+    },
+    {
+      id:"backups", title:"Backups", admin:true, hidden:!isAdmin,
+      content:(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <Btn variant="amber" small onClick={createBackup} disabled={backupBusy}>{backupBusy?"Saving...":"BACKUP NOW"}</Btn>
+            {backupMsg&&<span style={{fontSize:11,color:backupMsg.startsWith("\u2713")?"#22c55e":"#ef4444"}}>{backupMsg}</span>}
+          </div>
+          {(group.backups||[]).length===0&&(
+            <div style={{fontSize:11,color:"var(--text-dim)"}}>No backups yet.</div>
+          )}
+          {(group.backups||[]).map(bk=>{
+            const dateStr=new Date(bk.createdAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+            const displayName=`${bk.createdBy[0].toUpperCase()}${bk.createdBy.slice(1)}`;
+            const isRestoring=restoringId===bk.id;
+            return (
+              <div key={bk.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?22:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <div>
+                    <span style={{fontSize:12,color:"var(--text-mid)"}}>{dateStr}</span>
+                    <span style={{fontSize:11,color:"var(--text-dim)",marginLeft:8}}>by {displayName}</span>
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <Btn variant="ghost" small onClick={()=>deleteBackup(bk.id)} disabled={backupBusy}>Delete</Btn>
+                    <Btn variant="danger" small onClick={()=>setRestoringId(isRestoring?null:bk.id)} disabled={backupBusy}>Restore</Btn>
+                  </div>
+                </div>
+                {isRestoring&&(
+                  <div style={{borderTop:"1px solid var(--border3)",paddingTop:8,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,color:"#ef4444",flex:1}}>This will overwrite all current group data.</span>
+                    <Btn variant="muted" small onClick={()=>setRestoringId(null)}>Cancel</Btn>
+                    <Btn variant="danger" small onClick={()=>restoreBackup(bk.id)} disabled={backupBusy}>Yes, restore</Btn>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )
+    },
+    {
+      id:"reminders", title:"Reminders", admin:true, hidden:!isAdmin,
+      content:(
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <Btn variant="amber" onClick={sendReminders} disabled={reminderLoading}>{reminderLoading?"Sending...":"Send pick reminders"}</Btn>
+            {reminderMsg&&<span style={{fontSize:12,color:"var(--text-mid)"}}>{reminderMsg}</span>}
+          </div>
+          <div style={{fontSize:11,color:"var(--text-dim2)",marginTop:8}}>Emails GW{reminderTargetGW} members who haven't submitted all picks yet.</div>
+        </div>
+      )
+    },
+    {
+      id:"danger", title:"Danger Zone", danger:true,
+      content:(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
+          {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
+        </div>
+      )
+    },
+  ];
+
   return (
     <div>
-      <div className={isIndex?"liquid-card":undefined} style={{marginBottom:32,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
-        <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:36,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Group</h1>
-        {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Manage appearance, invites, visibility, reminders, and the chaos behind the curtain.</p>}
-      </div>
+      {seasonComplete && seasonWinner && (
+        <div style={{marginBottom:16}}>
+          <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
+            <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>&#127942; {names[seasonWinner.username]||seasonWinner.username}</div>
+            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
+            <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
+            <div style={{color:"var(--text-dim)"}}>A completely meaningless honour. Naturally everyone will care a lot.</div>
+          </div>
+        </div>
+      )}
 
       {group.mode==="dibs"&&isAdmin&&(()=>{
         const season = group.season||2025;
@@ -4597,254 +4935,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
         )}
       </Section>}
 
-      {isAdmin&&(group.competition||"PL")==="PL"&&(
-        <Section title="Seasons">
-          {(()=>{
-            const activeSeason=group.season||2025;
-            const allSeasons=[...new Set((group.gameweeks||[]).map(g=>g.season||activeSeason))].sort((a,b)=>a-b);
-            return (
-              <div style={{display:"flex",flexDirection:"column",gap:16}}>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {allSeasons.map(s=>{
-                    const gwCount=(group.gameweeks||[]).filter(g=>(g.season||activeSeason)===s).length;
-                    const isActive=s===activeSeason;
-                    return (
-                      <div key={s} style={{background:isActive?"var(--card-hi)":"var(--card)",border:`1px solid ${isActive?"#3a3a6a":"var(--border)"}`,borderRadius:8,padding:"8px 14px",fontSize:11,display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{color:isActive?"var(--text-bright)":"var(--text-mid)",fontWeight:isActive?700:400}}>{s}</span>
-                        <span style={{color:"var(--text-dim)"}}>{gwCount} GW{gwCount!==1?"s":""}</span>
-                        {isActive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:3,padding:"1px 5px"}}>ACTIVE</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-                {isAdmin&&(
-                  <div>
-                    <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Gameweeks</div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                      <Btn variant="muted" small onClick={backfillGWs}>Create future GWs</Btn>
-                      <Btn variant="muted" small onClick={backfillAllGWs}>Create all GWs</Btn>
-                      {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
-                    </div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
-                      <Btn variant="amber" small onClick={syncAllDates} disabled={syncingDates}>{syncingDates?"Syncing...":"Sync all dates"}</Btn>
-                      {syncDatesMsg&&<span style={{fontSize:11,color:syncDatesMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{syncDatesMsg}</span>}
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Start a new season</div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <Input value={newSeasonYear} onChange={setNewSeasonYear} placeholder="Year e.g. 2026" style={{width:150}} onKeyDown={e=>e.key==="Enter"&&startNewSeason()}/>
-                    <Btn onClick={startNewSeason} disabled={!newSeasonYear.trim()} small>Start →</Btn>
-                  </div>
-                  {seasonMsg&&<div style={{fontSize:11,color:seasonMsg.includes("started")?"#22c55e":"#ef4444",marginTop:8}}>{seasonMsg}</div>}
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Include in scores &amp; trends</div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    {[["all","All Seasons"],["current","Current Season Only"]].map(([val,label])=>{
-                      const active=(group.scoreScope||"all")===val;
-                      return <button key={val} onClick={()=>saveScope(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </Section>
-      )}
+      <Accordion sections={sections} openId={openSection} setOpenId={setOpenSection} />
 
-      {isAdmin&&(
-        <Section title="Gameweek Visibility">
-          <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:12,letterSpacing:0.3,lineHeight:1.5}}>Choose which rounds players can submit picks for.</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {(group.gameweeks||[])
-              .filter(g=>(g.season||group.season||2025)===(group.season||2025))
-              .sort((a,b)=>a.gw-b.gw)
-              .map(g=>{
-                const hidden=(group.hiddenGWs||[]).includes(g.gw);
-                const label=gwLabel(group,g.gw);
-                const isWC=(group.competition||"PL")==="WC";
-                return (
-                  <button key={g.gw} onClick={async()=>{
-                    const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}});
-                    if(ok&&data.group)setGroup(data.group);
-                  }} style={{
-                    background:hidden?"var(--card)":"var(--btn-bg)",
-                    color:hidden?"var(--text-dim)":"var(--btn-text)",
-                    border:`1px solid ${hidden?"var(--border)":"var(--btn-bg)"}`,
-                    borderRadius:999,
-                    padding:mob?"8px 12px":"9px 14px",
-                    minHeight:mob?36:38,
-                    fontSize:isWC?10:11,
-                    cursor:"pointer",
-                    fontFamily:"'DM Mono',monospace",
-                    letterSpacing:isWC?0.6:0.9,
-                    lineHeight:1.2,
-                    flexShrink:0,
-                    display:"inline-flex",
-                    alignItems:"center",
-                    justifyContent:"center",
-                    textAlign:"center",
-                    whiteSpace:"nowrap",
-                    opacity:hidden?0.6:1,
-                    transition:"all 0.15s ease",
-                    boxShadow:hidden?"none":"0 0 0 1px #ffffff0a inset",
-                  }} title={`${hidden?"Hidden":"Visible"}: ${label}`}>
-                    {label}
-                  </button>
-                );
-              })}
-          </div>
-          <div style={{fontSize:10,color:"var(--text-dim)",marginTop:10,letterSpacing:0.4,lineHeight:1.5}}>Visible rounds are bright. Hidden rounds are dimmed.</div>
-        </Section>
-      )}
-
-      {isAdmin&&(
-        <Section title="Prediction Limits">
-          <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:10,letterSpacing:0.3}}>Max 1-1 predictions per gameweek</div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {[["unlimited","Unlimited"],["2","2 / week"],["1","1 / week"],["none","None"]].map(([val,label])=>{
-              const active=(group.draw11Limit||"unlimited")===val;
-              return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
-            })}
-          </div>
-          {limitSaved&&<div style={{fontSize:11,color:"#22c55e",marginTop:8}}>Saved</div>}
-        </Section>
-      )}
-
-      {isAdmin&&(
-        <Section title="Backups">
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <Btn variant="amber" small onClick={createBackup} disabled={backupBusy}>{backupBusy?"Saving...":"BACKUP NOW"}</Btn>
-              {backupMsg&&<span style={{fontSize:11,color:backupMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{backupMsg}</span>}
-            </div>
-            {(group.backups||[]).length===0&&(
-              <div style={{fontSize:11,color:"var(--text-dim)"}}>No backups yet.</div>
-            )}
-            {(group.backups||[]).map(bk=>{
-              const dateStr=new Date(bk.createdAt).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
-              const displayName=`${bk.createdBy[0].toUpperCase()}${bk.createdBy.slice(1)}`;
-              const isRestoring=restoringId===bk.id;
-              return (
-                <div key={bk.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?22:8,padding:"10px 14px",display:"flex",flexDirection:"column",gap:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                    <div>
-                      <span style={{fontSize:12,color:"var(--text-mid)"}}>{dateStr}</span>
-                      <span style={{fontSize:11,color:"var(--text-dim)",marginLeft:8}}>by {displayName}</span>
-                    </div>
-                    <div style={{display:"flex",gap:6}}>
-                      <Btn variant="ghost" small onClick={()=>deleteBackup(bk.id)} disabled={backupBusy}>Delete</Btn>
-                      <Btn variant="danger" small onClick={()=>setRestoringId(isRestoring?null:bk.id)} disabled={backupBusy}>Restore</Btn>
-                    </div>
-                  </div>
-                  {isRestoring&&(
-                    <div style={{borderTop:"1px solid var(--border3)",paddingTop:8,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                      <span style={{fontSize:11,color:"#ef4444",flex:1}}>This will overwrite all current group data.</span>
-                      <Btn variant="muted" small onClick={()=>setRestoringId(null)}>Cancel</Btn>
-                      <Btn variant="danger" small onClick={()=>restoreBackup(bk.id)} disabled={backupBusy}>Yes, restore</Btn>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-      )}
-
-      <Section title="Invite Code">
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isIndex?24:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:36,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?2:8,lineHeight:1}}>{group.code}</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <div style={{display:"flex",gap:8}}>
-              <Btn onClick={copyCode} variant={copied?"success":"ghost"} small>{copied?"Copied!":"Copy Code"}</Btn>
-              <Btn onClick={copyLink} variant={copiedLink?"success":"ghost"} small>{copiedLink?"Copied!":"Copy Link"}</Btn>
-            </div>
-            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:0.3}}>Share the link or code with friends to join.</div>
-          </div>
-        </div>
-      </Section>
-
-      <Section title="Live Data: football-data.org">
-        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"18px 20px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
-            <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
-          </div>
-          <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
-            Live Premier League data is active for all groups automatically.<br/>
-            {isAdmin&&<><br/><span style={{color:"var(--text-dim)"}}>As an admin, go to </span><strong style={{color:"#f59e0b"}}>Fixtures → Sync Fixtures</strong><span style={{color:"var(--text-dim)"}}> to pull the latest matches and results at any time.</span></>}
-          </div>
-          {isAdmin&&(
-            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
-              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <Input value={season} onChange={setSeason} placeholder="2025" style={{width:90}}/>
-                <Btn onClick={saveApiKey} variant={apiSaved?"success":"default"} small>{apiSaved?"Saved! ✓":"Save"}</Btn>
-              </div>
-            </div>
-          )}
-        </div>
-      </Section>
-
-      {isCreator&&(
-        <Section title="Group Name">
-          <div style={{display:"flex",gap:8}}>
-            <Input value={newName} onChange={setNewName} onKeyDown={e=>e.key==="Enter"&&saveName()}/>
-            <Btn onClick={saveName} variant={nameSaved?"success":"default"}>{nameSaved?"Saved!":"Save"}</Btn>
-          </div>
-        </Section>
-      )}
-
-      <Section title="Info">
-        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
-          {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
-            <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
-              <span style={{color:"var(--text-dim)"}}>{l}</span>
-              <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {seasonComplete && seasonWinner && (
-        <Section title="Season Awards">
-          <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
-            <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>🏆 {names[seasonWinner.username]||seasonWinner.username}</div>
-            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
-            <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
-            <div style={{color:"var(--text-dim)"}}>A completely meaningless honour. Naturally everyone will care a lot.</div>
-          </div>
-        </Section>
-      )}
-
-      <Section title="Scoring Rules">
-        <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
-          <div style={{color:"var(--text-mid)",marginBottom:8,fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:14}}>Keep your points low.</div>
-          <div>Each goal your prediction is off = 1 point.</div>
-          <div style={{marginTop:6}}><span style={{color:"var(--text-dim)"}}>Predict 1-1, actual 2-3 → 1+2 = </span><strong style={{color:"#ef4444"}}>3 pts ❌</strong></div>
-          <div><span style={{color:"var(--text-dim)"}}>Predict 2-1, actual 2-1 → 0+0 = </span><strong style={{color:"#22c55e"}}>0 pts ⭐</strong></div>
-        </div>
-      </Section>
-
-      {isAdmin&&(
-        <Section title="Reminders">
-          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-            <Btn variant="amber" onClick={sendReminders} disabled={reminderLoading}>{reminderLoading?"Sending...":"Send pick reminders"}</Btn>
-            {reminderMsg&&<span style={{fontSize:12,color:"var(--text-mid)"}}>{reminderMsg}</span>}
-          </div>
-          <div style={{fontSize:11,color:"var(--text-dim2)",marginTop:8}}>Emails GW{reminderTargetGW} members who haven't submitted all picks yet.</div>
-        </Section>
-      )}
-      <Section title="What's New">
-        <button onClick={onOpenWhatsNew} style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:8,padding:"10px 14px",width:"100%",textAlign:"left",cursor:"pointer",fontFamily:"inherit",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{fontSize:12,color:"var(--text-mid)"}}>Patch notes &amp; announcements</span>
-          <span style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{latestVersion ? `${latestVersion} ›` : "›"}</span>
-        </button>
-      </Section>
-      {!isCreator&&<Btn variant="danger" onClick={leaveGroup}>Leave Group</Btn>}
-      {isCreator&&<Btn variant="danger" onClick={()=>{setDeleteModalOpen(true);setDeletePw("");setDeleteError("");}}>Delete Group</Btn>}
       {skipModal&&createPortal(
         <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
           <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:28,maxWidth:400,width:"100%"}}>
@@ -4858,7 +4950,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <Btn variant="ghost" onClick={()=>{setSkipModal(null);setSkipConfirm(false);}}>Cancel</Btn>
-                  <Btn variant="amber" onClick={()=>setSkipConfirm(true)}>Continue →</Btn>
+                  <Btn variant="amber" onClick={()=>setSkipConfirm(true)}>Continue</Btn>
                 </div>
               </>
             ) : (
@@ -4868,7 +4960,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                   Skipping {names[skipModal.playerId]||skipModal.playerId} for {skipModal.home} vs {skipModal.away} is permanent.
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <Btn variant="ghost" onClick={()=>setSkipConfirm(false)}>← Back</Btn>
+                  <Btn variant="ghost" onClick={()=>setSkipConfirm(false)}>Back</Btn>
                   <Btn variant="danger" onClick={()=>issueSkip(skipModal.playerId,skipModal.fixtureId)}>Yes, Skip</Btn>
                 </div>
               </>
