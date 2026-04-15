@@ -2837,6 +2837,14 @@ function LeagueTab({group,user,names,theme}) {
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
+  const [plTable, setPlTable] = useState(null);
+  const [showTable, setShowTable] = useState(false);
+  useEffect(() => {
+    let c = false;
+    fetch('/api/standings').then(r=>r.ok?r.json():null).then(d=>{if(!c&&d?.table)setPlTable(d.table);}).catch(()=>{});
+    return ()=>{c=true;};
+  }, []);
+  const zoneColor = pos => pos<=4?"#3b82f6":pos===5?"#f97316":pos===6?"#10b981":pos>=18?"#ef4444":null;
   return (
     <div>
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isIndex?"26px 28px":"0",borderRadius:isIndex?28:0}}>
@@ -2870,6 +2878,50 @@ function LeagueTab({group,user,names,theme}) {
               <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:11,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:theme==="index"?800:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
             </div>
           )})}
+        </div>
+      )}
+      {plTable&&plTable.length>0&&(
+        <div style={{marginTop:36}}>
+          <div onClick={()=>setShowTable(!showTable)} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:showTable?12:0,userSelect:"none"}}>
+            <div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/>
+            <span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase",flex:1}}>PREMIER LEAGUE TABLE</span>
+            <span style={{fontSize:10,color:"var(--text-dim)",transition:"transform 0.2s",transform:showTable?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
+          </div>
+          {showTable&&(
+            <div style={{border:"1px solid var(--border3)",borderRadius:isIndex?20:10,overflow:"hidden"}}>
+              <div style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:10,color:"var(--text-dim2)",letterSpacing:1,borderBottom:"1px solid var(--border)",background:"var(--surface)"}}>
+                <div>#</div>
+                <div>TEAM</div>
+                {!mob&&<div style={{textAlign:"center"}}>W</div>}
+                {!mob&&<div style={{textAlign:"center"}}>D</div>}
+                {!mob&&<div style={{textAlign:"center"}}>L</div>}
+                {!mob&&<div style={{textAlign:"center"}}>P</div>}
+                <div style={{textAlign:"center"}}>GD</div>
+                <div style={{textAlign:"right"}}>PTS</div>
+              </div>
+              {plTable.map((r,idx)=>{
+                const zc = zoneColor(r.pos);
+                return (
+                  <div key={r.pos} style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:mob?12:13,color:"var(--text-mid)",borderBottom:idx<plTable.length-1?"1px solid var(--border)":"none",borderLeft:zc?`3px solid ${zc}`:"3px solid transparent",background:"var(--card)"}}>
+                    <div style={{color:"var(--text-dim)",fontSize:11}}>{r.pos}</div>
+                    <div style={{color:"var(--text-bright)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:4}}>{r.team}</div>
+                    {!mob&&<div style={{textAlign:"center"}}>{r.w}</div>}
+                    {!mob&&<div style={{textAlign:"center"}}>{r.d}</div>}
+                    {!mob&&<div style={{textAlign:"center"}}>{r.l}</div>}
+                    {!mob&&<div style={{textAlign:"center",color:"var(--text-dim)"}}>{r.p}</div>}
+                    <div style={{textAlign:"center",color:r.gd>0?"#22c55e":r.gd<0?"#ef4444":"var(--text-dim)"}}>{r.gd>0?"+":""}{r.gd}</div>
+                    <div style={{textAlign:"right",fontWeight:700,color:"var(--text-bright)"}}>{r.pts}</div>
+                  </div>
+                );
+              })}
+              <div style={{display:"flex",gap:16,padding:"10px 12px",fontSize:10,color:"var(--text-dim2)",background:"var(--surface)",borderTop:"1px solid var(--border)",flexWrap:"wrap"}}>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#3b82f6",marginRight:4,verticalAlign:"middle"}}/>UCL</span>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#f97316",marginRight:4,verticalAlign:"middle"}}/>UEL</span>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#10b981",marginRight:4,verticalAlign:"middle"}}/>UECL</span>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#ef4444",marginRight:4,verticalAlign:"middle"}}/>REL</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -4663,9 +4715,9 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
           {/* Invite code */}
           <div>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>INVITE CODE</div>
-            <div style={{display:"flex",alignItems:"center",gap:16}}>
-              <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isIndex?24:12,padding:"0 24px",height:80,display:"flex",alignItems:"center",fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:36,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?2:8,lineHeight:1}}>{group.code}</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:mob?12:16,flexDirection:mob?"column":"row"}}>
+              <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:isIndex?(mob?18:24):12,padding:mob?"0 16px":"0 24px",height:mob?56:80,display:"flex",alignItems:"center",justifyContent:mob?"center":undefined,fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?24:36,fontWeight:isIndex?800:900,color:"var(--text-bright)",letterSpacing:isIndex?2:(mob?6:8),lineHeight:1,width:mob?"100%":undefined}}>{group.code}</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,width:mob?"100%":undefined}}>
                 <div style={{display:"flex",gap:8}}>
                   <Btn onClick={copyCode} variant={copied?"success":"ghost"} small>{copied?"Copied!":"Copy Code"}</Btn>
                   <Btn onClick={copyLink} variant={copiedLink?"success":"ghost"} small>{copiedLink?"Copied!":"Copy Link"}</Btn>
