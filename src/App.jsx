@@ -2392,7 +2392,7 @@ export default function App() {
     lset("session",{username:lget("session")?.username});
   };
   const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
-  const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh)setGroup(fresh);},[group?.id]);
+  const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh&&JSON.stringify(fresh)!==JSON.stringify(group))setGroup(fresh);},[group]);
   const isAdmin=!!(user&&group&&group.admins?.includes(user.username));
   const isCreator=!!(user&&group&&group.creatorUsername===user.username);
   return (
