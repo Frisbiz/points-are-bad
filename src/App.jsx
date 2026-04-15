@@ -474,6 +474,61 @@ function useHorizontalScroll() {
   }, []);
 }
 
+// Poll Yahoo Sports API for live scores during active match windows
+function useLiveScores(gw, fixtures) {
+  const [liveData, setLiveData] = useState({});
+  const fixturesRef = useRef(fixtures);
+  fixturesRef.current = fixtures;
+
+  useEffect(() => {
+    if (!gw) return;
+    let cancelled = false;
+    let timer = null;
+
+    const shouldFetch = () => {
+      const ff = fixturesRef.current;
+      if (!ff?.length) return false;
+      const now = Date.now();
+      return ff.some(f => {
+        if (f.result || f.status === "FINISHED" || f.status === "POSTPONED") return false;
+        if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
+        if (f.date) {
+          const kickoff = new Date(f.date).getTime();
+          // Poll if kickoff was within last 4h or is within next 5min
+          return kickoff <= now + 5 * 60000 && kickoff >= now - 4 * 3600000;
+        }
+        return false;
+      });
+    };
+
+    const poll = async () => {
+      if (cancelled) return;
+      if (!shouldFetch()) {
+        // No live window: check again in 60s in case a match is about to start
+        timer = setTimeout(poll, 60000);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/live?week=${gw}`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        if (cancelled) return;
+        const map = {};
+        (data.matches || []).forEach(m => {
+          map[`${m.home}|${m.away}`] = m;
+        });
+        setLiveData(map);
+      } catch (_) {}
+      if (!cancelled) timer = setTimeout(poll, 30000);
+    };
+
+    poll();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [gw]);
+
+  return liveData;
+}
+
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&family=Plus+Jakarta+Sans:wght@500;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap');
   :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#555566;--text-dim2:#666;--text-dim3:#555;--text-mid:#999;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;--font-mono:'DM Mono',monospace;}
@@ -2964,6 +3019,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
+  const liveScores = useLiveScores(currentGW, gwFixtures);
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
     const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
@@ -3311,8 +3367,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
-        const isLive = f.status==="IN_PLAY"||f.status==="PAUSED";
-        const scoreStr = f.result||f.liveScore;
+        const liveMatch = liveScores[`${f.home}|${f.away}`];
+        const yahooLive = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime");
+        const isLive = f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooLive;
+        const scoreStr = f.result || f.liveScore || (yahooLive ? `${liveMatch.homeScore}-${liveMatch.awayScore}` : null);
+        const elapsed = yahooLive ? liveMatch.elapsed : null;
         const scoreParts = scoreStr ? scoreStr.split("-") : null;
         const resultBlock = scoreParts?(
           <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
@@ -3321,7 +3380,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <span style={{display:"flex",alignItems:"center",gap:4}}>
               <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0}}>{scoreParts[1]}</span>
               {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
-              {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>LIVE</span>}
+              {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>{elapsed||"LIVE"}</span>}
               {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,padding:0}}>✕</button>}
             </span>
           </div>
@@ -3480,7 +3539,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
       {(group.mode==="dibs"
         ? (group.members||[]).length>1
         : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup}/>}
+      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup} liveScores={liveScores}/>}
       {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Lock size={28} color="var(--text-dim)"/></div>
@@ -3492,7 +3551,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,dibsTurnFor={},setGroup}) {
+function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,dibsTurnFor={},setGroup,liveScores={}}) {
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
   const members = group.members||[];
@@ -3582,7 +3641,15 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                     <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</span>
                   </div>
                 </td>
-                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{f.result?f.result:f.liveScore?<span style={{color:"#f59e0b"}}>{f.liveScore}</span>:f.status==="POSTPONED"?<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>:null}</td>
+                <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{(()=>{
+                  const lm = liveScores[`${f.home}|${f.away}`];
+                  const yLive = !f.result && lm && (lm.status==="in_progress"||lm.status==="halftime");
+                  const liveStr = f.liveScore || (yLive ? `${lm.homeScore}-${lm.awayScore}` : null);
+                  if (f.result) return f.result;
+                  if (liveStr) return <span style={{color:"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:"pulse 1.5s infinite"}}>{lm?.elapsed||"LIVE"}</span></span>;
+                  if (f.status==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
+                  return null;
+                })()}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
