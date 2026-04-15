@@ -3,10 +3,14 @@ import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassw
 import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 
+const FD_COMP_MAP = { PL: 'PL', LL: 'PD', WC: 'WC' };
+function fdApiKey(comp) { return comp === 'LL' ? process.env.FD_API_KEY_LALIGA : process.env.VITE_FD_API_KEY; }
+
 async function fetchFromFD(matchday, season, competition = 'PL') {
-  let url = `https://api.football-data.org/v4/competitions/${competition}/matches?season=${season}`;
+  const fdComp = FD_COMP_MAP[competition] || competition;
+  let url = `https://api.football-data.org/v4/competitions/${fdComp}/matches?season=${season}`;
   if (matchday != null) url += `&matchday=${matchday}`;
-  const r = await fetch(url, { headers: { 'X-Auth-Token': process.env.VITE_FD_API_KEY } });
+  const r = await fetch(url, { headers: { 'X-Auth-Token': fdApiKey(competition) } });
   if (!r.ok) { const err = new Error(`API error ${r.status}`); err.status = r.status; throw err; }
   const data = await r.json();
   return data.matches || [];
@@ -396,12 +400,21 @@ export default async function handler(req, res) {
     }
     if (!code) return bad(res, 500, 'Failed to generate group code');
     const isWC = competition === 'WC';
+    const isLL = competition === 'LL';
     const startGW = Math.max(1, Math.min(38, parseInt(setupGW) || 1));
-    let group = isWC
-      ? { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], gameweeks: makeWCRounds(), currentGW: 1, apiKey: '', season: 2026, competition: 'WC', hiddenGWs: [], scoreScope: 'all', draw11Limit: setupLimit || 'unlimited', mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] }
-      : { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: 2025, fixtures: makeFixturesFallback(startGW + i, 2025) })), currentGW: startGW, apiKey: '', season: 2025, hiddenGWs: [], scoreScope: 'all', draw11Limit: setupLimit || 'unlimited', mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
+    const leagueSeason = 2025;
+    const baseGroup = { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], currentGW: isWC ? 1 : startGW, apiKey: '', hiddenGWs: [], scoreScope: 'all', draw11Limit: setupLimit || 'unlimited', mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
+    let group;
+    if (isWC) {
+      group = { ...baseGroup, gameweeks: makeWCRounds(), season: 2026, competition: 'WC' };
+    } else if (isLL) {
+      group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason, competition: 'LL' };
+    } else {
+      group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason };
+    }
+    const globalCacheKey = isWC ? 'fixtures:WC:2026' : isLL ? `fixtures:LL:${leagueSeason}` : `fixtures:PL:${leagueSeason}`;
     try {
-      const globalDoc = await getValue(isWC ? 'fixtures:WC:2026' : 'fixtures:PL:2025');
+      const globalDoc = await getValue(globalCacheKey);
       if (globalDoc && (globalDoc.gameweeks || []).length) group = mergeGlobalIntoGroup(globalDoc, group);
     } catch {}
     await setValue(`group:${id}`, group);
@@ -583,15 +596,16 @@ export default async function handler(req, res) {
     if (payload.type === 'auto-sync-fixtures') {
       // Any member can trigger a fixture sync - this refreshes global fixture data and applies to group
       const targetGW = Number(payload.gw || group.currentGW || 1);
-      const isWC = (group.competition || 'PL') === 'WC';
+      const comp = group.competition || 'PL';
+      const isWC = comp === 'WC';
       const seas = group.season || 2025;
-      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
+      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:${comp}:${seas}`;
       let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
       const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
       const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
       try {
         if (missingPast) {
-          const allMatches = await fetchFromFD(null, isWC ? 2026 : seas, isWC ? 'WC' : 'PL');
+          const allMatches = await fetchFromFD(null, isWC ? 2026 : seas, comp);
           if (!allMatches.length) return res.status(200).json({ group, updated: false });
           if (isWC) {
             const byGW = {};
@@ -603,13 +617,13 @@ export default async function handler(req, res) {
             let updated = { ...globalDoc };
             const byGW = {};
             allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-            Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), 'PL')); });
+            Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), comp)); });
             globalDoc = updated;
           }
         } else {
-          const matches = await fetchFromFD(targetGW, isWC ? 2026 : seas, isWC ? 'WC' : 'PL');
+          const matches = await fetchFromFD(targetGW, isWC ? 2026 : seas, comp);
           if (!matches.length) return res.status(200).json({ group, updated: false });
-          const apiFixtures = parseMatchesToFixtures(matches, targetGW, isWC ? 'WC' : 'PL');
+          const apiFixtures = parseMatchesToFixtures(matches, targetGW, comp);
           globalDoc = isWC
             ? { ...globalDoc, updatedAt: Date.now(), gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== targetGW), { gw: targetGW, fixtures: apiFixtures }] }
             : regroupGlobalDoc(globalDoc, targetGW, apiFixtures);

@@ -257,7 +257,15 @@ const CLUB_COLORS = {
   "Brighton":"#0057B8","Chelsea":"#034694","Crystal Palace":"#1B458F","Everton":"#003399",
   "Fulham":"#CC0000","Ipswich":"#0044A9","Leicester":"#003090","Liverpool":"#C8102E",
   "Man City":"#6CABDD","Man Utd":"#DA291C","Newcastle":"#241F20","Nott'm Forest":"#DD0000",
-  "Southampton":"#D71920","Spurs":"#132257","West Ham":"#7A263A","Wolves":"#FDB913"
+  "Southampton":"#D71920","Spurs":"#132257","West Ham":"#7A263A","Wolves":"#FDB913",
+  // La Liga
+  "Real Madrid":"#FEBE10","Barcelona":"#A50044","Atletico Madrid":"#CB3524",
+  "Girona":"#CD2534","Athletic Bilbao":"#EE2523","Real Sociedad":"#0067B1",
+  "Real Betis":"#00954C","Villarreal":"#FFED00","Valencia":"#EE3524",
+  "Getafe":"#004FA3","Osasuna":"#D91A21","Sevilla":"#F43333",
+  "Celta Vigo":"#8AC3EE","Mallorca":"#E20613","Las Palmas":"#FFE400",
+  "Rayo Vallecano":"#E53027","Espanyol":"#007FC8","Leganes":"#2E5FA1",
+  "Valladolid":"#591C87","Alaves":"#0060A8",
 };
 
 // ISO 3166-1 alpha-2 codes for flagcdn.com images (works on all platforms)
@@ -329,8 +337,10 @@ function TeamBadge({ team, crest, size = 22, style = {} }) {
   return <img src={src} alt={team} style={{width:size,height:size,objectFit:"contain",flexShrink:0,...style}} />;
 }
 
-function makeFixturesFallback(gw, season) {
-  const CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];
+const PL_CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];
+const LL_CLUBS = ["Real Madrid","Barcelona","Atletico Madrid","Girona","Athletic Bilbao","Real Sociedad","Real Betis","Villarreal","Valencia","Getafe","Osasuna","Sevilla","Celta Vigo","Mallorca","Las Palmas","Rayo Vallecano","Espanyol","Leganes","Valladolid","Alaves"];
+function makeFixturesFallback(gw, season, competition) {
+  const CLUBS = competition === "LL" ? LL_CLUBS : PL_CLUBS;
   const seed = gw * 9301 + 49297;
   const rng = (n) => { let s = seed+n; s=((s>>16)^s)*0x45d9f3b; s=((s>>16)^s)*0x45d9f3b; return ((s>>16)^s)>>>0; };
   const arr = [...CLUBS];
@@ -338,8 +348,8 @@ function makeFixturesFallback(gw, season) {
   const prefix = season && season !== 2025 ? `${season}-` : "";
   return Array.from({length:10}, (_,i) => ({ id:`${prefix}gw${gw}-f${i}`, home:arr[i*2], away:arr[i*2+1], result:null, status:"SCHEDULED" }));
 }
-function makeAllGWs(season) {
-  return Array.from({length:38}, (_,i) => ({gw:i+1, season, fixtures:makeFixturesFallback(i+1, season)}));
+function makeAllGWs(season, competition) {
+  return Array.from({length:38}, (_,i) => ({gw:i+1, season, fixtures:makeFixturesFallback(i+1, season, competition)}));
 }
 
 function makeWCRounds() {
@@ -361,7 +371,8 @@ function stageLabel(stage, matchday) {
 }
 
 function gwLabel(group, gwNum) {
-  if ((group.competition || "PL") === "PL") return `GW${gwNum}`;
+  const comp = group.competition || "PL";
+  if (comp === "PL" || comp === "LL") return `GW${gwNum}`;
   const gwObj = (group.gameweeks || []).find(g => g.gw === gwNum);
   const stage = (gwObj?.fixtures || []).find(f => f.stage)?.stage;
   return stageLabel(stage, gwNum);
@@ -1613,11 +1624,12 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   },[user?.username, initialJoinCode, initialGroups.length]);
 
   useEffect(()=>{
-    if (!setupMode) return;
+    if (!setupMode || setupCompetition === "WC") return;
     setSetupGWLoading(true);
     (async()=>{
       try {
-        const globalDoc = await sget("fixtures:PL:2025");
+        const cacheKey = setupCompetition === "LL" ? "fixtures:LL:2025" : "fixtures:PL:2025";
+        const globalDoc = await sget(cacheKey);
         const now = new Date();
         if (globalDoc&&(globalDoc.gameweeks||[]).length) {
           const allFixtures = globalDoc.gameweeks.flatMap(gwObj=>
@@ -1631,7 +1643,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
               : null;
           if (gw!==null&&gw>=1&&gw<=38) setSetupGW(String(gw));
         } else {
-          const resp = await fetch("/api/fixtures?season=2025");
+          const resp = await fetch(`/api/fixtures?season=2025&competition=${setupCompetition}`);
           if (!resp.ok) return;
           const data = await resp.json();
           const matches = data.matches||[];
@@ -1644,7 +1656,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
         setSetupGWLoading(false);
       }
     })();
-  },[setupMode]);
+  },[setupMode, setupCompetition]);
 
   const loadGroups = async (usernameArg = user?.username) => {
     if (!usernameArg) { setGroups([]); setLoading(false); return; }
@@ -1720,7 +1732,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
       <div style={{background:"var(--surface)",border:"1px solid var(--border3)",borderRadius:10,padding:"12px 14px",marginBottom:20,fontSize:11,color:"var(--text-mid)",lineHeight:1.8}}>
         <div>{inviteGroup.members?.length||0} member{inviteGroup.members?.length===1?"":"s"}</div>
-        <div>{(inviteGroup.competition||"PL")==="WC"?"World Cup 2026":"Premier League"}</div>
+        <div>{(inviteGroup.competition||"PL")==="WC"?"World Cup 2026":(inviteGroup.competition||"PL")==="LL"?"La Liga":"Premier League"}</div>
         <div>{(inviteGroup.mode||"open").toUpperCase()} mode</div>
       </div>
       <div style={{display:"flex",gap:10}}>
@@ -1846,12 +1858,12 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
                 <div>
                   <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>COMPETITION</div>
                   <div style={{display:"flex",gap:5}}>
-                    {[["PL","Premier League"],["WC","World Cup 2026"]].map(([val,label])=>(
+                    {[["PL","Premier League"],["LL","La Liga"],["WC","World Cup 2026"]].map(([val,label])=>(
                       <button key={val} onClick={()=>setSetupCompetition(val)} style={{background:setupCompetition===val?"var(--btn-bg)":"var(--card)",color:setupCompetition===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
                     ))}
                   </div>
                 </div>
-                {setupCompetition === "PL" && (
+                {(setupCompetition === "PL" || setupCompetition === "LL") && (
                 <div>
                   <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
                   <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
@@ -2837,14 +2849,18 @@ function LeagueTab({group,user,names,theme}) {
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
-  const [plTable, setPlTable] = useState(null);
+  const comp = group.competition || "PL";
+  const isLeague = comp === "PL" || comp === "LL";
+  const [leagueTable, setLeagueTable] = useState(null);
   const [showTable, setShowTable] = useState(false);
   useEffect(() => {
+    if (!isLeague) return;
     let c = false;
-    fetch('/api/standings').then(r=>r.ok?r.json():null).then(d=>{if(!c&&d?.table)setPlTable(d.table);}).catch(()=>{});
+    fetch(`/api/standings?competition=${comp}`).then(r=>r.ok?r.json():null).then(d=>{if(!c&&d?.table)setLeagueTable(d.table);}).catch(()=>{});
     return ()=>{c=true;};
-  }, []);
+  }, [comp, isLeague]);
   const zoneColor = pos => pos<=4?"#3b82f6":pos===5?"#f97316":pos===6?"#10b981":pos>=18?"#ef4444":null;
+  const tableTitle = comp === "LL" ? "LA LIGA TABLE" : "PREMIER LEAGUE TABLE";
   return (
     <div>
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isIndex?"26px 28px":"0",borderRadius:isIndex?28:0}}>
@@ -2880,11 +2896,11 @@ function LeagueTab({group,user,names,theme}) {
           )})}
         </div>
       )}
-      {plTable&&plTable.length>0&&(
+      {leagueTable&&leagueTable.length>0&&(
         <div style={{marginTop:36}}>
           <div onClick={()=>setShowTable(!showTable)} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:showTable?12:0,userSelect:"none"}}>
             <div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/>
-            <span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase",flex:1}}>PREMIER LEAGUE TABLE</span>
+            <span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase",flex:1}}>{tableTitle}</span>
             <span style={{fontSize:10,color:"var(--text-dim)",transition:"transform 0.2s",transform:showTable?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
           </div>
           {showTable&&(
@@ -2899,12 +2915,12 @@ function LeagueTab({group,user,names,theme}) {
                 <div style={{textAlign:"center"}}>GD</div>
                 <div style={{textAlign:"right"}}>PTS</div>
               </div>
-              {plTable.map((r,idx)=>{
+              {leagueTable.map((r,idx)=>{
                 const zc = zoneColor(r.pos);
                 return (
-                  <div key={r.pos} style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:mob?12:13,color:"var(--text-mid)",borderBottom:idx<plTable.length-1?"1px solid var(--border)":"none",borderLeft:zc?`3px solid ${zc}`:"3px solid transparent",background:"var(--card)"}}>
+                  <div key={r.pos} style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:mob?12:13,color:"var(--text-mid)",borderBottom:idx<leagueTable.length-1?"1px solid var(--border)":"none",borderLeft:zc?`3px solid ${zc}`:"3px solid transparent",background:"var(--card)"}}>
                     <div style={{color:"var(--text-dim)",fontSize:11}}>{r.pos}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} size={mob?16:18}/><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{r.team}</span></div>
+                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} crest={r.crest} size={mob?16:18}/><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{r.team}</span></div>
                     {!mob&&<div style={{textAlign:"center"}}>{r.w}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.d}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.l}</div>}
@@ -3239,11 +3255,12 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     const targetGW=Math.max(...incompleteGWs.map(gw=>gw.gw));
     (async()=>{
       try {
-        const isWC = (group.competition||"PL") === "WC";
+        const comp = group.competition||"PL";
+        const isWC = comp === "WC";
         const now=Date.now();
-        const fullSyncKey=isWC?`fixtures-full-sync:WC:2026`:`fixtures-full-sync:${seas}`;
-        const cooldownKey=isWC?`gw-api-sync:WC:2026:${targetGW}`:`gw-api-sync:${seas}:${targetGW}`;
-        const globalKey=isWC?`fixtures:WC:2026`:`fixtures:PL:${seas}`;
+        const fullSyncKey=isWC?`fixtures-full-sync:WC:2026`:`fixtures-full-sync:${comp}:${seas}`;
+        const cooldownKey=isWC?`gw-api-sync:WC:2026:${targetGW}`:`gw-api-sync:${comp}:${seas}:${targetGW}`;
+        const globalKey=isWC?`fixtures:WC:2026`:`fixtures:${comp}:${seas}`;
         const globalDoc=await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
         const existingGWNums=new Set((globalDoc.gameweeks||[]).map(g=>g.gw));
         const missingPast=Array.from({length:targetGW-1},(_,i)=>i+1).some(n=>!existingGWNums.has(n));
@@ -4898,7 +4915,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
       )
     },
     {
-      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||(group.competition||"PL")!=="PL", summary:`Season ${activeSeason}`,
+      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||((group.competition||"PL")!=="PL"&&(group.competition||"PL")!=="LL"), summary:`Season ${activeSeason}`,
       content:(()=>{
         const allSeasons=[...new Set((group.gameweeks||[]).map(g=>g.season||activeSeason))].sort((a,b)=>a-b);
         return (

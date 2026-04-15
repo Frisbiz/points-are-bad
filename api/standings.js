@@ -1,10 +1,19 @@
 import { normName } from './_fixtureSync.js';
 
+const FD_COMP_MAP = { PL: "PL", LL: "PD" };
+
+function fdApiKey(comp) {
+  return comp === "LL" ? process.env.FD_API_KEY_LALIGA : process.env.VITE_FD_API_KEY;
+}
+
 export default async function handler(req, res) {
   try {
+    const comp = req.query.competition || "PL";
+    const fdComp = FD_COMP_MAP[comp] || comp;
+    const apiKey = fdApiKey(comp);
     const response = await fetch(
-      'https://api.football-data.org/v4/competitions/PL/standings',
-      { headers: { 'X-Auth-Token': process.env.VITE_FD_API_KEY } }
+      `https://api.football-data.org/v4/competitions/${fdComp}/standings`,
+      { headers: { 'X-Auth-Token': apiKey } }
     );
     if (!response.ok) {
       return res.status(response.status).json({ error: `API error ${response.status}` });

@@ -68,6 +68,50 @@ export const TEAM_NAME_MAP = {
   "Blackburn Rovers": "Blackburn",
   "Middlesbrough FC": "Boro",
   "Middlesbrough": "Boro",
+  // La Liga
+  "Real Madrid CF": "Real Madrid",
+  "FC Barcelona": "Barcelona",
+  "Club Atlético de Madrid": "Atletico Madrid",
+  "Atlético de Madrid": "Atletico Madrid",
+  "Girona FC": "Girona",
+  "Athletic Club": "Athletic Bilbao",
+  "Real Sociedad de Fútbol": "Real Sociedad",
+  "Real Sociedad": "Real Sociedad",
+  "Real Betis Balompié": "Real Betis",
+  "Real Betis": "Real Betis",
+  "Villarreal CF": "Villarreal",
+  "Getafe CF": "Getafe",
+  "CA Osasuna": "Osasuna",
+  "Sevilla FC": "Sevilla",
+  "RC Celta de Vigo": "Celta Vigo",
+  "Celta de Vigo": "Celta Vigo",
+  "Valencia CF": "Valencia",
+  "RCD Mallorca": "Mallorca",
+  "UD Las Palmas": "Las Palmas",
+  "Rayo Vallecano de Madrid": "Rayo Vallecano",
+  "Rayo Vallecano": "Rayo Vallecano",
+  "RCD Espanyol de Barcelona": "Espanyol",
+  "RCD Espanyol": "Espanyol",
+  "CD Leganés": "Leganes",
+  "Leganés": "Leganes",
+  "Real Valladolid CF": "Valladolid",
+  "Real Valladolid": "Valladolid",
+  "Deportivo Alavés": "Alaves",
+  "Alavés": "Alaves",
+  "Real Zaragoza": "Zaragoza",
+  "Levante UD": "Levante",
+  "SD Eibar": "Eibar",
+  "Granada CF": "Granada",
+  "Cádiz CF": "Cadiz",
+  "UD Almería": "Almeria",
+  "Elche CF": "Elche",
+  "Real Oviedo": "Oviedo",
+  "Racing de Santander": "Racing",
+  "Sporting de Gijón": "Sporting Gijon",
+  "Real Sporting de Gijón": "Sporting Gijon",
+  "SD Huesca": "Huesca",
+  "CD Tenerife": "Tenerife",
+  "Deportivo de La Coruña": "Deportivo",
   // European clubs
   "Paris Saint-Germain": "PSG",
   "Internazionale": "Inter",
@@ -100,10 +144,12 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
     const liveScore = (status === 'IN_PLAY' || status === 'PAUSED') && scoreObj?.home != null && scoreObj?.away != null ? `${scoreObj.home}-${scoreObj.away}` : null;
     const id = isWC ? `wc-gw${matchday}-f${m.id || i}` : `gw${matchday}-f${m.id || i}`;
     const base = { id, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
-    if (isWC) {
-      base.stage = m.stage || null;
+    if (competition !== 'PL') {
       base.homeCrest = m.homeTeam?.crest || null;
       base.awayCrest = m.awayTeam?.crest || null;
+    }
+    if (isWC) {
+      base.stage = m.stage || null;
     }
     return base;
   });
