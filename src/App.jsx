@@ -2904,7 +2904,7 @@ function LeagueTab({group,user,names,theme}) {
                 return (
                   <div key={r.pos} style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:mob?12:13,color:"var(--text-mid)",borderBottom:idx<plTable.length-1?"1px solid var(--border)":"none",borderLeft:zc?`3px solid ${zc}`:"3px solid transparent",background:"var(--card)"}}>
                     <div style={{color:"var(--text-dim)",fontSize:11}}>{r.pos}</div>
-                    <div style={{color:"var(--text-bright)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:4}}>{r.team}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} size={mob?16:18}/><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{r.team}</span></div>
                     {!mob&&<div style={{textAlign:"center"}}>{r.w}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.d}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.l}</div>}
