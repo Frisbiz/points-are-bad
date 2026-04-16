@@ -2251,7 +2251,23 @@ export default function App() {
   const [joinParam]=useState(()=>getInviteCodeFromLocation());
   const [resetDone,setResetDone]=useState(false);
   const [groups, setGroups] = useState([]);
+  const [names, setNames] = useState({});
   const [needsSetup, setNeedsSetup] = useState(false);
+  const fetchGroupNames = useCallback(async (groupToLoad, userObj) => {
+    if (!groupToLoad || !userObj) return;
+    const demoMap = Object.fromEntries(DEMO_MEMBERS.map(m=>[m.username,m.displayName]));
+    const init = {};
+    (groupToLoad.members||[]).forEach(u=>{ init[u] = demoMap[u] || (u[0].toUpperCase()+u.slice(1)); });
+    init[userObj.username] = userObj.displayName;
+    try {
+      const res = await fetch(`/api/security?action=member-names&groupId=${groupToLoad.id}`);
+      if (res.ok) {
+        const data = await res.json().catch(()=>({}));
+        if (data.names) Object.assign(init, data.names, { [userObj.username]: userObj.displayName });
+      }
+    } catch {}
+    setNames(init);
+  }, []);
   const handleSetupDone = useCallback((updatedUser) => {
     setUser(updatedUser);
     setNeedsSetup(false);
@@ -2350,6 +2366,7 @@ export default function App() {
       if(saved?.groupId){
         const g = allGroups.find(x=>x.id===saved.groupId) || await sget(`group:${saved.groupId}`);
         if(g&&g.members?.includes(u.username)){
+          await fetchGroupNames(g, u);
           setGroup(g);
           if(saved.tab)setTab(saved.tab);
         }
@@ -2400,6 +2417,7 @@ export default function App() {
     if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
       const onlyGroup = loginGroups[0] || await sget(`group:${nextUser.groupIds[0]}`);
       if (onlyGroup && onlyGroup.members?.includes(nextUser.username)) {
+        await fetchGroupNames(onlyGroup, nextUser);
         setGroup(onlyGroup);
         setTab("League");
         const sessionWithGroup = { ...nextSession, groupId: onlyGroup.id, tab: "League" };
@@ -2411,6 +2429,7 @@ export default function App() {
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
     const resolved = fresh || g;
+    await fetchGroupNames(resolved, user);
     setGroup(resolved);
     setGroups(prev => prev.some(x => x.id === resolved.id) ? prev : [...prev, resolved]);
     setTab("League");
@@ -2495,6 +2514,7 @@ export default function App() {
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} onUpdateUser={u=>setUser(u)}
           refreshGroup={refreshGroup} theme={theme} setTheme={setTheme} setGroup={setGroup}
           unlockSecretTheme={unlockSecretTheme} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}
+          names={names} setNames={setNames}
           onOpenWhatsNew={() => setWhatsNewOpen(true)}/>
       )}
       {whatsNewOpen && <WhatsNewModal user={user} theme={theme} onClose={() => setWhatsNewOpen(false)} />}
@@ -2503,16 +2523,9 @@ export default function App() {
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpdateUser,refreshGroup,theme,setTheme,setGroup,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},onOpenWhatsNew=()=>{}}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpdateUser,refreshGroup,theme,setTheme,setGroup,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},names={},setNames=()=>{},onOpenWhatsNew=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
   const [thumbs,setThumbs]=useState([]);
-  const [names,setNames]=useState(()=>{
-    const demoMap=Object.fromEntries(DEMO_MEMBERS.map(m=>[m.username,m.displayName]));
-    const init={};
-    (group.members||[]).forEach(u=>{init[u]=demoMap[u]||(u[0].toUpperCase()+u.slice(1));});
-    init[user.username]=user.displayName;
-    return init;
-  });
   const [profileOpen,setProfileOpen]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
   const [pwCurrent,setPwCurrent]=useState("");
@@ -2531,6 +2544,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     return()=>document.removeEventListener("mousedown",handler);
   },[profileOpen]);
   useEffect(()=>{
+    // Only fetch if we have members without a known name (e.g., new member joined mid-session)
+    const missing = (group.members||[]).filter(u => !names[u]);
+    if (!missing.length) return;
     let cancelled=false;
     (async()=>{
       const res = await fetch(`/api/security?action=member-names&groupId=${group.id}`).catch(()=>null);
@@ -2538,6 +2554,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       if (!cancelled && data.names) setNames(n => ({ ...n, ...data.names, [user.username]: user.displayName }));
     })();
     return()=>{cancelled=true;};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[group.members?.join(",")]);
 
   const spawnThumb = (e) => {
