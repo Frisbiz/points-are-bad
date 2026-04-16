@@ -125,7 +125,7 @@ function buildGWAbsence(group, gw) {
   scored.forEach(f => {
     let sum=0,n=0;
     members.forEach(u => { if(absent.has(u)) return; const p=calcPts(preds[u]?.[f.id],f.result); if(p!==null){sum+=p;n++;} else{sum+=MISSED_PICK_PTS;n++;} });
-    avgMap[f.id] = n>0 ? Math.round(sum/n*100)/100 : MISSED_PICK_PTS;
+    avgMap[f.id] = n>0 ? Math.floor(sum/n) : MISSED_PICK_PTS;
   });
   return { absent, avgMap };
 }
@@ -2345,8 +2345,10 @@ export default function App() {
       setUser(u);
       if(u.theme)setThemeRaw(u.theme);
       setNeedsSetup(!u.email);
+      const allGroups = (await Promise.all((u.groupIds||[]).map(id=>sget(`group:${id}`)))).filter(Boolean);
+      setGroups(allGroups);
       if(saved?.groupId){
-        const g=await sget(`group:${saved.groupId}`);
+        const g = allGroups.find(x=>x.id===saved.groupId) || await sget(`group:${saved.groupId}`);
         if(g&&g.members?.includes(u.username)){
           setGroup(g);
           if(saved.tab)setTab(saved.tab);
@@ -2414,9 +2416,16 @@ export default function App() {
     setTab("League");
     lset("session",{...lget("session"),groupId:resolved.id,tab:"League"});
   };
-  const handleLeaveGroup = () => {
+  const handleLeaveGroup = async () => {
     setGroup(null);
     lset("session",{username:lget("session")?.username});
+    if (user?.username) {
+      const sessionRes = await fetch('/api/security?action=auth-session').catch(()=>null);
+      const sessionData = sessionRes ? await sessionRes.json().catch(()=>({user:null})) : {user:null};
+      const ids = sessionData.user?.groupIds || [];
+      const gs = (await Promise.all(ids.map(id=>sget(`group:${id}`)))).filter(Boolean);
+      setGroups(gs);
+    }
   };
   const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
   const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh&&JSON.stringify(fresh)!==JSON.stringify(group))setGroup(fresh);},[group]);
