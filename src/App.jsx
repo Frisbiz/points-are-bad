@@ -125,7 +125,7 @@ function buildGWAbsence(group, gw) {
   scored.forEach(f => {
     let sum=0,n=0;
     members.forEach(u => { if(absent.has(u)) return; const p=calcPts(preds[u]?.[f.id],f.result); if(p!==null){sum+=p;n++;} else{sum+=MISSED_PICK_PTS;n++;} });
-    avgMap[f.id] = n>0 ? Math.floor(sum/n) : MISSED_PICK_PTS;
+    avgMap[f.id] = n>0 ? Math.ceil(sum/n) : MISSED_PICK_PTS;
   });
   return { absent, avgMap };
 }
