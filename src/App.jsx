@@ -114,25 +114,25 @@ async function fetchLiveMatches() {
 }
 
 const MISSED_PICK_PTS = 4;
-// Build a lookup for a single GW: who was absent + fixture averages from present players
-function buildGWAbsence(group, gw) {
-  const preds = group.predictions||{};
-  const members = group.members||[];
-  const scored = (gw.fixtures||[]).filter(f=>f.result);
-  const absent = new Set();
-  members.forEach(u => { if(!scored.some(f=>preds[u]?.[f.id])) absent.add(u); });
-  const avgMap = {};
-  scored.forEach(f => {
-    let sum=0,n=0;
-    members.forEach(u => { if(absent.has(u)) return; const p=calcPts(preds[u]?.[f.id],f.result); if(p!==null){sum+=p;n++;} else{sum+=MISSED_PICK_PTS;n++;} });
-    avgMap[f.id] = n>0 ? Math.ceil(sum/n) : MISSED_PICK_PTS;
-  });
-  return { absent, avgMap };
+// Find each member's first-ever GW where they made a prediction (chronological)
+function computeFirstPickGW(group) {
+  const preds = group.predictions || {};
+  const as = group.season || 2025;
+  const gws = [...(group.gameweeks || [])].sort((a, b) => ((a.season||as)-(b.season||as)) || (a.gw-b.gw));
+  const out = {};
+  for (const u of (group.members || [])) {
+    for (const g of gws) {
+      if ((g.fixtures||[]).some(f => preds[u]?.[f.id])) { out[u] = { gw: g.gw, season: g.season||as }; break; }
+    }
+  }
+  return out;
 }
-// Returns miss penalty: average if player was absent for the whole GW, else flat 4
-function getMissPts(absenceInfo, username, fixtureId) {
-  if (!absenceInfo?.absent?.has(username)) return MISSED_PICK_PTS;
-  return absenceInfo.avgMap?.[fixtureId] ?? MISSED_PICK_PTS;
+// Is this GW before the member's first pick?
+function isPreJoinGW(firstPicks, username, gw, activeSeason) {
+  const fp = firstPicks[username];
+  if (!fp) return true;
+  const gs = gw.season || activeSeason;
+  return gs < fp.season || (gs === fp.season && gw.gw < fp.gw);
 }
 const DEMO_GROUP_CODE = "M65Y4R";
 const DEMO_WC_GROUP_CODE = "WCDEM0";
@@ -423,7 +423,7 @@ const BadgeScore = ({ score, missed=false }) => {
     boxShadow: perfect ? "0 0 0 1px #22c55e20 inset, 0 0 12px #22c55e22" : "none",
     position:"relative",
     overflow:"hidden"
-  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative"}}>{score%1===0?score:score.toFixed(1)}</span></span>;
+  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative"}}>{score}</span></span>;
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
@@ -687,26 +687,73 @@ function computeStats(group) {
   const activeSeason = group.season || 2025;
   const scope = group.scoreScope || "all";
   const filteredGWs = (group.gameweeks||[]).filter(g => scope === "all" || (g.season || activeSeason) === activeSeason);
-  const gwAbs = {};
-  filteredGWs.forEach(g => { gwAbs[`${g.gw}-${g.season||activeSeason}`] = buildGWAbsence(group, g); });
-  return members.map(username => {
+  const sortedGWs = [...filteredGWs].sort((a,b)=>((a.season||activeSeason)-(b.season||activeSeason))||(a.gw-b.gw));
+  const firstPicks = computeFirstPickGW(group);
+  const gk = g => `${g.gw}-${g.season||activeSeason}`;
+
+  // First pass: real per-GW points from each member's first pick onwards
+  const realPts = {}, realTotals = {};
+  members.forEach(u => {
+    realPts[u] = {};
     let total=0, scored=0, perfects=0;
-    const gwTotals = filteredGWs.map(g => {
-      let gwPts=0;
-      const abs = gwAbs[`${g.gw}-${g.season||activeSeason}`];
-      (g.fixtures || []).forEach(f => {
+    sortedGWs.forEach(g => {
+      if (isPreJoinGW(firstPicks, u, g, activeSeason)) { realPts[u][gk(g)] = null; return; }
+      let gwPts = 0;
+      (g.fixtures||[]).forEach(f => {
         if (!f.result) return;
-        const pts = calcPts(preds[username]?.[f.id], f.result);
-        if (pts!==null){total+=pts;scored++;gwPts+=pts;if(pts===0)perfects++;}
-        else if(f.result){
-          const miss = getMissPts(abs, username, f.id);
-          total+=miss;scored++;gwPts+=miss;
-        }
+        const pts = calcPts(preds[u]?.[f.id], f.result);
+        if (pts !== null) { total+=pts; scored++; gwPts+=pts; if(pts===0)perfects++; }
+        else { total+=MISSED_PICK_PTS; scored++; gwPts+=MISSED_PICK_PTS; }
       });
-      return {gw:g.gw, season:g.season||activeSeason, points:gwPts};
+      realPts[u][gk(g)] = gwPts;
     });
-    return {username, total, scored, perfects, avg:scored>0?(total/scored).toFixed(2):"–", gwTotals};
-  }).sort((a,b)=>a.total-b.total);
+    realTotals[u] = { total, scored, perfects };
+  });
+
+  // Second pass: starting bonus for late joiners (last-place total at the point they joined)
+  const bonuses = {};
+  const byJoin = [...members].sort((a,b) => {
+    const fa=firstPicks[a], fb=firstPicks[b];
+    if(!fa&&!fb) return 0; if(!fa) return 1; if(!fb) return -1;
+    return (fa.season-fb.season)||(fa.gw-fb.gw);
+  });
+  byJoin.forEach(u => {
+    const fp = firstPicks[u];
+    if (!fp) { bonuses[u] = 0; return; }
+    const idx = sortedGWs.findIndex(g => (g.season||activeSeason)===fp.season && g.gw===fp.gw);
+    if (idx <= 0) { bonuses[u] = 0; return; }
+    const preGWs = sortedGWs.slice(0, idx);
+    let worst = 0;
+    members.forEach(other => {
+      if (other === u) return;
+      const ofp = firstPicks[other];
+      if (!ofp) return;
+      if (ofp.season > fp.season || (ofp.season===fp.season && ofp.gw >= fp.gw)) return;
+      let t = bonuses[other] || 0;
+      preGWs.forEach(g => { const p = realPts[other][gk(g)]; if (p !== null) t += p; });
+      if (t > worst) worst = t;
+    });
+    bonuses[u] = worst;
+  });
+
+  return members.map(u => {
+    const r = realTotals[u];
+    const bonus = bonuses[u] || 0;
+    const neverPicked = !firstPicks[u];
+    return {
+      username: u,
+      total: r.total + bonus,
+      scored: r.scored,
+      perfects: r.perfects,
+      avg: r.scored > 0 ? (r.total / r.scored).toFixed(2) : "–",
+      gwTotals: sortedGWs.map(g => ({ gw:g.gw, season:g.season||activeSeason, points:realPts[u][gk(g)] })),
+      neverPicked,
+      startingBonus: bonus,
+    };
+  }).sort((a,b) => {
+    if (a.neverPicked !== b.neverPicked) return a.neverPicked ? 1 : -1;
+    return a.total - b.total;
+  });
 }
 
 /* ── AUTH ─────────────────────────────────────────── */
@@ -2093,7 +2140,7 @@ function computeGroupRelativeTitles(group, stats) {
       });
     });
 
-    const gwCompletedTotals = (s.gwTotals || []).filter(gw => completedGWs.some(c => c.gw === gw.gw && (c.season || activeSeason) === (gw.season || activeSeason)));
+    const gwCompletedTotals = (s.gwTotals || []).filter(gw => gw.points !== null && completedGWs.some(c => c.gw === gw.gw && (c.season || activeSeason) === (gw.season || activeSeason)));
     const gwValues = gwCompletedTotals.map(gw => gw.points);
     const gwMean = gwValues.length ? gwValues.reduce((a,b)=>a+b,0) / gwValues.length : null;
     const gwVariance = gwValues.length > 1 ? gwValues.reduce((sum, pts) => sum + Math.pow(pts - gwMean, 2), 0) / gwValues.length : null;
@@ -3142,7 +3189,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   });
   const liveScores = useLiveScores(currentGW, gwFixtures);
   const gwObj = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
-  const absInfo = gwObj ? buildGWAbsence(group, gwObj) : null;
+  const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
+  const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
     const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
@@ -3484,7 +3532,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const [draftHome, draftAway] = String(myPred).split("-");
         const pts = calcPts(myPreds[f.id],f.result);
-        const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?getMissPts(absInfo,user.username,f.id):null);
+        const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?(userPreJoin?null:MISSED_PICK_PTS):null);
         const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const locked = hardLocked || picksLocked;
         const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
@@ -3682,12 +3730,14 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
   const preds = group.predictions||{};
   const scored = gwFixtures.filter(f=>f.result);
   const gwObj = (group.gameweeks||[]).find(g=>g.gw===(viewedGW??group.currentGW)&&(g.fixtures||[]).some(f=>gwFixtures.some(gf=>gf.id===f.id)));
-  const absInfo = gwObj ? buildGWAbsence(group, gwObj) : null;
-  const weeklyTotals = members.map(u=>scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts!==null?pts:getMissPts(absInfo,u,f.id));},0));
+  const activeSeason = group.season||2025;
+  const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
+  const preJoinMap = useMemo(()=>{const m={};members.forEach(u=>{m[u]=gwObj?isPreJoinGW(firstPicks,u,gwObj,activeSeason):false;});return m;},[members,gwObj,firstPicks,activeSeason]);
+  const weeklyTotals = members.map(u=>{if(preJoinMap[u])return null;return scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts!==null?pts:MISSED_PICK_PTS);},0);});
   const hasAnyPicks = scored.some(f=>members.some(u=>preds[u]?.[f.id]));
-  const sortedUnique = [...new Set(weeklyTotals)].sort((a,b)=>a-b);
-  const weeklyColor = t=>{if(!hasAnyPicks)return "var(--text)";const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
-  const weeklyGlow = t=>{if(!hasAnyPicks)return "none";const r=sortedUnique.indexOf(t);return r===0?"0 0 10px #fbbf2499,0 0 22px #fbbf2455":r===1?"0 0 7px #9ca3af66,0 0 14px #9ca3af33":r===2?"0 0 5px #cd7f3255,0 0 10px #cd7f3222":"none";};
+  const sortedUnique = [...new Set(weeklyTotals.filter(t=>t!==null))].sort((a,b)=>a-b);
+  const weeklyColor = t=>{if(t===null||!hasAnyPicks)return "var(--text-dim)";const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
+  const weeklyGlow = t=>{if(t===null||!hasAnyPicks)return "none";const r=sortedUnique.indexOf(t);return r===0?"0 0 10px #fbbf2499,0 0 22px #fbbf2455":r===1?"0 0 7px #9ca3af66,0 0 14px #9ca3af33":r===2?"0 0 5px #cd7f3255,0 0 10px #cd7f3222":"none";};
 
   const editKey = (u,fid) => `${u}:${fid}`;
   const startEdit = (u,fid) => setEditing(e=>({...e,[editKey(u,fid)]:preds[u]?.[fid]||""}));
@@ -3744,7 +3794,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
             <th style={{padding:"8px 12px",textAlign:"left",color:theme==="excel"?"#fff":"var(--text-dim)",letterSpacing:2,fontWeight:400}}>FIXTURE</th>
             <th style={{padding:"8px 12px",textAlign:"center",color:theme==="excel"?"#fff":"var(--text-dim)",letterSpacing:2,fontWeight:400}}>RESULT</th>
             {members.map((u,ui)=>{
-              const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]===sortedUnique[0];
+              const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]!==null&&weeklyTotals[ui]===sortedUnique[0];
               const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;
               const isAwaiting = Object.values(dibsTurnFor).some(turn => turn === u);
               return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",width:theme==="excel"?undefined:"72px",minWidth:theme==="excel"?undefined:"72px",maxWidth:theme==="excel"?undefined:"72px",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
@@ -3779,7 +3829,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
                   const pts=calcPts(pred,f.result);
-                  const effectivePts=pts!==null?pts:(f.result&&!pred?getMissPts(absInfo,u,f.id):null);
+                  const effectivePts=pts!==null?pts:(f.result&&!pred?(preJoinMap[u]?null:MISSED_PICK_PTS):null);
                   const key=editKey(u,f.id);
                   const isEditingCell=editing[key]!==undefined;
                   if(theme==="excel"){
@@ -3846,7 +3896,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
             <td/>
             {members.map((u,ui)=>{
               const total=weeklyTotals[ui];
-              const totalDisp=total%1===0?total:total.toFixed(1);
+              const totalDisp=total===null?"\u2014":total;
               if(theme==="excel") return <td key={u} colSpan={2} style={{padding:"7px 8px",textAlign:"center",fontSize:13,fontWeight:700,color:weeklyColor(total)}}>{totalDisp}</td>;
               return <td key={u} style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:16,fontWeight:700,color:weeklyColor(total),textShadow:weeklyGlow(total)}}>{totalDisp}</td>;
             })}
@@ -3872,12 +3922,12 @@ function TrendsTab({group,names,theme}) {
   const tt={background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text)"};
   const ds = useMemo(()=>stats.map(p=>({...p,dn:names[p.username]||p.username})),[stats,names]);
   const completedGws = useMemo(()=>gws.filter(g=>(g.fixtures||[]).length>0&&(g.fixtures||[]).every(f=>f.result||f.status==="POSTPONED")),[gws]);
-  const gwLine=useMemo(()=>completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.find(e=>e.gw===g.gw&&e.season===(g.season||activeSeason))?.points??0;});return r;}),[completedGws,ds,activeSeason]);
-  const cumLine=useMemo(()=>completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{r[p.dn]=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))).reduce((a,e)=>a+e.points,0);});return r;}),[completedGws,ds,activeSeason]);
+  const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
+  const gwLine=useMemo(()=>completedGws.map(g=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{const e=p.gwTotals.find(e=>e.gw===g.gw&&e.season===(g.season||activeSeason));if(e&&e.points!==null)r[p.dn]=e.points;});return r;}),[completedGws,ds,activeSeason]);
+  const cumLine=useMemo(()=>completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{const entries=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))&&e.points!==null);if(entries.length===0)return;r[p.dn]=entries.reduce((a,e)=>a+e.points,0)+(p.startingBonus||0);});return r;}),[completedGws,ds,activeSeason]);
   const perfectsData=useMemo(()=>ds.map(p=>({name:p.dn,perfects:p.perfects})),[ds]);
   const preds=group.predictions||{};
-  const gwAbsMap = useMemo(()=>{const m={};gws.forEach(g=>{m[`${g.gw}-${g.season||activeSeason}`]=buildGWAbsence(group,g);});return m;},[group,gws,activeSeason]);
-  const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>(g.fixtures||[]).forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??getMissPts(gwAbsMap[`${g.gw}-${g.season||activeSeason}`],p.username,f.id);if(pts===5?pp>=5:pp===pts)c++;}));r[p.dn]=c;});return r;}),[ds,gws,preds,gwAbsMap,activeSeason]);
+  const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>{if(isPreJoinGW(firstPicks,p.username,g,activeSeason))return;(g.fixtures||[]).forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;});});r[p.dn]=c;});return r;}),[ds,gws,preds,firstPicks,activeSeason]);
   const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
@@ -3895,13 +3945,14 @@ function TrendsTab({group,names,theme}) {
       result[p.username] = {};
       completedGws.forEach(g => {
         const gwKey = `${g.gw}-${g.season||activeSeason}`;
+        if (isPreJoinGW(firstPicks, p.username, g, activeSeason)) { result[p.username][gwKey] = "prejoin"; return; }
         let gwPts = 0, hasMiss = false, allPostponed = true;
         (g.fixtures||[]).forEach(f => {
           if (f.status === "POSTPONED") return;
           allPostponed = false;
           if (!f.result) return;
           const pred = preds[p.username]?.[f.id];
-          if (!pred) { hasMiss = true; gwPts += getMissPts(gwAbsMap[`${g.gw}-${g.season||activeSeason}`], p.username, f.id); }
+          if (!pred) { hasMiss = true; gwPts += MISSED_PICK_PTS; }
           else gwPts += calcPts(pred, f.result) ?? 0;
         });
         if (allPostponed) result[p.username][gwKey] = "postponed";
@@ -3909,17 +3960,18 @@ function TrendsTab({group,names,theme}) {
       });
     });
     return result;
-  }, [ds, completedGws, preds, activeSeason, gwAbsMap]);
+  }, [ds, completedGws, preds, activeSeason, firstPicks]);
   const rankData = useMemo(() => {
     return completedGws.map((g, gi) => {
       const gwsUpTo = completedGws.slice(0, gi + 1);
-      const cumulative = ds.map(p => {
-        let pts = 0, perfs = 0;
+      const cumulative = ds.filter(p => !isPreJoinGW(firstPicks, p.username, g, activeSeason)).map(p => {
+        let pts = p.startingBonus || 0, perfs = 0;
         gwsUpTo.forEach(cg => {
+          if (isPreJoinGW(firstPicks, p.username, cg, activeSeason)) return;
           (cg.fixtures||[]).forEach(f => {
             if (f.status === "POSTPONED" || !f.result) return;
             const pred = preds[p.username]?.[f.id];
-            const fp = pred ? (calcPts(pred, f.result) ?? 0) : getMissPts(gwAbsMap[`${cg.gw}-${cg.season||activeSeason}`], p.username, f.id);
+            const fp = pred ? (calcPts(pred, f.result) ?? 0) : MISSED_PICK_PTS;
             pts += fp;
             if (pred && fp === 0) perfs++;
           });
@@ -3935,7 +3987,7 @@ function TrendsTab({group,names,theme}) {
       sorted.forEach((p, i) => { entry[p.dn] = i + 1; entry[`${p.dn}_pts`] = p.pts; });
       return entry;
     });
-  }, [completedGws, ds, preds, activeSeason, gwAbsMap]);
+  }, [completedGws, ds, preds, activeSeason, firstPicks]);
   const breakdownData = useMemo(() => {
     return ds.map(p => {
       let perfect = 0, close = 0, bad = 0, missed = 0;
@@ -4031,21 +4083,21 @@ function TrendsTab({group,names,theme}) {
   }, [ds, completedGws, preds, activeSeason]);
   const swingData = useMemo(() => {
     return completedGws.map(g => {
-      const scores = ds.map(p => {
+      const scores = ds.filter(p => !isPreJoinGW(firstPicks, p.username, g, activeSeason)).map(p => {
         let total = 0;
         (g.fixtures||[]).forEach(f => {
           if (!f.result || f.status === "POSTPONED") return;
           const pred = preds[p.username]?.[f.id];
-          total += pred ? (calcPts(pred, f.result) ?? 0) : getMissPts(gwAbsMap[`${g.gw}-${g.season||activeSeason}`], p.username, f.id);
+          total += pred ? (calcPts(pred, f.result) ?? 0) : MISSED_PICK_PTS;
         });
         return { dn: p.dn, username: p.username, total };
       });
       const vals = scores.map(s => s.total);
-      const entry = { name: `GW${g.gw}`, min: Math.min(...vals), max: Math.max(...vals), avg: +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) };
+      const entry = { name: `GW${g.gw}`, min: vals.length?Math.min(...vals):0, max: vals.length?Math.max(...vals):0, avg: vals.length?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):0 };
       scores.forEach(s => { entry[s.dn] = s.total; });
       return entry;
     });
-  }, [completedGws, ds, preds, activeSeason, gwAbsMap]);
+  }, [completedGws, ds, preds, activeSeason, firstPicks]);
   const scoreGridData = useMemo(() => {
     const grid = {};
     for (let h = 0; h <= 5; h++) for (let a = 0; a <= 5; a++) grid[`${h}-${a}`] = 0;
@@ -4220,8 +4272,7 @@ function TrendsTab({group,names,theme}) {
           // build relative color scale from actual data
           const allPts = ds.flatMap(p => completedGws.map(g => {
             const cell = (gwHeatmapData[p.username]||{})[`${g.gw}-${g.season||activeSeason}`];
-            if (!cell || cell === "postponed") return null;
-            if (gwAbsMap[`${g.gw}-${g.season||activeSeason}`]?.absent?.has(p.username)) return null; // all-missed
+            if (!cell || cell === "postponed" || cell === "prejoin") return null;
             return cell.pts;
           }).filter(v=>v!==null));
           const heatMin = allPts.length ? Math.min(...allPts) : 0;
@@ -4256,17 +4307,15 @@ function TrendsTab({group,names,theme}) {
                       {completedGws.map((g,ci)=>{
                         const gwKey = `${g.gw}-${g.season||activeSeason}`;
                         const cell = row[gwKey];
-                        if (!cell) return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill="var(--border)"/>;
-                        if (cell === "postponed") return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill="var(--border)"/>;
-                        const allMissed = gwAbsMap[`${g.gw}-${g.season||activeSeason}`]?.absent?.has(p.username);
-                        const fill = allMissed ? (isIndex ? "#e5e7eb" : "#1e1e30") : heatColor(cell.pts);
-                        const textFill = allMissed ? (isIndex ? "#7b818a" : "#555566") : (isIndex ? "#ffffff" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111"));
+                        if (!cell || cell === "postponed" || cell === "prejoin") return <rect key={`${ri}-${ci}`} x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill={cell==="prejoin"?(isIndex?"#e5e7eb":"#1e1e30"):"var(--border)"}/>;
+                        const fill = heatColor(cell.pts);
+                        const textFill = isIndex ? "#ffffff" : (cell.pts/(heatMax||1) < 0.45 ? "#fff" : "#111");
                         return (
                           <g key={`${ri}-${ci}`}>
                             <rect x={labelW+ci*cellW+1} y={32+ri*rowH+1} width={cellW-2} height={rowH-2} rx={3} fill={fill}>
-                              <title>{allMissed?"missed":String(cell.pts)}</title>
+                              <title>{String(cell.pts)}</title>
                             </rect>
-                            {!allMissed && !mob && <text x={labelW+ci*cellW+cellW/2} y={32+ri*rowH+rowH/2} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={10} fontFamily="'DM Mono',monospace" fontWeight={700}>{cell.pts}</text>}
+                            {!mob && <text x={labelW+ci*cellW+cellW/2} y={32+ri*rowH+rowH/2} textAnchor="middle" dominantBaseline="middle" fill={textFill} fontSize={10} fontFamily="'DM Mono',monospace" fontWeight={700}>{cell.pts}</text>}
                           </g>
                         );
                       })}
