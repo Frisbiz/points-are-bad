@@ -4153,11 +4153,14 @@ function TrendsTab({group,names,theme}) {
         else draw++;
       }));
       const total = home + draw + away;
+      const homePct = total ? +((home/total)*100).toFixed(1) : 0;
+      const drawPct = total ? +((draw/total)*100).toFixed(1) : 0;
+      const awayPct = total ? +Math.max(0, 100 - homePct - drawPct).toFixed(1) : 0;
       return {
         name: p.dn,
-        Home: total ? +((home/total)*100).toFixed(1) : 0,
-        Draw: total ? +((draw/total)*100).toFixed(1) : 0,
-        Away: total ? +((away/total)*100).toFixed(1) : 0,
+        Home: homePct,
+        Draw: drawPct,
+        Away: awayPct,
       };
     });
   }, [ds, completedGws, preds]);
@@ -4372,7 +4375,7 @@ function TrendsTab({group,names,theme}) {
             <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:mob?8:40,left:mob?50:60,bottom:0}}>
               <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
               <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
-              <Tooltip contentStyle={tt} formatter={(v,n)=>[`${v}%`,n]}/>
+              <Tooltip contentStyle={tt} formatter={(v,n)=>[`${+Number(v).toFixed(1)}%`,n]}/>
               <Legend wrapperStyle={{fontSize:10}}/>
               <Bar dataKey="Home" stackId="a" fill={isIndex?"#3b82f6":"#6366f1"}/>
 
