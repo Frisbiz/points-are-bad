@@ -1,27 +1,24 @@
 "use client";
 
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 
-function FadeIn({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
-  return (
-    <motion.div
-      ref={ref}
-      style={style}
-      initial={{ opacity: 0, y: 6 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.25, delay, ease: "easeOut" }}
-    >
-      {children}
-    </motion.div>
-  );
-}
+// ─── Index theme tokens ────────────────────────────────────────────────────────
+const T = {
+  bg:        "#f6f6f7",
+  surface:   "#ffffff",
+  border:    "rgba(0,0,0,0.06)",
+  border2:   "rgba(0,0,0,0.08)",
+  text:      "#121417",
+  textDim:   "#7b818a",
+  textMid:   "#565d66",
+  textBright:"#111315",
+  btnBg:     "#15181c",
+  btnText:   "#ffffff",
+};
 
 // ─── Prediction demo ──────────────────────────────────────────────────────────
-
 const PHASES = ["open", "locked", "result", "score"] as const;
 type Phase = (typeof PHASES)[number];
 const PHASE_MS: Record<Phase, number> = { open: 2800, locked: 1200, result: 2000, score: 3200 };
@@ -46,35 +43,39 @@ function PredictionDemo() {
   const statusColor = {
     open:   { color: "#22c55e", bg: "#22c55e15", border: "#22c55e25" },
     locked: { color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b25" },
-    result: { color: "#e8e4d9", bg: "#e8e4d910", border: "#e8e4d920" },
-    score:  { color: "#e8e4d9", bg: "#e8e4d910", border: "#e8e4d920" },
+    result: { color: T.textDim, bg: "transparent", border: T.border2 },
+    score:  { color: T.textDim, bg: "transparent", border: T.border2 },
   }[phase];
 
   const scoreCell = (val: string, dim?: boolean) => (
     <div style={{
       width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
-      background: "var(--bg)", border: "1px solid var(--border2)", borderRadius: 8,
+      background: T.bg, border: `1px solid ${T.border2}`, borderRadius: 8,
       fontSize: 22, fontWeight: 500, fontFamily: "'DM Mono', monospace",
-      color: "var(--text-bright)", opacity: dim ? 0.45 : 1, transition: "opacity 0.4s",
+      color: T.textBright, opacity: dim ? 0.4 : 1, transition: "opacity 0.4s",
     }}>{val}</div>
   );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35, duration: 0.25, ease: "easeOut" }}
-      style={{ width: "100%", maxWidth: 340 }}
+      transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
+      style={{ width: "100%", maxWidth: 400 }}
     >
       <div style={{
-        background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 14,
-        padding: 24, fontFamily: "'DM Mono', monospace",
+        background: "linear-gradient(180deg, #ffffff, #fbfbfc)",
+        border: `1px solid ${T.border2}`,
+        boxShadow: "0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.78)",
+        borderRadius: 24,
+        minHeight: 330,
+        backdropFilter: "blur(12px)",
       }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "20px 20px 0", marginBottom: 20 }}>
           <div>
-            <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 5 }}>Matchweek 32</div>
-            <div style={{ fontSize: 14, color: "var(--text-bright)", fontWeight: 500 }}>Arsenal vs Tottenham</div>
-            <div style={{ fontSize: 10, color: "var(--text-dim2)", marginTop: 2 }}>Sat 15 Apr · 12:30</div>
+            <div style={{ fontSize: 10, color: "#9cb6cf", letterSpacing: 3, textTransform: "uppercase", marginBottom: 5 }}>Matchweek 32</div>
+            <div style={{ fontSize: 14, color: T.textBright, fontWeight: 500 }}>Arsenal vs Tottenham</div>
+            <div style={{ fontSize: 10, color: T.textDim, marginTop: 2 }}>Sat 15 Apr · 12:30</div>
           </div>
           <AnimatePresence mode="wait">
             <motion.div
@@ -84,9 +85,10 @@ function PredictionDemo() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
               style={{
-                fontSize: 9, letterSpacing: 2, fontWeight: 500, padding: "3px 9px",
-                borderRadius: 4, border: `1px solid ${statusColor.border}`,
+                fontSize: 9, letterSpacing: 2, fontWeight: 500, padding: "6px 10px",
+                borderRadius: 999, border: `1px solid ${statusColor.border}`,
                 background: statusColor.bg, color: statusColor.color,
+                backdropFilter: "blur(12px)",
               }}
             >
               {statusLabel}
@@ -94,12 +96,12 @@ function PredictionDemo() {
           </AnimatePresence>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "0 20px", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Your pick</div>
+            <div style={{ fontSize: 9, color: T.textDim, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Your pick</div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {scoreCell("2", phase !== "open")}
-              <span style={{ color: "var(--text-dim)", fontSize: 14 }}>–</span>
+              <span style={{ color: T.textDim, fontSize: 14 }}>–</span>
               {scoreCell("1", phase !== "open")}
             </div>
           </div>
@@ -112,10 +114,10 @@ function PredictionDemo() {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.2 }}
               >
-                <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Actual</div>
+                <div style={{ fontSize: 9, color: T.textDim, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Actual</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {scoreCell("3")}
-                  <span style={{ color: "var(--text-dim)", fontSize: 14 }}>–</span>
+                  <span style={{ color: T.textDim, fontSize: 14 }}>–</span>
                   {scoreCell("1")}
                 </div>
               </motion.div>
@@ -123,281 +125,225 @@ function PredictionDemo() {
           </AnimatePresence>
         </div>
 
-        <AnimatePresence>
-          {phase === "locked" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ fontSize: 10, color: "#f59e0b", letterSpacing: 1, marginBottom: 12 }}
-            >
-              Picks locked at kickoff
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div style={{ minHeight: 62, padding: "0 20px 20px" }}>
+          <AnimatePresence>
+            {phase === "locked" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ fontSize: 10, color: "#f59e0b", letterSpacing: 1, marginBottom: 12 }}
+              >
+                Picks locked at kickoff
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        <AnimatePresence>
-          {phase === "score" && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              style={{ overflow: "hidden" }}
-            >
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, marginTop: 4 }}>
-                <div style={{ fontSize: 11, color: "var(--text-mid)", letterSpacing: 0.5, marginBottom: 6 }}>
-                  |2−3| + |1−1| = 1 + 0
+          <AnimatePresence>
+            {phase === "score" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ overflow: "hidden" }}
+              >
+                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: T.textMid, letterSpacing: 0.5, marginBottom: 6, fontFamily: "'DM Mono', monospace" }}>
+                    |2−3| + |1−1| = 1 + 0
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20, fontWeight: 500, color: T.textBright, fontFamily: "'DM Mono', monospace" }}>1 point</span>
+                    <span style={{ fontSize: 10, color: T.textDim, letterSpacing: 1 }}>LOWER IS BETTER</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20, fontWeight: 500, color: "var(--text-bright)" }}>1 point</span>
-                  <span style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1 }}>LOWER IS BETTER</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-// ─── Landing page ─────────────────────────────────────────────────────────────
+// ─── Marquee ──────────────────────────────────────────────────────────────────
+function Marquee() {
+  return (
+    <div style={{ overflow: "hidden", position: "relative", padding: "18px 0 10px", marginLeft: "calc(50% - 50vw)", marginRight: "calc(50% - 50vw)" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 120, background: `linear-gradient(90deg, ${T.bg} 0%, transparent 100%)`, zIndex: 2, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 120, background: `linear-gradient(270deg, ${T.bg} 0%, transparent 100%)`, zIndex: 2, pointerEvents: "none" }} />
+      <div style={{ display: "flex", width: "max-content", animation: "marqueeScroll 32s linear infinite", whiteSpace: "nowrap" }}>
+        {Array.from({ length: 36 }).map((_, i) => (
+          <div key={i} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginRight: 34 }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: T.textBright, letterSpacing: "-0.03em", lineHeight: 1 }}>
+              Points Are Bad
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
+// ─── Steps ────────────────────────────────────────────────────────────────────
 const STEPS = [
-  {
-    num: "01",
-    title: "Join or create a group",
-    body: "Share an invite code. Everyone in your group sees the same fixtures each gameweek.",
-  },
-  {
-    num: "02",
-    title: "Submit your scorelines",
-    body: "Pick exact home and away goals for every fixture before kickoff. Picks stay hidden until you lock them all in.",
-  },
-  {
-    num: "03",
-    title: "Lowest total wins",
-    body: "Points are goals off per fixture. Zero is a perfect pick. The leaderboard runs all season.",
-  },
+  { num: "01", title: "Join a group",         body: "Create a private league or join an invite-only group with a code." },
+  { num: "02", title: "Make your picks",       body: "Predict every scoreline before kickoff. Hidden picks keep everyone honest." },
+  { num: "03", title: "Watch the damage",      body: "Every goal off counts against you. Being close isn't close enough." },
+  { num: "04", title: "Finish lowest",         body: "Lowest total after the season wins." },
 ];
 
+// ─── Landing page ─────────────────────────────────────────────────────────────
 export default function LandingPage() {
   return (
-    <div style={{ fontFamily: "'DM Mono', monospace", color: "var(--text)" }}>
+    <div style={{ fontFamily: "Inter, system-ui, sans-serif", color: T.text, background: T.bg, minHeight: "100vh" }}>
 
-      {/* ── HERO ─────────────────────────────────────── */}
-      <section
-        className="hero-grid"
-        style={{
-          paddingTop: 80,
-          paddingBottom: 80,
-          display: "grid",
-          gridTemplateColumns: "55fr 45fr",
-          gap: 64,
-          alignItems: "center",
-        }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-        >
-          <h1 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontWeight: 900,
-            fontSize: "clamp(2.8rem, 5vw, 4.2rem)",
-            color: "var(--text-bright)",
-            letterSpacing: -2,
-            lineHeight: 1.05,
-            marginBottom: 20,
-          }}>
-            Predict every goal.
-          </h1>
-
-          <p style={{
-            fontSize: 12,
-            color: "var(--text-mid)",
-            lineHeight: 1.85,
-            maxWidth: 360,
-            marginBottom: 36,
-            letterSpacing: 0.3,
-          }}>
-            Score prediction game for friend groups. Pick exact scorelines for
-            every Premier League fixture each gameweek. Every goal off costs a
-            point. Lowest total wins.
-          </p>
-
-          <Link href="/signup" style={{
-            background: "var(--btn-bg)",
-            color: "var(--btn-text)",
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            padding: "12px 28px",
-            borderRadius: 8,
-            fontWeight: 500,
-            textDecoration: "none",
-            fontFamily: "'DM Mono', monospace",
-            display: "inline-block",
-          }}>
-            Create a group
-          </Link>
-        </motion.div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <PredictionDemo />
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ─────────────────────────────── */}
-      <section style={{ borderTop: "1px solid var(--border)", paddingTop: "clamp(3rem, 8vw, 5rem)", paddingBottom: "clamp(3rem, 8vw, 5rem)" }}>
-        <FadeIn>
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontWeight: 900,
-            fontSize: 26,
-            color: "var(--text-bright)",
-            letterSpacing: -1,
-            marginBottom: 36,
-          }}>
-            How it works.
-          </h2>
-        </FadeIn>
-
-        <div>
-          {STEPS.map((step, i) => (
-            <FadeIn key={step.num} delay={i * 0.06}>
-              <div
-                className="step-row"
-                style={{
-                  borderTop: "1px solid var(--border)",
-                  paddingTop: 22,
-                  paddingBottom: 22,
-                  display: "grid",
-                  gridTemplateColumns: "48px 1fr 1fr",
-                  gap: 24,
-                  alignItems: "start",
-                }}
-              >
-                <div style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: 2, paddingTop: 2 }}>{step.num}</div>
-                <div style={{ fontSize: 13, color: "var(--text-bright)", fontWeight: 500, letterSpacing: 0.2, lineHeight: 1.4 }}>{step.title}</div>
-                <div style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.8 }}>{step.body}</div>
-              </div>
-            </FadeIn>
-          ))}
-          <div style={{ borderTop: "1px solid var(--border)" }} />
-        </div>
-      </section>
-
-      {/* ── SCORING ──────────────────────────────────── */}
-      <section style={{ borderTop: "1px solid var(--border)", paddingTop: "clamp(3rem, 8vw, 5rem)", paddingBottom: "clamp(3rem, 8vw, 5rem)" }}>
-        <FadeIn>
-          <div
-            className="scoring-strip"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1px 1fr",
-              gap: 40,
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <h2 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontWeight: 900,
-                fontSize: 26,
-                color: "var(--text-bright)",
-                letterSpacing: -1,
-                marginBottom: 14,
-              }}>
-                Points are goals off.
-              </h2>
-              <p style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.85, maxWidth: 340 }}>
-                For each fixture, count how many goals off you were on each side.
-                Zero is a perfect pick. Accumulate the least over the season.
-              </p>
-            </div>
-
-            <div style={{ width: 1, background: "var(--border)", alignSelf: "stretch" }} />
-
-            <div style={{ fontFamily: "'DM Mono', monospace" }}>
-              <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 14 }}>Formula</div>
-              <div style={{ fontSize: 15, color: "var(--text-bright)", fontWeight: 500, letterSpacing: 0.5, marginBottom: 16 }}>
-                pts = |pH − aH| + |pA − aA|
-              </div>
-              <div style={{ fontSize: 10, color: "var(--text-dim2)", lineHeight: 2, marginBottom: 16 }}>
-                <div>pH / aH = predicted / actual home goals</div>
-                <div>pA / aA = predicted / actual away goals</div>
-              </div>
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, fontSize: 11, color: "var(--text-mid)" }}>
-                predict 2-1, actual 3-1: |2−3| + |1−1| ={" "}
-                <span style={{ color: "var(--text-bright)", fontWeight: 500 }}>1 pt</span>
-              </div>
-            </div>
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* ── CTA ──────────────────────────────────────── */}
-      <FadeIn>
+      {/* ── HERO ─────────────────────────────────────────────────── */}
+      <div className="index-grid-bg" style={{ maxWidth: 1280, margin: "0 auto", padding: "96px 24px 0" }}>
         <section
-          className="cta-grid"
-          style={{
-            borderTop: "1px solid var(--border)",
-            paddingTop: "clamp(3rem, 8vw, 5rem)",
-            paddingBottom: "clamp(4rem, 10vw, 6rem)",
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            alignItems: "end",
-            gap: 40,
-          }}
+          className="land-hero"
+          style={{ padding: "36px 0 72px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }}
         >
-          <div>
-            <h2 style={{
-              fontFamily: "'Playfair Display', serif",
-              fontWeight: 900,
-              fontSize: "clamp(2rem, 4vw, 3rem)",
-              color: "var(--text-bright)",
-              letterSpacing: -2,
-              lineHeight: 1.1,
-              marginBottom: 12,
-            }}>
-              Start a group.
-            </h2>
-            <p style={{ fontSize: 11, color: "var(--text-mid)", letterSpacing: 0.3 }}>
-              Free. Invite friends with a code. Picks open each gameweek.
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <div style={{ fontSize: 11, color: T.textDim, letterSpacing: 1.6, marginBottom: 8 }}>pab.wtf</div>
+            <div style={{ fontSize: 11, color: T.textDim, letterSpacing: "0.15em", marginBottom: 28 }}>Premier League score predictions</div>
+            <h1 style={{ fontWeight: 800, fontSize: "clamp(2.2rem, 5vw, 3.75rem)", color: T.textBright, letterSpacing: "-0.025em", lineHeight: 1.08, marginBottom: 10, maxWidth: 560 }}>
+              Join one group.
+            </h1>
+            <div style={{ fontWeight: 800, fontSize: "clamp(2.2rem, 5vw, 3.75rem)", lineHeight: 1.08, letterSpacing: "-0.025em", marginBottom: 20, color: T.textBright }}>
+              Make <span style={{ WebkitTextStroke: "1px rgba(0,0,0,.22)", color: "transparent" }}>real picks</span>.
+            </div>
+            <p style={{ fontSize: 15, color: T.textMid, lineHeight: 1.7, maxWidth: 420, marginBottom: 36 }}>
+              Predict exact scores for every Premier League game. Every goal off costs a point. Lowest total wins.
             </p>
-          </div>
+            <div className="land-hero-btns" style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
+              <Link href="/signup" style={{ background: T.btnBg, color: T.btnText, fontSize: 13, letterSpacing: 0.1, padding: "12px 20px", borderRadius: 0, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+                Sign in / up
+              </Link>
+              <Link href="/login" style={{ background: "transparent", color: T.textBright, fontSize: 13, letterSpacing: 0.1, fontWeight: 600, textDecoration: "none" }}>
+                Try Demo →
+              </Link>
+            </div>
+            <div style={{ marginTop: 28, display: "flex", alignItems: "center", gap: 10, fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(86,93,102,.55)" }}>
+              <span>Hidden picks</span>
+              <span style={{ width: 1, height: 10, background: "rgba(0,0,0,.12)" }} />
+              <span>Premier League</span>
+              <span style={{ width: 1, height: 10, background: "rgba(0,0,0,.12)" }} />
+              <span>Lowest wins</span>
+            </div>
+          </motion.div>
 
-          <Link href="/signup" style={{
-            background: "var(--btn-bg)",
-            color: "var(--btn-text)",
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            padding: "13px 32px",
-            borderRadius: 8,
-            fontWeight: 500,
-            textDecoration: "none",
-            fontFamily: "'DM Mono', monospace",
-            display: "inline-block",
-            whiteSpace: "nowrap",
-          }}>
-            Create a group
-          </Link>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <PredictionDemo />
+          </div>
         </section>
-      </FadeIn>
+
+        <Marquee />
+
+        {/* ── HOW IT WORKS ──────────────────────────────────────── */}
+        <section className="land-section" style={{ padding: "64px 0" }}>
+          <div style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8, fontWeight: 500 }}>How it works</div>
+          <h2 style={{ fontWeight: 600, fontSize: 32, color: T.textBright, letterSpacing: "-0.02em", marginBottom: 40, maxWidth: 420 }}>Simple by design.</h2>
+          <div className="land-steps" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
+            {STEPS.map((s) => (
+              <div key={s.num} className="liquid-card" style={{ borderRadius: 24, padding: "26px 24px", position: "relative", overflow: "hidden" }}>
+                <span style={{ position: "absolute", right: -6, top: -18, fontSize: 110, fontWeight: 800, letterSpacing: "-0.06em", color: "rgba(0,0,0,.03)", lineHeight: 1 }}>{s.num}</span>
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 11, color: T.textDim, letterSpacing: 1.2, marginBottom: 14, fontWeight: 600 }}>{s.num}</div>
+                  <div style={{ fontSize: 16, color: T.textBright, fontWeight: 600, marginBottom: 10 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, color: T.textMid, lineHeight: 1.65, maxWidth: 220 }}>{s.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── CTA ───────────────────────────────────────────────── */}
+        <section className="land-cta-section" style={{ padding: "80px 0 100px", textAlign: "center" }}>
+          <div className="liquid-card" style={{ maxWidth: 760, margin: "0 auto", borderRadius: 32, padding: "56px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 16, fontWeight: 500 }}>Play</div>
+            <h2 style={{ fontWeight: 600, fontSize: "clamp(2rem, 4vw, 2.6rem)", color: T.textBright, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 16 }}>
+              Start losing with friends today.
+            </h2>
+            <p style={{ fontSize: 15, color: T.textMid, marginBottom: 36, maxWidth: 460, margin: "0 auto 36px", lineHeight: 1.7 }}>
+              Free to use. Invite friends with a code. Picks open each gameweek.
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 14 }}>
+              <Link href="/signup" style={{ background: T.btnBg, color: T.btnText, fontSize: 13, padding: "12px 24px", borderRadius: 0, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+                Sign in / up
+              </Link>
+              <Link href="/login" style={{ background: "transparent", color: T.textBright, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+                Try demo →
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
 
       <style>{`
+        @keyframes marqueeScroll {
+          from { transform: translateX(0); }
+          to   { transform: translateX(-50%); }
+        }
+        .index-grid-bg { position: relative; }
+        .index-grid-bg::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);
+          background-size: 48px 48px;
+          mask-image: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));
+          pointer-events: none;
+        }
+        .liquid-card {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(180deg, #f7f7f8, #efeff2);
+          border: 1px solid rgba(0,0,0,.06);
+          box-shadow: 0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.5);
+        }
+        .liquid-card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.03) 0%, transparent 68%);
+          animation: liquidFlow 24s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .liquid-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.02) 0%, transparent 62%);
+          animation: liquidFlowB 30s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes liquidFlow {
+          0%,100% { transform: translate(0,0) scale(1); }
+          33%      { transform: translate(4%,-3%) scale(1.04); }
+          66%      { transform: translate(-3%,4%) scale(.97); }
+        }
+        @keyframes liquidFlowB {
+          0%,100% { transform: translate(0,0) scale(1); }
+          40%      { transform: translate(-5%,3%) scale(1.06); }
+          70%      { transform: translate(3%,-5%) scale(.96); }
+        }
         @media (max-width: 720px) {
-          .hero-grid { grid-template-columns: 1fr !important; }
-          .scoring-strip { grid-template-columns: 1fr !important; }
-          .scoring-strip > div:nth-child(2) { display: none; }
-          .cta-grid { grid-template-columns: 1fr !important; }
-          .step-row { grid-template-columns: 48px 1fr !important; }
-          .step-row > div:last-child { grid-column: 2; }
+          .land-hero  { grid-template-columns: 1fr !important; gap: 28px !important; padding-top: 20px !important; }
+          .land-steps { grid-template-columns: 1fr !important; gap: 14px !important; }
+        }
+        @media (max-width: 620px) {
+          .land-hero        { padding-top: 0 !important; padding-bottom: 32px !important; }
+          .land-hero-btns   { flex-direction: column !important; align-items: stretch !important; }
+          .land-cta-section { padding: 0 !important; }
+          .land-cta-section .liquid-card { padding: 36px 20px !important; border-radius: 20px !important; }
         }
       `}</style>
     </div>

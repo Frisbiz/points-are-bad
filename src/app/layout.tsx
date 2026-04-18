@@ -11,9 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'DM Mono', monospace" }}>
+        <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)" }}>
           <Header />
-          <main style={{ maxWidth: 940, margin: "0 auto", padding: "0 24px" }}>
+          <main>
             {children}
           </main>
         </div>

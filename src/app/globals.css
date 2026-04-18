@@ -4,25 +4,25 @@
 @tailwind utilities;
 
 :root {
-  --bg: #080810;
-  --surface: #0e0e1a;
-  --card: #0c0c18;
-  --card-hi: #0f0f1d;
-  --border: #1a1a26;
-  --border2: #1e1e2e;
-  --text: #e8e4d9;
-  --text-dim: #555566;
-  --text-dim2: #666;
-  --text-mid: #999;
-  --text-bright: #fff;
-  --btn-bg: #fff;
-  --btn-text: #000;
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --card: #f0f0f2;
+  --card-hi: #f7f7f8;
+  --border: rgba(0,0,0,0.06);
+  --border2: rgba(0,0,0,0.08);
+  --text: #121417;
+  --text-dim: #7b818a;
+  --text-dim2: #8f959d;
+  --text-mid: #565d66;
+  --text-bright: #111315;
+  --btn-bg: #15181c;
+  --btn-text: #ffffff;
 }
 
 html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'DM Mono', monospace;
+  font-family: Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
