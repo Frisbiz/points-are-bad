@@ -42,6 +42,53 @@ html, body {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
 
+/* ── Shared surface styles ────────────────────────── */
+.liquid-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f7f7f8, #efeff2);
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.liquid-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 80% at 50% 50%, rgba(0,0,0,.03) 0%, transparent 68%);
+  animation: liquidFlow 24s ease-in-out infinite;
+  pointer-events: none;
+}
+.liquid-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 90% at 50% 50%, rgba(0,0,0,.02) 0%, transparent 62%);
+  animation: liquidFlowB 30s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes liquidFlow {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(4%,-3%) scale(1.04); }
+  66%      { transform: translate(-3%,4%) scale(.97); }
+}
+@keyframes liquidFlowB {
+  0%,100% { transform: translate(0,0) scale(1); }
+  40%      { transform: translate(-5%,3%) scale(1.06); }
+  70%      { transform: translate(3%,-5%) scale(.96); }
+}
+.index-grid-bg { position: relative; }
+.index-grid-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.14));
+  pointer-events: none;
+}
+
 @keyframes thumbdown {
   0%   { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-70px) scale(1.5); }
