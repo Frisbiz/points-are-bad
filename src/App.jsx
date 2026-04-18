@@ -427,7 +427,7 @@ const BadgeScore = ({ score, missed=false }) => {
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
-  const base = {fontFamily:"'DM Mono',monospace",cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:8,fontWeight:500,letterSpacing:0.5,transition:"all 0.15s",opacity:disabled?0.4:1,padding:small?"6px 14px":"10px 22px",fontSize:small?12:13};
+  const base = {fontFamily:"'DM Mono',monospace",cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:8,fontWeight:500,letterSpacing:0.5,transition:"transform 100ms ease-out,background 0.15s,color 0.15s,border-color 0.15s,opacity 0.15s",opacity:disabled?0.4:1,padding:small?"6px 14px":"10px 22px",fontSize:small?12:13};
   const V = {
     default:{background:"var(--btn-bg)",color:"var(--btn-text)"},
     ghost:{background:"transparent",border:"1px solid var(--border)",color:"var(--text-mid)"},
@@ -436,7 +436,7 @@ const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}})
     muted:{background:"var(--border)",border:"1px solid var(--border)",color:"var(--text-dim2)"},
     amber:{background:"#f59e0b18",border:"1px solid #f59e0b35",color:"#f59e0b"},
   };
-  return <button onClick={disabled?undefined:onClick} style={{...base,...V[variant],...extra}}>{children}</button>;
+  return <button className="pab-btn" onClick={disabled?undefined:onClick} style={{...base,...V[variant],...extra}}>{children}</button>;
 };
 
 const Spinner = ({ size = 4 }) => (
@@ -446,7 +446,7 @@ const Spinner = ({ size = 4 }) => (
 );
 
 const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus}) => (
-  <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus}
+  <input className="pab-input" type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus}
     style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
 );
 
@@ -578,9 +578,17 @@ const CSS = `
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
   @keyframes perfectShimmer{0%{transform:translateX(-120%);}55%,100%{transform:translateX(130%);}}
-  .fade{animation:fadein 0.25s ease forwards;}
-  .frow:hover{background:var(--card-hover)!important;}
-  .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all 0.18s;}
+  @keyframes dotP{0%,100%{opacity:0.3;transform:scale(0.75);}50%{opacity:1;transform:scale(1);}}
+  @keyframes overlayIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+  .fade{animation:fadein 0.2s cubic-bezier(0.23,1,0.32,1) forwards;}
+  .frow{transition:background 0.12s;}.frow:hover{background:var(--card-hover)!important;}
+  .modal-overlay{animation:overlayIn 0.18s ease forwards;}
+  .modal-panel{animation:modalIn 0.2s cubic-bezier(0.23,1,0.32,1) forwards;}
+  .pab-btn:active:not([disabled]){transform:scale(0.97);}
+  .pab-input{transition:border-color 0.15s,box-shadow 0.15s;}.pab-input:focus{border-color:var(--text-dim)!important;box-shadow:0 0 0 1px var(--text-dim)!important;outline:none;}
+  @media(prefers-reduced-motion:reduce){.fade,.modal-overlay,.modal-panel{animation-duration:0.01ms!important;}.pab-btn:active:not([disabled]){transform:none;}}
+  .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s,background 0.15s;}
   .nb:hover{color:var(--text-mid)!important;}
   .nb.active{color:var(--text-bright)!important;border-bottom-color:var(--text)!important;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
@@ -602,7 +610,7 @@ const CSS = `
   [data-theme="index"] .nb:hover{color:var(--text-bright)!important;}
   [data-theme="index"] .nb.active{color:var(--text-bright)!important;border-bottom-color:rgba(0,0,0,.18)!important;}
   [data-theme="index"] .bot-nav{backdrop-filter:blur(18px);background:rgba(255,255,255,.92);border-top:1px solid rgba(0,0,0,.06);}
-  [data-theme="index"] button,[data-theme="index"] input,[data-theme="index"] select{transition:all .18s ease, box-shadow .22s ease, transform .18s ease;}
+  [data-theme="index"] button,[data-theme="index"] input,[data-theme="index"] select{transition:background .18s ease,color .18s ease,border-color .18s ease,box-shadow .22s ease,transform .18s ease;}
   [data-theme="index"] button:hover{box-shadow:none;}
   [data-theme="index"] input{box-shadow:0 0 0 1px rgba(0,0,0,.03) inset;}
   [data-theme="index"] .glass-panel{background:linear-gradient(180deg, #ffffff, #fbfbfc);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 0 1px rgba(0,0,0,.015), inset 0 1px 0 rgba(255,255,255,.78);}
@@ -648,7 +656,7 @@ const CSS = `
 
   [data-theme="spotify"] header{background:linear-gradient(180deg,#121212 0%,#121212ee 100%)!important;border-bottom:none!important;box-shadow:0 4px 20px rgba(0,0,0,0.5)!important;backdrop-filter:blur(12px)!important;}
 
-  [data-theme="spotify"] button{border-radius:500px!important;font-weight:700!important;letter-spacing:0.8px!important;text-transform:uppercase!important;font-size:12px!important;transition:all 0.2s ease,transform 0.1s ease!important;border-color:transparent!important;}
+  [data-theme="spotify"] button{border-radius:500px!important;font-weight:700!important;letter-spacing:0.8px!important;text-transform:uppercase!important;font-size:12px!important;transition:background 0.2s ease,color 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease,transform 0.1s ease!important;border-color:transparent!important;}
   [data-theme="spotify"] button:hover{transform:scale(1.03);}
   [data-theme="spotify"] button:active{transform:scale(0.97);}
 
@@ -1298,12 +1306,12 @@ function AccountSetupModal({ user, onDone, onLogout }) {
   };
 
   return createPortal(
-    <div style={{
+    <div className="modal-overlay" style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)",
       zIndex: 2000, display: "flex", alignItems: "center",
       justifyContent: "center", padding: 24,
     }}>
-      <div style={{
+      <div className="modal-panel" style={{
         background: "var(--card)", border: "1px solid var(--border)",
         borderRadius: 14, padding: 32, width: "100%", maxWidth: 400,
         fontFamily: "'DM Mono',monospace",
@@ -1512,8 +1520,8 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
   );
 
   return createPortal(
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>
+    <div className="modal-overlay" onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit", fontWeight: theme==="index"?600:undefined }}>WHAT'S NEW</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
@@ -1805,8 +1813,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
         </div>
       </header>
       {inviteGroup&&createPortal(
-  <div onClick={()=>setInviteGroup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
+  <div className="modal-overlay" onClick={()=>setInviteGroup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>GROUP INVITE</div>
       <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:28,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:10}}>{inviteGroup.name}</div>
       <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
@@ -1824,8 +1832,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   document.body
 )}
       {accountOpen&&createPortal(
-  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
+  <div className="modal-overlay" onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:12,fontWeight:600}}>PROFILE</div>
       <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
@@ -2703,8 +2711,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
         </div>
       </header>
       {accountOpen&&createPortal(
-  <div onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} className={theme==="index"?"liquid-card":undefined} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
+  <div className="modal-overlay" onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+    <div onClick={e=>e.stopPropagation()} className={`modal-panel${theme==="index"?" liquid-card":""}`} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:12,fontWeight:600}}>PROFILE</div>
       <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
@@ -3400,8 +3408,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   return (
     <div>
       {showWizard&&wizardFixture&&createPortal(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
+        <div className="modal-overlay" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div className="modal-panel" style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
             <div style={{fontSize:13,color:"var(--text-dim)",letterSpacing:2,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
               <div style={{textAlign:"right",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8}}>
@@ -3774,8 +3782,8 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
   return (
     <div style={{marginTop:40}}>
       {editConfirm&&createPortal(
-        <div onClick={cancelConfirm} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:28,width:"100%",maxWidth:340}}>
+        <div className="modal-overlay" onClick={cancelConfirm} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:28,width:"100%",maxWidth:340}}>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>EDIT PICK</div>
             <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>{names[editConfirm.u]||editConfirm.u}</div>
             <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:18}}>{gwFixtures.find(f=>f.id===editConfirm.fid)?.home} vs {gwFixtures.find(f=>f.id===editConfirm.fid)?.away}</div>
@@ -5216,8 +5224,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
       <Accordion sections={sections} openId={openSection} setOpenId={setOpenSection} />
 
       {skipModal&&createPortal(
-        <div style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:28,maxWidth:400,width:"100%"}}>
+        <div className="modal-overlay" style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div className="modal-panel" style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:28,maxWidth:400,width:"100%"}}>
             {!skipConfirm ? (
               <>
                 <div style={{fontSize:15,color:"var(--text-bright)",marginBottom:10,fontWeight:700}}>
@@ -5248,8 +5256,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
         document.body
       )}
       {deleteModalOpen&&createPortal(
-        <div onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
+        <div className="modal-overlay" onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+          <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
             <div style={{fontSize:10,color:"#ef4444",letterSpacing:3,marginBottom:12}}>DELETE GROUP</div>
             <div style={{fontSize:13,color:"var(--text)",marginBottom:6}}>This permanently deletes <strong>{group.name}</strong> and all its data.</div>
             <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20}}>Enter your password to confirm.</div>
