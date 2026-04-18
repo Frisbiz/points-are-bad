@@ -127,6 +127,19 @@ function PredictionDemo() {
 
         <div style={{ minHeight: 62, padding: "0 20px 20px" }}>
           <AnimatePresence>
+            {phase === "open" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ fontSize: 10, color: T.textDim, letterSpacing: 1, marginBottom: 12 }}
+              >
+                Picks open until kickoff
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
             {phase === "locked" && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -246,12 +259,12 @@ export default function LandingPage() {
         <Marquee />
 
         {/* ── HOW IT WORKS ──────────────────────────────────────── */}
-        <section className="land-section" style={{ padding: "64px 0" }}>
+        <section className="land-section" style={{ padding: "64px 0", borderTop: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8, fontWeight: 500 }}>How it works</div>
           <h2 style={{ fontWeight: 600, fontSize: 32, color: T.textBright, letterSpacing: "-0.02em", marginBottom: 40, maxWidth: 420 }}>Simple by design.</h2>
           <div className="land-steps" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
             {STEPS.map((s) => (
-              <div key={s.num} className="liquid-card" style={{ borderRadius: 24, padding: "26px 24px", position: "relative", overflow: "hidden" }}>
+              <div key={s.num} className="liquid-card" style={{ borderRadius: 24, padding: "32px 28px", position: "relative", overflow: "hidden" }}>
                 <span style={{ position: "absolute", right: -6, top: -18, fontSize: 110, fontWeight: 800, letterSpacing: "-0.06em", color: "rgba(0,0,0,.03)", lineHeight: 1 }}>{s.num}</span>
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <div style={{ fontSize: 11, color: T.textDim, letterSpacing: 1.2, marginBottom: 14, fontWeight: 600 }}>{s.num}</div>
@@ -264,7 +277,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── CTA ───────────────────────────────────────────────── */}
-        <section className="land-cta-section" style={{ padding: "80px 0 100px", textAlign: "center" }}>
+        <section className="land-cta-section" style={{ padding: "80px 0 100px", textAlign: "center", borderTop: `1px solid ${T.border}` }}>
           <div className="liquid-card" style={{ maxWidth: 760, margin: "0 auto", borderRadius: 32, padding: "56px 24px", textAlign: "center" }}>
             <div style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 16, fontWeight: 500 }}>Play</div>
             <h2 style={{ fontWeight: 600, fontSize: "clamp(2rem, 4vw, 2.6rem)", color: T.textBright, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 16 }}>
