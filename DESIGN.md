@@ -2,85 +2,103 @@
 
 ## 1. Visual Theme & Atmosphere
 
-A terse, cockpit-adjacent interface for people who care about football more than UI. Deep space dark — not "dark mode," but genuinely lightless. The atmosphere is like a Bloomberg terminal crossed with a sports stats sheet: monospaced, clinical, no decoration that isn't load-bearing. Density sits at a 4 (balanced, not airy, not cramped). Variance at 7 — asymmetric splits, offset grids, never 3-equal-cards. Motion at 5 — purposeful reveals and state transitions, no choreography.
+A clean, editorial-adjacent interface that feels like a well-made sports product — not a generic SaaS tool. The atmosphere is crisp and neutral: off-white surface, barely-there grid lines, frosted glass nav. Density sits at a 5 (balanced, information visible without crowding). Variance at 6 — floating pill nav, ghost-stroke headline text, asymmetric hero split, liquid gradient cards. Motion at 5 — perpetual marquee, animated liquid card radial gradients, Framer Motion entrance reveals. The score widget is the only perpetual foreground animation. Everything else is one-shot on load.
 
-The editorial serif (Playfair Display) is used exclusively for display headlines, acting as a counterpoint to the monospace body — a deliberate contrast that makes headlines feel weighty and human against the mechanical grid beneath them.
+The deliberate contrast: Inter (functional, legible, familiar) for all UI copy paired with DM Mono exclusively for numeric data — score cells, formulas, matchweek labels. This is not a creative portfolio; it's a sports tool. Familiarity is the design choice.
 
 ## 2. Color Palette & Roles
 
-- **Deep Space** (#080810) — Primary background, the void
-- **Surface Ink** (#0e0e1a) — Cards and elevated containers
-- **Void Border** (#1a1a26) — Structural 1px dividers between sections
-- **Component Border** (#1e1e2e) — Card and input outlines
-- **Bone White** (#e8e4d9) — Primary body text, the default reading color
-- **Dim Steel** (#555566) — Muted labels, eyebrow text, timestamps
-- **Mid Gray** (#999999) — Secondary descriptions, helper copy
-- **Ghost White** (#ffffff) — Headlines only, maximum contrast
-- **Chalk CTA** (#ffffff bg / #000000 text) — Single primary button; flat, no glow, no shadow. Button text uses near-black on white — not pure design black, but the stark contrast is intentional
-- **Active Green** (#22c55e) — "OPEN" status only. Not used elsewhere
-- **Amber Lock** (#f59e0b) — "LOCKED" status only. Not used elsewhere
+- **Chalk Gray** (#f6f6f7) — Primary page background. Never pure white. The base the grid pattern renders on.
+- **Clean White** (#ffffff) — Elevated surfaces: glass panel demo card, nav pill background
+- **Liquid Card Start** (#f7f7f8) — Top of gradient for step cards
+- **Liquid Card End** (#efeff2) — Bottom of gradient for step cards. The two form `linear-gradient(180deg, #f7f7f8, #efeff2)`
+- **Whisper Border** (rgba(0,0,0,0.06)) — Structural 1px dividers, card outlines
+- **Component Border** (rgba(0,0,0,0.08)) — Tighter borders on inputs and demo card
+- **Ink Black** (#121417) — Primary body text
+- **Steel Gray** (#7b818a) — Muted labels, eyebrow text, timestamps, "pab.wtf" label
+- **Blue Steel** (#9cb6cf) — Matchweek label in demo widget only. Not used elsewhere.
+- **Slate Mid** (#565d66) — Secondary descriptions, body copy, helper text
+- **Near Black** (#111315) — Headlines and maximum-emphasis text
+- **Off Black** (#15181c) — Primary CTA button fill. The only "dark" element on the page.
+- **Ghost Stroke** (rgba(0,0,0,0.22)) — WebkitTextStroke for the outline/ghost headline word
+- **Dim Tag** (rgba(86,93,102,0.55)) — Feature tags beneath hero CTA ("Hidden picks | Premier League | Lowest wins")
 
-No purple. No neon. No gradients. No accent color leaking into UI chrome.
+No accent color. No green/amber/red in chrome — only in status badges (OPEN/LOCKED) within the demo widget.
 
 ## 3. Typography Rules
 
-- **Display:** Playfair Display (700–900 weight) — for H1/H2 only. Negative letter-spacing (−1px to −2px). Kept deliberately serif as editorial counterweight to monospace UI
-- **UI/Body:** DM Mono (300–500 weight) — every label, body copy, button, metadata, nav item, number. Nothing uses a different font family
-- **Scale:** Headlines via `clamp()` only. Body at 11–13px. Labels at 9–11px with `letter-spacing: 2–4px` and `text-transform: uppercase`
-- **Banned:** Inter, Geist, system-ui, any sans-serif. Playfair is the ONLY non-monospace font and is restricted to display headlines
+- **Display:** Inter 800 — H1/H2 only. `letter-spacing: -0.025em` for H1, `-0.02em` for H2. Scale via `clamp()` — never fixed px for headlines. Two-line hero: solid line + ghost-stroke outline line stacked.
+- **Body:** Inter 400–600 — all UI copy, descriptions, nav links, step titles. `line-height: 1.65–1.7`. Max 65ch per paragraph.
+- **Mono:** DM Mono 500 — score cells (22px), scoring formula, matchweek label, "LOWER IS BETTER" tag, point calculation display. Nowhere else.
+- **Eyebrow labels:** Inter 11–12px, `letter-spacing: 0.15em`, `text-transform: uppercase`, `font-weight: 500`, Steel Gray color.
+- **Banned:** Playfair Display, any serif font. System-ui fallback acceptable only in font stack after Inter.
 
 ## 4. Hero Section
 
-The hero is the critical anti-AI zone. Left-aligned layout. The headline stands alone without an eyebrow label — no "PREMIER LEAGUE · SCORE PREDICTIONS" floating above it. The copy earns its space. One CTA only: "Create a group". No secondary "Sign in" link in the hero — sign in belongs in the nav.
+Left-aligned asymmetric split: `grid-template-columns: 1fr 1fr`, 56px gap. Never centered.
 
-The split is asymmetric: 55% left copy, 45% right demo widget. Not equal halves. The widget is the product proof — it auto-animates through open → locked → result → score states, showing what the app does without a word of explanation.
+Headline is two stacked lines:
+1. Solid: `"Join one group."` — Near Black, Inter 800
+2. Ghost: `"Make "` + outline span (`WebkitTextStroke: 1px rgba(0,0,0,.22); color: transparent`) + `"real picks."` — no fill, only stroke
 
-No bounce arrows. No scroll indicators. No "Join X players" social proof badges. The demo speaks for itself.
+No eyebrow label above the H1. The `pab.wtf` domain label and `"Premier League score predictions"` line sit above the H1 as orientation context, not as decorative eyebrow.
+
+Sub-tags below CTA: pipe-separated small-caps text in Dim Tag color. Communicates features without social proof numbers.
+
+Demo widget on the right: glass panel card (white gradient, inset top highlight, backdrop blur). Animates perpetually through open → locked → result → score states.
+
+No bounce arrows. No scroll indicators. No secondary CTA alongside the primary.
 
 ## 5. Component Stylings
 
-- **Buttons:** Flat chalk button (white bg, black text). `border-radius: 8px`. `-1px translateY` on active press. No shadow, no glow, no hover color change — only opacity shift on hover. Monospace font, uppercase, `letter-spacing: 2px`, 11px
-- **Cards/Surfaces:** `border-radius: 10–14px`. 1px Component Border outline. No box-shadow — shadow is replaced by the dark surface color contrasting against the deeper background. Used only when grouping content that truly belongs together
-- **Score Cells:** 44×44px squares. DM Mono 22px. Background: Deep Space. Border: Component Border. `border-radius: 8px`
-- **Status Badges:** 9px DM Mono uppercase. Color-coded only: green for OPEN, amber for LOCKED, Bone White for FINAL. Tinted background matching badge color at 8% opacity. 1px border at 15% opacity
-- **Section Dividers:** 1px Void Border lines. No decorative dividers, no gradients
-- **Step Numbers (How It Works):** Large Dim Steel numerals ("01", "02", "03") at 11px with `letter-spacing: 2px`. Not decorative — functional position markers
+- **Pill Nav:** Fixed, `top: 0`, `max-width: 560px` centered. `height: 44px`, `border-radius: 18px`. Background: `rgba(255,255,255,0.72)`, `border: 1px solid rgba(255,255,255,0.6)`, `backdrop-filter: blur(24px) saturate(1.2)`. Nav links at 13px Inter 500. Sign-up button: Off Black fill, `border-radius: 12px`, `height: 32px`.
+
+- **Primary CTA Button:** Off Black (#15181c) fill, White text. `border-radius: 0` — deliberately sharp, intentional contrast to the pill nav's rounded softness. `font-size: 13px`, `font-weight: 600`, `padding: 12px 20px`. Opacity shift on hover only — no color change.
+
+- **Liquid Cards (step cards):** `background: linear-gradient(180deg, #f7f7f8, #efeff2)`. `border: 1px solid rgba(0,0,0,0.06)`. `box-shadow: 0 0 0 1px rgba(0,0,0,0.015), inset 0 1px 0 rgba(255,255,255,0.5)`. `border-radius: 24px`. Two pseudo-elements animate radial gradients perpetually via `liquidFlow` (24s) and `liquidFlowB` (30s) keyframes. Ghost step number: `absolute` top-right, `font-size: 110px`, `color: rgba(0,0,0,0.03)` — decorative texture only.
+
+- **Glass Panel (demo card):** `background: linear-gradient(180deg, #ffffff, #fbfbfc)`. `box-shadow: 0 0 0 1px rgba(0,0,0,0.015), inset 0 1px 0 rgba(255,255,255,0.78)`. `border-radius: 24px`. `backdrop-filter: blur(12px)`.
+
+- **Score Cells:** 44×44px squares. DM Mono 22px weight 500. Background: Chalk Gray (#f6f6f7). Border: Component Border. `border-radius: 8px`. Opacity 0.4 when locked state.
+
+- **Status Badges:** 9px DM Mono, `letter-spacing: 2px`. `border-radius: 999px` (pill shape). Green (#22c55e) for OPEN, Amber (#f59e0b) for LOCKED, Steel Gray for FINAL. Tinted bg at ~8% opacity, 1px border at matching hue ~15% opacity.
+
+- **CTA Liquid Card:** `max-width: 760px`, centered, `border-radius: 32px`, `padding: 56px 24px`. Same liquid-card gradient and animation as step cards.
 
 ## 6. Layout Principles
 
-- No 3-equal-column card grids. No 4-equal-column card grids. These are the primary AI tells to eliminate
-- "How It Works" uses stacked divider rows — each step is a horizontal strip separated by Void Border lines, not a card
-- "Features" section is removed entirely — the information is redundant with "How It Works" and fragments the page
-- Hero: CSS Grid, `grid-template-columns: 1fr 1fr` collapsing to `1fr` below 720px. Not `minmax()` hacks
-- Max-width: 1200px centered, with `clamp(1.5rem, 5vw, 3rem)` horizontal padding
-- Full-height sections: `min-h-[100dvh]` never `h-screen`
-- Vertical section padding: `clamp(3rem, 8vw, 5rem)` top and bottom
+- Landing page container: `max-width: 1280px`, `margin: 0 auto`, `padding: 0 24px`. Each page controls its own container — global layout `<main>` has no maxWidth or padding.
+- Grid background: `::before` pseudo-element — 48×48px grid lines at `rgba(0,0,0,0.04)`, `mask-image: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.14))` — fades out downward. Applied to the full landing container.
+- Hero: `grid-template-columns: 1fr 1fr`, `gap: 56px`. Collapses to `1fr` below 720px.
+- Steps: `grid-template-columns: repeat(4, 1fr)`, `gap: 20px`. Collapses to `1fr` below 720px.
+- No 3-equal or 4-equal generic feature grids. The 4-col steps layout earns its grid through content weight differentiation (ghost numbers, liquid animation).
+- Section padding: `64px 0` for content sections, `80px 0 100px` for CTA.
+- Marquee: `marginLeft/Right: calc(50% - 50vw)` to break out of container and span full viewport width. Gradient fade masks (120px) on left and right. 36 text repetitions for seamless loop.
 
 ## 7. Motion & Interaction
 
-- All reveals: `opacity: 0 → 1, y: 6px → 0, duration: 0.25s, ease: easeOut`. Never longer than 0.35s for content reveals
-- Stagger: `delay: i * 0.05s` for list items. Never mount all at once
-- `AnimatePresence mode="wait"` for state transitions in the demo widget
-- Spring physics for interactive elements when Framer Motion is available; otherwise `cubic-bezier(0.25, 0.1, 0.25, 1)` CSS transitions
-- Never animate `height`, `width`, `top`, `left` — only `transform` and `opacity`
-- The prediction demo loop is the only perpetual animation — everything else is one-shot on scroll entry
+- **Entrance reveals:** Framer Motion `{ opacity: 0, y: 8 } → { opacity: 1, y: 0 }`, `duration: 0.3s`, `ease: "easeOut"`. Left hero copy at `delay: 0`, demo widget at `delay: 0.3s`.
+- **Demo state transitions:** `AnimatePresence mode="wait"` for status badge (cross-fade). Result panel: `x: 10 → 0` slide-in. Score panel: `height: 0 → auto` expand. All at `duration: 0.2s`.
+- **Marquee:** CSS `animation: marqueeScroll 32s linear infinite`. 36 repetitions. Gradient masks hide seam.
+- **Liquid cards:** `liquidFlow` (24s) and `liquidFlowB` (30s) CSS keyframes animate pseudo-element radial gradients via `transform: translate + scale` only. Colors at `rgba(0,0,0,0.02–0.03)` — barely visible movement, texture not spectacle.
+- **Thumbdown easter egg:** Clicking "are bad" in nav spawns a 👎 that floats up and fades in 0.8s via `thumbdown` CSS keyframe. Cosmetic only.
+- Never animate `top`, `left`, `width`, or `height`. Transform and opacity only.
 
 ## 8. Anti-Patterns (Banned)
 
-- No 3-equal-column or 4-equal-column card grids
-- No eyebrow labels above the hero headline ("PREMIER LEAGUE · SCORE PREDICTIONS" as a floated label kills the impact)
-- No two CTA buttons in the hero section — one action only
-- No "Features" section with a grid of icon-less cards
-- No centered CTA closing sections with `text-align: center` — left-aligned or split
-- No `h-screen` — always `min-h-[100dvh]`
-- No Playfair Display below H2 level
-- No Inter, Geist, or any sans-serif font
-- No neon glow box-shadows
-- No gradient text effects on headlines
-- No AI copywriting: "Elevate", "Seamless", "Next-Gen", "Transform", "Unleash"
+- No emojis in production UI (thumbdown easter egg is the deliberate carved-out exception)
+- No Playfair Display, no serif fonts of any kind in this design
+- No pure black (#000000) — use Near Black (#111315) or Off Black (#15181c)
+- No neon glows, no colored box-shadows, no outer glow on any element
+- No gradient text effects on headlines — ghost-stroke outline is the technique
+- No 3-equal-column feature card grids
+- No centered hero layout — always asymmetric split
+- No eyebrow label floating above H1 as decorative branding
+- No secondary CTA in the hero alongside the primary ("Learn more", "Watch demo")
 - No social proof badges ("Trusted by X users", "Join 5,000 players")
 - No bounce animations, scroll indicators, or "Scroll to explore" filler
-- No broken image paths — no external image URLs unless from `picsum.photos`
-- No pure `#000000` text — use Ghost White (#ffffff) on dark backgrounds
 - No custom mouse cursors
-- No emojis
+- No broken external image paths
+- No AI copywriting: "Elevate", "Seamless", "Next-Gen", "Transform", "Unleash", "Revolutionize"
+- No `h-screen` — use `min-h-[100dvh]` or `minHeight: "100vh"`
+- DM Mono is reserved exclusively for numeric data — never for body copy or headlines
