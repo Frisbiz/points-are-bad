@@ -4,8 +4,6 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 
-// ─── Fade wrapper (matches real app's fadein animation) ───────────────────────
-
 function FadeIn({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
@@ -72,7 +70,6 @@ function PredictionDemo() {
         background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 14,
         padding: 24, fontFamily: "'DM Mono', monospace",
       }}>
-        {/* Header row */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 5 }}>Matchweek 32</div>
@@ -97,7 +94,6 @@ function PredictionDemo() {
           </AnimatePresence>
         </div>
 
-        {/* Score row */}
         <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Your pick</div>
@@ -127,7 +123,6 @@ function PredictionDemo() {
           </AnimatePresence>
         </div>
 
-        {/* Locked notice */}
         <AnimatePresence>
           {phase === "locked" && (
             <motion.div
@@ -142,7 +137,6 @@ function PredictionDemo() {
           )}
         </AnimatePresence>
 
-        {/* Score breakdown */}
         <AnimatePresence>
           {phase === "score" && (
             <motion.div
@@ -171,53 +165,85 @@ function PredictionDemo() {
 
 // ─── Landing page ─────────────────────────────────────────────────────────────
 
+const STEPS = [
+  {
+    num: "01",
+    title: "Join or create a group",
+    body: "Share an invite code. Everyone in your group sees the same fixtures each gameweek.",
+  },
+  {
+    num: "02",
+    title: "Submit your scorelines",
+    body: "Pick exact home and away goals for every fixture before kickoff. Picks stay hidden until you lock them all in.",
+  },
+  {
+    num: "03",
+    title: "Lowest total wins",
+    body: "Points are goals off per fixture. Zero is a perfect pick. The leaderboard runs all season.",
+  },
+];
+
 export default function LandingPage() {
   return (
     <div style={{ fontFamily: "'DM Mono', monospace", color: "var(--text)" }}>
 
       {/* ── HERO ─────────────────────────────────────── */}
-      <section style={{ paddingTop: 80, paddingBottom: 80, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}
-        className="hero-grid">
+      <section
+        className="hero-grid"
+        style={{
+          paddingTop: 80,
+          paddingBottom: 80,
+          display: "grid",
+          gridTemplateColumns: "55fr 45fr",
+          gap: 64,
+          alignItems: "center",
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
-          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 28 }}>
-            Premier League · Score Predictions
-          </div>
-
-          <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "clamp(2.8rem, 5vw, 4rem)", color: "var(--text-bright)", letterSpacing: -2, lineHeight: 1.05, marginBottom: 24 }}>
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 900,
+            fontSize: "clamp(2.8rem, 5vw, 4.2rem)",
+            color: "var(--text-bright)",
+            letterSpacing: -2,
+            lineHeight: 1.05,
+            marginBottom: 20,
+          }}>
             Predict every goal.
           </h1>
 
-          <p style={{ fontSize: 12, color: "var(--text-mid)", lineHeight: 1.8, maxWidth: 380, marginBottom: 36, letterSpacing: 0.3 }}>
-            A score prediction game for friend groups. Pick exact scorelines
-            for every Premier League fixture each gameweek. Every goal off costs a point.
-            Lowest total wins.
+          <p style={{
+            fontSize: 12,
+            color: "var(--text-mid)",
+            lineHeight: 1.85,
+            maxWidth: 360,
+            marginBottom: 36,
+            letterSpacing: 0.3,
+          }}>
+            Score prediction game for friend groups. Pick exact scorelines for
+            every Premier League fixture each gameweek. Every goal off costs a
+            point. Lowest total wins.
           </p>
 
-          <div style={{ display: "flex", gap: 10, marginBottom: 48, flexWrap: "wrap" }}>
-            <Link href="/signup" style={{
-              background: "var(--btn-bg)", color: "var(--btn-text)",
-              fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
-              padding: "12px 28px", borderRadius: 8, fontWeight: 500,
-              textDecoration: "none", fontFamily: "'DM Mono', monospace",
-            }}>
-              Create a group
-            </Link>
-
-            <Link href="/login" style={{
-              background: "transparent", color: "var(--text-mid)",
-              fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
-              padding: "12px 28px", borderRadius: 8, fontWeight: 400,
-              textDecoration: "none", fontFamily: "'DM Mono', monospace",
-              border: "1px solid var(--border2)",
-            }}>
-              Sign in
-            </Link>
-          </div>
-
+          <Link href="/signup" style={{
+            background: "var(--btn-bg)",
+            color: "var(--btn-text)",
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            padding: "12px 28px",
+            borderRadius: 8,
+            fontWeight: 500,
+            textDecoration: "none",
+            fontFamily: "'DM Mono', monospace",
+            display: "inline-block",
+          }}>
+            Create a group
+          </Link>
         </motion.div>
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -226,112 +252,138 @@ export default function LandingPage() {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────── */}
-      <section style={{ paddingTop: 64, paddingBottom: 64, borderTop: "1px solid var(--border)" }}>
+      <section style={{ borderTop: "1px solid var(--border)", paddingTop: "clamp(3rem, 8vw, 5rem)", paddingBottom: "clamp(3rem, 8vw, 5rem)" }}>
         <FadeIn>
-          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 8 }}>
-            The game
-          </div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 28, color: "var(--text-bright)", letterSpacing: -1, marginBottom: 40 }}>
+          <h2 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 900,
+            fontSize: 26,
+            color: "var(--text-bright)",
+            letterSpacing: -1,
+            marginBottom: 36,
+          }}>
             How it works.
           </h2>
         </FadeIn>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }} className="steps-grid">
-          {[
-            { num: "01", title: "Join or create a group", body: "Share an invite code. Everyone in your group sees the same fixtures each gameweek." },
-            { num: "02", title: "Submit your scorelines", body: "Pick exact home and away goals for every fixture before kickoff. Picks are hidden until you lock them all in." },
-            { num: "03", title: "Lowest total wins", body: "Points = goals off per fixture. Zero is a perfect pick. The leaderboard runs all season." },
-          ].map((step, i) => (
-            <FadeIn key={step.num} delay={i * 0.05}>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 10, padding: "24px 22px" }}>
-                <div style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: 2, marginBottom: 14 }}>{step.num}</div>
-                <div style={{ fontSize: 13, color: "var(--text-bright)", fontWeight: 500, marginBottom: 10, letterSpacing: 0.2 }}>{step.title}</div>
-                <div style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.75 }}>{step.body}</div>
+        <div>
+          {STEPS.map((step, i) => (
+            <FadeIn key={step.num} delay={i * 0.06}>
+              <div
+                className="step-row"
+                style={{
+                  borderTop: "1px solid var(--border)",
+                  paddingTop: 22,
+                  paddingBottom: 22,
+                  display: "grid",
+                  gridTemplateColumns: "48px 1fr 1fr",
+                  gap: 24,
+                  alignItems: "start",
+                }}
+              >
+                <div style={{ fontSize: 11, color: "var(--text-dim)", letterSpacing: 2, paddingTop: 2 }}>{step.num}</div>
+                <div style={{ fontSize: 13, color: "var(--text-bright)", fontWeight: 500, letterSpacing: 0.2, lineHeight: 1.4 }}>{step.title}</div>
+                <div style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.8 }}>{step.body}</div>
               </div>
             </FadeIn>
           ))}
+          <div style={{ borderTop: "1px solid var(--border)" }} />
         </div>
       </section>
 
       {/* ── SCORING ──────────────────────────────────── */}
-      <section style={{ paddingTop: 64, paddingBottom: 64, borderTop: "1px solid var(--border)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }} className="hero-grid">
-          <FadeIn>
-            <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 8 }}>Scoring</div>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 28, color: "var(--text-bright)", letterSpacing: -1, marginBottom: 16 }}>
-              Points = goals off.
-            </h2>
-            <p style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.8, marginBottom: 12 }}>
-              For each fixture, count how many goals off you were on each side and add them up.
-              Zero is a perfect pick. Accumulate the least over the season.
-            </p>
-            <p style={{ fontSize: 11, color: "var(--text-dim2)", lineHeight: 1.8 }}>
-              Predict 2-1, actual 3-1: 1 goal off on home, 0 on away = 1 point.
-              Predict 0-0, actual 4-3 = 7 points.
-            </p>
-          </FadeIn>
+      <section style={{ borderTop: "1px solid var(--border)", paddingTop: "clamp(3rem, 8vw, 5rem)", paddingBottom: "clamp(3rem, 8vw, 5rem)" }}>
+        <FadeIn>
+          <div
+            className="scoring-strip"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1px 1fr",
+              gap: 40,
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <h2 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontWeight: 900,
+                fontSize: 26,
+                color: "var(--text-bright)",
+                letterSpacing: -1,
+                marginBottom: 14,
+              }}>
+                Points are goals off.
+              </h2>
+              <p style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.85, maxWidth: 340 }}>
+                For each fixture, count how many goals off you were on each side.
+                Zero is a perfect pick. Accumulate the least over the season.
+              </p>
+            </div>
 
-          <FadeIn delay={0.1}>
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 10, padding: 28 }}>
-              <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 20 }}>Formula</div>
-              <div style={{ fontSize: 15, color: "var(--text-bright)", fontWeight: 500, letterSpacing: 0.5, marginBottom: 20 }}>
+            <div style={{ width: 1, background: "var(--border)", alignSelf: "stretch" }} />
+
+            <div style={{ fontFamily: "'DM Mono', monospace" }}>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", letterSpacing: 3, textTransform: "uppercase", marginBottom: 14 }}>Formula</div>
+              <div style={{ fontSize: 15, color: "var(--text-bright)", fontWeight: 500, letterSpacing: 0.5, marginBottom: 16 }}>
                 pts = |pH − aH| + |pA − aA|
               </div>
-              <div style={{ fontSize: 10, color: "var(--text-dim2)", lineHeight: 2, marginBottom: 20 }}>
+              <div style={{ fontSize: 10, color: "var(--text-dim2)", lineHeight: 2, marginBottom: 16 }}>
                 <div>pH / aH = predicted / actual home goals</div>
                 <div>pA / aA = predicted / actual away goals</div>
               </div>
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, fontSize: 11, color: "var(--text-mid)" }}>
-                predict 2-1, actual 3-1: |2-3| + |1-1| ={" "}
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, fontSize: 11, color: "var(--text-mid)" }}>
+                predict 2-1, actual 3-1: |2−3| + |1−1| ={" "}
                 <span style={{ color: "var(--text-bright)", fontWeight: 500 }}>1 pt</span>
               </div>
             </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── FEATURES ─────────────────────────────────── */}
-      <section style={{ paddingTop: 64, paddingBottom: 64, borderTop: "1px solid var(--border)" }}>
-        <FadeIn>
-          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 8 }}>Features</div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: 28, color: "var(--text-bright)", letterSpacing: -1, marginBottom: 40 }}>
-            The details.
-          </h2>
+          </div>
         </FadeIn>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }} className="features-grid">
-          {[
-            { title: "Hidden picks", body: "Nobody sees your predictions until you lock them all in. No copying." },
-            { title: "Locks at kickoff", body: "Picks freeze the moment a match starts. No backdating, no excuses." },
-            { title: "Lowest score wins", body: "The leaderboard rewards accuracy, not optimism. Zero is the goal." },
-            { title: "Private groups", body: "Invite-only with a share code. Just your group, no strangers." },
-          ].map((feat, i) => (
-            <FadeIn key={feat.title} delay={i * 0.04}>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: 10, padding: "20px 18px" }}>
-                <div style={{ fontSize: 12, color: "var(--text-bright)", fontWeight: 500, marginBottom: 10 }}>{feat.title}</div>
-                <div style={{ fontSize: 11, color: "var(--text-mid)", lineHeight: 1.7 }}>{feat.body}</div>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
       </section>
 
       {/* ── CTA ──────────────────────────────────────── */}
       <FadeIn>
-        <section style={{ borderTop: "1px solid var(--border)", paddingTop: 80, paddingBottom: 100, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 4, textTransform: "uppercase", marginBottom: 16 }}>Play</div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "clamp(2rem, 4vw, 3rem)", color: "var(--text-bright)", letterSpacing: -2, lineHeight: 1.1, marginBottom: 16 }}>
-            Start a group.
-          </h2>
-          <p style={{ fontSize: 11, color: "var(--text-mid)", letterSpacing: 0.3, marginBottom: 36 }}>
-            Free to use. Invite friends with a code. Picks open each gameweek.
-          </p>
+        <section
+          className="cta-grid"
+          style={{
+            borderTop: "1px solid var(--border)",
+            paddingTop: "clamp(3rem, 8vw, 5rem)",
+            paddingBottom: "clamp(4rem, 10vw, 6rem)",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            alignItems: "end",
+            gap: 40,
+          }}
+        >
+          <div>
+            <h2 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontWeight: 900,
+              fontSize: "clamp(2rem, 4vw, 3rem)",
+              color: "var(--text-bright)",
+              letterSpacing: -2,
+              lineHeight: 1.1,
+              marginBottom: 12,
+            }}>
+              Start a group.
+            </h2>
+            <p style={{ fontSize: 11, color: "var(--text-mid)", letterSpacing: 0.3 }}>
+              Free. Invite friends with a code. Picks open each gameweek.
+            </p>
+          </div>
+
           <Link href="/signup" style={{
-            background: "var(--btn-bg)", color: "var(--btn-text)",
-            fontSize: 11, letterSpacing: 2, textTransform: "uppercase",
-            padding: "13px 36px", borderRadius: 8, fontWeight: 500,
-            textDecoration: "none", fontFamily: "'DM Mono', monospace",
+            background: "var(--btn-bg)",
+            color: "var(--btn-text)",
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            padding: "13px 32px",
+            borderRadius: 8,
+            fontWeight: 500,
+            textDecoration: "none",
+            fontFamily: "'DM Mono', monospace",
             display: "inline-block",
+            whiteSpace: "nowrap",
           }}>
             Create a group
           </Link>
@@ -341,11 +393,11 @@ export default function LandingPage() {
       <style>{`
         @media (max-width: 720px) {
           .hero-grid { grid-template-columns: 1fr !important; }
-          .steps-grid { grid-template-columns: 1fr !important; }
-          .features-grid { grid-template-columns: 1fr 1fr !important; }
-        }
-        @media (max-width: 480px) {
-          .features-grid { grid-template-columns: 1fr !important; }
+          .scoring-strip { grid-template-columns: 1fr !important; }
+          .scoring-strip > div:nth-child(2) { display: none; }
+          .cta-grid { grid-template-columns: 1fr !important; }
+          .step-row { grid-template-columns: 48px 1fr !important; }
+          .step-row > div:last-child { grid-column: 2; }
         }
       `}</style>
     </div>
