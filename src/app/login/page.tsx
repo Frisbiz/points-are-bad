@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -9,7 +10,12 @@ export default function LoginPage() {
   const [status, setStatus] = useState<string | null>(null);
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
+    <motion.div
+      className="mx-auto max-w-md space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+    >
       <div className="card space-y-3">
         <h1 className="text-2xl font-semibold">Sign in</h1>
         <p className="text-sm text-slate-400">
@@ -63,6 +69,6 @@ export default function LoginPage() {
           Create an account
         </Link>
       </p>
-    </div>
+    </motion.div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -52,7 +52,7 @@ function PredictionDemo() {
       width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center",
       background: T.bg, border: `1px solid ${T.border2}`, borderRadius: 8,
       fontSize: 22, fontWeight: 500, fontFamily: "'DM Mono', monospace",
-      color: T.textBright, opacity: dim ? 0.4 : 1, transition: "opacity 0.4s",
+      color: T.textBright, opacity: dim ? 0.4 : 1, transition: "opacity 0.2s",
     }}>{val}</div>
   );
 
@@ -60,7 +60,7 @@ function PredictionDemo() {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
+      transition={{ delay: 0.18, duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
       style={{ width: "100%", maxWidth: 400 }}
     >
       <div style={{
@@ -156,11 +156,10 @@ function PredictionDemo() {
           <AnimatePresence>
             {phase === "score" && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                style={{ overflow: "hidden" }}
               >
                 <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, marginTop: 4 }}>
                   <div style={{ fontSize: 11, color: T.textMid, letterSpacing: 0.5, marginBottom: 6, fontFamily: "'DM Mono', monospace" }}>
@@ -209,6 +208,13 @@ const STEPS = [
 
 // ─── Landing page ─────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const howRef = useRef<HTMLElement>(null);
+  const howInView = useInView(howRef, { once: true, margin: "-60px 0px" });
+  const stepsRef = useRef<HTMLDivElement>(null);
+  const stepsInView = useInView(stepsRef, { once: true, margin: "-80px 0px" });
+  const ctaRef = useRef<HTMLElement>(null);
+  const ctaInView = useInView(ctaRef, { once: true, margin: "-80px 0px" });
+
   return (
     <div style={{ fontFamily: "Inter, system-ui, sans-serif", color: T.text, background: T.bg, minHeight: "100vh" }}>
 
@@ -219,9 +225,9 @@ export default function LandingPage() {
           style={{ padding: "36px 0 72px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }}
         >
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
           >
             <div style={{ fontSize: 11, color: T.textDim, letterSpacing: 1.6, marginBottom: 8 }}>pab.wtf</div>
             <div style={{ fontSize: 11, color: T.textDim, letterSpacing: "0.15em", marginBottom: 28 }}>Premier League score predictions</div>
@@ -235,10 +241,10 @@ export default function LandingPage() {
               Predict exact scores for every Premier League game. Every goal off costs a point. Lowest total wins.
             </p>
             <div className="land-hero-btns" style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
-              <Link href="/signup" style={{ background: T.btnBg, color: T.btnText, fontSize: 13, letterSpacing: 0.1, padding: "12px 20px", borderRadius: 0, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+              <Link href="/signup" className="land-btn" style={{ background: T.btnBg, color: T.btnText, fontSize: 13, letterSpacing: 0.1, padding: "12px 20px", borderRadius: 0, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
                 Sign in / up
               </Link>
-              <Link href="/login" style={{ background: "transparent", color: T.textBright, fontSize: 13, letterSpacing: 0.1, fontWeight: 600, textDecoration: "none" }}>
+              <Link href="/login" className="land-btn" style={{ background: "transparent", color: T.textBright, fontSize: 13, letterSpacing: 0.1, fontWeight: 600, textDecoration: "none" }}>
                 Try Demo →
               </Link>
             </div>
@@ -259,26 +265,49 @@ export default function LandingPage() {
         <Marquee />
 
         {/* ── HOW IT WORKS ──────────────────────────────────────── */}
-        <section className="land-section" style={{ padding: "64px 0", borderTop: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8, fontWeight: 500 }}>How it works</div>
-          <h2 style={{ fontWeight: 600, fontSize: 32, color: T.textBright, letterSpacing: "-0.02em", marginBottom: 40, maxWidth: 420 }}>Simple by design.</h2>
-          <div className="land-steps" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
-            {STEPS.map((s) => (
-              <div key={s.num} className="liquid-card" style={{ borderRadius: 24, padding: "32px 28px", position: "relative", overflow: "hidden" }}>
+        <section ref={howRef} className="land-section" style={{ padding: "64px 0", borderTop: `1px solid ${T.border}` }}>
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={howInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8, fontWeight: 500 }}
+          >How it works</motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 6 }}
+            animate={howInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1], delay: 0.07 }}
+            style={{ fontWeight: 600, fontSize: 32, color: T.textBright, letterSpacing: "-0.02em", marginBottom: 40, maxWidth: 420 }}
+          >Simple by design.</motion.h2>
+          <div ref={stepsRef} className="land-steps" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
+            {STEPS.map((s, idx) => (
+              <motion.div
+                key={s.num}
+                className="liquid-card"
+                initial={{ opacity: 0, y: 8 }}
+                animate={stepsInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1], delay: 0.1 + idx * 0.07 }}
+                style={{ borderRadius: 24, padding: "32px 28px", position: "relative", overflow: "hidden" }}
+              >
                 <span style={{ position: "absolute", right: -6, top: -18, fontSize: 110, fontWeight: 800, letterSpacing: "-0.06em", color: "rgba(0,0,0,.03)", lineHeight: 1 }}>{s.num}</span>
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <div style={{ fontSize: 11, color: T.textDim, letterSpacing: 1.2, marginBottom: 14, fontWeight: 600 }}>{s.num}</div>
                   <div style={{ fontSize: 16, color: T.textBright, fontWeight: 600, marginBottom: 10 }}>{s.title}</div>
                   <div style={{ fontSize: 13, color: T.textMid, lineHeight: 1.65, maxWidth: 220 }}>{s.body}</div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </section>
 
         {/* ── CTA ───────────────────────────────────────────────── */}
-        <section className="land-cta-section" style={{ padding: "80px 0 100px", textAlign: "center", borderTop: `1px solid ${T.border}` }}>
-          <div className="liquid-card" style={{ maxWidth: 760, margin: "0 auto", borderRadius: 32, padding: "56px 24px", textAlign: "center" }}>
+        <section ref={ctaRef} className="land-cta-section" style={{ padding: "80px 0 100px", textAlign: "center", borderTop: `1px solid ${T.border}` }}>
+          <motion.div
+            className="liquid-card"
+            initial={{ opacity: 0, y: 8 }}
+            animate={ctaInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            style={{ maxWidth: 760, margin: "0 auto", borderRadius: 32, padding: "56px 24px", textAlign: "center" }}
+          >
             <div style={{ fontSize: 12, color: T.textDim, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 16, fontWeight: 500 }}>Play</div>
             <h2 style={{ fontWeight: 600, fontSize: "clamp(2rem, 4vw, 2.6rem)", color: T.textBright, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 16 }}>
               Start losing with friends today.
@@ -287,14 +316,14 @@ export default function LandingPage() {
               Free to use. Invite friends with a code. Picks open each gameweek.
             </p>
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 14 }}>
-              <Link href="/signup" style={{ background: T.btnBg, color: T.btnText, fontSize: 13, padding: "12px 24px", borderRadius: 0, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
+              <Link href="/signup" className="land-btn" style={{ background: T.btnBg, color: T.btnText, fontSize: 13, padding: "12px 24px", borderRadius: 0, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>
                 Sign in / up
               </Link>
-              <Link href="/login" style={{ background: "transparent", color: T.textBright, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              <Link href="/login" className="land-btn" style={{ background: "transparent", color: T.textBright, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
                 Try demo →
               </Link>
             </div>
-          </div>
+          </motion.div>
         </section>
       </div>
 
@@ -357,6 +386,12 @@ export default function LandingPage() {
           .land-hero-btns   { flex-direction: column !important; align-items: stretch !important; }
           .land-cta-section { padding: 0 !important; }
           .land-cta-section .liquid-card { padding: 36px 20px !important; border-radius: 20px !important; }
+        }
+        .land-btn { transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.23, 1, 0.32, 1); }
+        .land-btn:hover { opacity: 0.82; }
+        .land-btn:active { transform: translateY(-1px); }
+        @media (hover: hover) and (pointer: fine) {
+          .land-btn:hover { opacity: 0.82; }
         }
       `}</style>
     </div>

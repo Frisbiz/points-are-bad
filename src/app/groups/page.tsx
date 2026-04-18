@@ -30,10 +30,10 @@ export default function GroupsPage() {
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-3">
-          {groups.map((group) => {
+          {groups.map((group, idx) => {
             const memberList = getMembersForGroup(group.id);
             return (
-              <div key={group.id} className="card">
+              <div key={group.id} className="card fade" style={{ animationDelay: `${idx * 0.06}s` }}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-lg font-semibold">{group.name}</p>

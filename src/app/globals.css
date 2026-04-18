@@ -35,7 +35,12 @@ html, body {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade { animation: fadein 0.25s ease forwards; }
+.fade { animation: fadein 0.25s cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade { animation-duration: 0.01ms !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
 
 @keyframes thumbdown {
   0%   { opacity: 1; transform: translateY(0) scale(1); }
