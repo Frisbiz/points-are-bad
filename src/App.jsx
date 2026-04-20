@@ -2453,7 +2453,13 @@ export default function App() {
   },[]);
 
   const handleDemoLogin = async () => {
-    await handleLogin({ username: DEMO_SHARED_USERNAME, displayName: "Demo", groupIds: [] });
+    const { ok, data } = await callAPI('auth-login', { username: DEMO_SHARED_USERNAME, password: 'demo' });
+    if (!ok || !data?.user) {
+      setShowLanding(false);
+      setUser({ username: DEMO_SHARED_USERNAME, displayName: "Demo", groupIds: [] });
+      return;
+    }
+    await handleLogin(data.user);
   };
 
   const handleLogin = async (u) => {
