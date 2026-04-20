@@ -2461,7 +2461,12 @@ export default function App() {
     let nextSession = { username: u.username };
     if (u.username === DEMO_SHARED_USERNAME) {
       const { ok: demoOk, data: demoState } = await callAPI('demo-bootstrap');
-      if (demoOk && demoState?.user) nextUser = demoState.user;
+      if (demoOk) {
+        const sessionRes = await fetch('/api/security?action=auth-session').catch(() => null);
+        const sessionData = sessionRes ? await sessionRes.json().catch(() => ({ user: null })) : { user: null };
+        if (sessionData.user) nextUser = sessionData.user;
+        else if (demoState?.user) nextUser = demoState.user;
+      }
       if (demoOk && demoState?.groupId) nextSession = { ...nextSession, groupId: demoState.groupId, tab: "League" };
       const fallbackTheme = sitePrefs?.defaultTheme || "dark";
       setTheme(fallbackTheme);
