@@ -1,25 +1,9 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
 import { Resend } from "resend";
 import { emailHtml } from "./email-template.js";
+import { getValue } from "./_db.js";
 import { getSession, readSessionToken } from "./_auth.js";
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
-}
-
-const db = getFirestore();
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-function docKey(key) {
-  return key.replace(/[/\\]/g, "_");
-}
 
 async function requireAdmin(req, res, groupId) {
   const token = readSessionToken(req);
@@ -28,12 +12,11 @@ async function requireAdmin(req, res, groupId) {
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
-  const groupSnap = await db.collection("data").doc(docKey(`group:${groupId}`)).get();
-  if (!groupSnap.exists) {
+  const group = await getValue(`group:${groupId}`);
+  if (!group) {
     res.status(404).json({ error: "Group not found" });
     return null;
   }
-  const group = groupSnap.data().value;
   const isCreator = group.creatorUsername === session.username;
   const isAdmin = (group.admins || []).includes(session.username);
   if (!isCreator && !isAdmin) {
@@ -77,9 +60,7 @@ export default async function handler(req, res) {
 
   await Promise.all(needsReminder.map(async username => {
     try {
-      const userSnap = await db.collection("data").doc(docKey(`user:${username}`)).get();
-      if (!userSnap.exists) { noEmail++; return; }
-      const user = userSnap.data().value;
+      const user = await getValue(`user:${username}`);
       if (!user?.email) { noEmail++; return; }
 
       const name = user.displayName || username;

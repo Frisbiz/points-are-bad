@@ -1,19 +1,7 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
 import { Resend } from "resend";
 import { emailHtml } from "./email-template.js";
+import { getValue, setValue } from "./_db.js";
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
-}
-
-const db = getFirestore();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const OK_MSG = { message: "If that email is registered, a reset link has been sent." };
 
@@ -27,20 +15,16 @@ function getClientIp(req) {
   return (fwd ? fwd.split(",")[0] : req.socket?.remoteAddress || "unknown").trim();
 }
 
-function docKey(key) { return key.replace(/[/\\]/g, "_"); }
-
 async function checkRateLimit(key, max) {
   const fullKey = `ratelimit:${key}`;
   const now = Date.now();
-  const ref = db.collection("data").doc(docKey(fullKey));
   try {
-    const snap = await ref.get();
-    const record = snap.exists ? snap.data().value : null;
+    const record = await getValue(fullKey);
     if (record && record.resetAt > now) {
       if (record.count >= max) return false;
-      await ref.set({ value: { count: record.count + 1, resetAt: record.resetAt }, updatedAt: now });
+      await setValue(fullKey, { count: record.count + 1, resetAt: record.resetAt });
     } else {
-      await ref.set({ value: { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS }, updatedAt: now });
+      await setValue(fullKey, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     }
     return true;
   } catch {
@@ -64,16 +48,13 @@ export default async function handler(req, res) {
   if (!await checkRateLimit(`send-reset-email:${normalised}`, RATE_LIMIT_MAX_PER_EMAIL)) return res.status(200).json(OK_MSG);
 
   try {
-    const emailKey = `useremail:${normalised}`;
-    const lookupSnap = await db.collection("data").doc(emailKey.replace(/[/\\]/g, "_")).get();
-    if (!lookupSnap.exists) return res.status(200).json(OK_MSG);
+    const emailOwner = await getValue(`useremail:${normalised}`);
+    if (!emailOwner?.username) return res.status(200).json(OK_MSG);
 
-    const { username } = lookupSnap.data().value;
+    const { username } = emailOwner;
     const token = crypto.randomUUID();
     const expiry = Date.now() + 3_600_000;
-
-    const resetKey = `reset:${token}`;
-    await db.collection("data").doc(resetKey.replace(/[/\\]/g, "_")).set({ value: { username, expiry }, updatedAt: Date.now() });
+    await setValue(`reset:${token}`, { username, expiry });
 
     const appUrl = process.env.APP_URL || "https://pab.wtf";
     const resetLink = `${appUrl}?reset=${token}`;

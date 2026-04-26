@@ -1,4 +1,4 @@
-import { getValue, setValue, deleteValue } from "./_db.js";
+import { db, docKey, getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
 import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
@@ -257,25 +257,30 @@ export default async function handler(req, res) {
     if (!validUsername(uname)) return bad(res, 400, "Invalid username");
     if (!validEmail(mail)) return bad(res, 400, "Invalid email");
     if (String(password).trim().length < 6) return bad(res, 400, "Password too short");
-    if (await getValue(`user:${uname}`)) return bad(res, 409, "Username taken");
-    if (await getValue(`useremail:${mail}`)) return bad(res, 409, "Email already in use");
     const passwordHash = await hashPassword(String(password));
     const user = { username: uname, displayName: uname[0].toUpperCase() + uname.slice(1), email: mail, groupIds: [], passwordHash };
-    await setValue(`user:${uname}`, user);
-    const existingEmailOwner = await getValue(`useremail:${mail}`);
-    if (existingEmailOwner && existingEmailOwner.username !== uname) {
-      await deleteValue(`user:${uname}`);
-      return bad(res, 409, "Email already in use");
-    }
-    await setValue(`useremail:${mail}`, { username: uname });
-    const freshUser = await getValue(`user:${uname}`);
-    if (!freshUser || normalizeEmail(freshUser.email) !== mail) {
-      await deleteValue(`useremail:${mail}`);
-      return bad(res, 409, "Username taken");
+    // Atomic check-and-claim of both user:uname and useremail:mail. The old
+    // read-then-write flow had a race where two concurrent registrations with
+    // the same email could both pass the pre-check and orphan one account.
+    try {
+      await db.runTransaction(async (txn) => {
+        const userRef = db.collection("data").doc(docKey(`user:${uname}`));
+        const emailRef = db.collection("data").doc(docKey(`useremail:${mail}`));
+        const [userSnap, emailSnap] = await Promise.all([txn.get(userRef), txn.get(emailRef)]);
+        if (userSnap.exists) { const err = new Error("Username taken"); err.status = 409; throw err; }
+        if (emailSnap.exists) { const err = new Error("Email already in use"); err.status = 409; throw err; }
+        const now = Date.now();
+        txn.set(userRef, { value: user, updatedAt: now });
+        txn.set(emailRef, { value: { username: uname }, updatedAt: now });
+      });
+    } catch (e) {
+      if (e?.status === 409) return bad(res, 409, e.message);
+      console.error("auth-register txn failed", e);
+      return bad(res, 500, "Registration failed");
     }
     const { token, expiry } = await createSession(uname);
     setSessionCookie(res, token, expiry);
-    return res.status(200).json({ user: safeUser(freshUser) });
+    return res.status(200).json({ user: safeUser(user) });
   }
 
   if (action === 'auth-login' && req.method === 'POST') {
@@ -348,23 +353,41 @@ export default async function handler(req, res) {
     const { email } = req.body || {};
     const nextEmail = normalizeEmail(email);
     if (!validEmail(nextEmail)) return bad(res, 400, "Invalid email.");
-    const user = await getValue(`user:${username}`);
-    if (!user) return bad(res, 404, "User not found");
-    const prevEmail = normalizeEmail(user.email || "");
+    const currentUser = await getValue(`user:${username}`);
+    if (!currentUser) return bad(res, 404, "User not found");
+    const prevEmail = normalizeEmail(currentUser.email || "");
     if (prevEmail === nextEmail) return res.status(200).json({ ok: true, email: nextEmail });
-    const existing = await getValue(`useremail:${nextEmail}`);
-    if (existing && existing.username !== username) return bad(res, 409, "Email already in use.");
-    await setValue(`useremail:${nextEmail}`, { username });
-    const claimed = await getValue(`useremail:${nextEmail}`);
-    if (!claimed || claimed.username !== username) return bad(res, 409, "Email already in use.");
-    await setValue(`user:${username}`, { ...user, email: nextEmail });
-    const freshUser = await getValue(`user:${username}`);
-    if (!freshUser || normalizeEmail(freshUser.email || '') !== nextEmail) {
-      if (prevEmail) await setValue(`useremail:${prevEmail}`, { username });
-      else await deleteValue(`useremail:${nextEmail}`);
+    // Atomic: claim the new email doc, rewrite user doc, release the old email
+    // doc. Same race concern as auth-register — two people swapping emails
+    // simultaneously could otherwise end up with a useremail: doc pointing
+    // at the wrong user.
+    try {
+      await db.runTransaction(async (txn) => {
+        const userRef = db.collection("data").doc(docKey(`user:${username}`));
+        const nextEmailRef = db.collection("data").doc(docKey(`useremail:${nextEmail}`));
+        const prevEmailRef = prevEmail ? db.collection("data").doc(docKey(`useremail:${prevEmail}`)) : null;
+        const reads = [txn.get(userRef), txn.get(nextEmailRef)];
+        if (prevEmailRef) reads.push(txn.get(prevEmailRef));
+        const [userSnap, nextSnap, prevSnap] = await Promise.all(reads);
+        if (!userSnap.exists) { const err = new Error("User not found"); err.status = 404; throw err; }
+        if (nextSnap.exists && nextSnap.data().value?.username !== username) {
+          const err = new Error("Email already in use."); err.status = 409; throw err;
+        }
+        const freshUser = userSnap.data().value;
+        const now = Date.now();
+        txn.set(userRef, { value: { ...freshUser, email: nextEmail }, updatedAt: now });
+        txn.set(nextEmailRef, { value: { username }, updatedAt: now });
+        // Only release the old email doc if it actually points back to this user
+        // (guards against stale state from a previous half-failed swap).
+        if (prevEmailRef && prevSnap?.exists && prevSnap.data().value?.username === username) {
+          txn.delete(prevEmailRef);
+        }
+      });
+    } catch (e) {
+      if (e?.status) return bad(res, e.status, e.message);
+      console.error("account-change-email txn failed", e);
       return bad(res, 500, "Failed to update email.");
     }
-    if (prevEmail && prevEmail !== nextEmail) await deleteValue(`useremail:${prevEmail}`);
     return res.status(200).json({ ok: true, email: nextEmail });
   }
 

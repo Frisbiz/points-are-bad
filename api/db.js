@@ -1,18 +1,5 @@
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { db, docKey } from "./_db.js";
 import { getSession, readSessionToken } from "./_auth.js";
-
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
-}
-
-const db = getFirestore();
 
 // fixtures: are public (no sensitive data, needed for fixture display)
 // group: and groupcode: require a valid session - group docs contain all member picks
@@ -24,10 +11,6 @@ const ALLOWED_READ_PREFIXES = [...PUBLIC_READ_PREFIXES, ...AUTH_READ_PREFIXES];
 
 function validKeyFor(key, prefixes) {
   return typeof key === "string" && key.length <= 200 && prefixes.some(p => key.startsWith(p));
-}
-
-function docId(key) {
-  return key.replace(/[/\\]/g, "_");
 }
 
 export default async function handler(req, res) {
@@ -43,7 +26,7 @@ export default async function handler(req, res) {
     }
 
     try {
-      const snap = await db.collection("data").doc(docId(key)).get();
+      const snap = await db.collection("data").doc(docKey(key)).get();
       return res.status(200).json({ value: snap.exists ? snap.data().value : null });
     } catch (e) {
       console.error("db GET error", key, e);
