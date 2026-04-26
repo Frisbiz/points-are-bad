@@ -17,6 +17,37 @@ const db = getFirestore();
 const resend = new Resend(process.env.RESEND_API_KEY);
 const OK_MSG = { message: "If that email is registered, a reset link has been sent." };
 
+// ── Rate limiting (same Firestore-backed approach as /api/security) ──────────
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_PER_IP = 5;      // an IP can request 5 resets/min
+const RATE_LIMIT_MAX_PER_EMAIL = 3;   // a given address can be targeted 3 times/min
+
+function getClientIp(req) {
+  const fwd = req.headers["x-forwarded-for"];
+  return (fwd ? fwd.split(",")[0] : req.socket?.remoteAddress || "unknown").trim();
+}
+
+function docKey(key) { return key.replace(/[/\\]/g, "_"); }
+
+async function checkRateLimit(key, max) {
+  const fullKey = `ratelimit:${key}`;
+  const now = Date.now();
+  const ref = db.collection("data").doc(docKey(fullKey));
+  try {
+    const snap = await ref.get();
+    const record = snap.exists ? snap.data().value : null;
+    if (record && record.resetAt > now) {
+      if (record.count >= max) return false;
+      await ref.set({ value: { count: record.count + 1, resetAt: record.resetAt }, updatedAt: now });
+    } else {
+      await ref.set({ value: { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS }, updatedAt: now });
+    }
+    return true;
+  } catch {
+    return true; // fail open
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
@@ -24,6 +55,13 @@ export default async function handler(req, res) {
   if (!email || typeof email !== "string") return res.status(200).json(OK_MSG);
 
   const normalised = email.trim().toLowerCase();
+  const ip = getClientIp(req);
+
+  // Rate-limit before doing any Firestore lookup or email send. Return the generic
+  // OK_MSG on limit hits so attackers can't distinguish rate limiting from a
+  // nonexistent email (preserves the existing enumeration-resistance behavior).
+  if (!await checkRateLimit(`send-reset-ip:${ip}`, RATE_LIMIT_MAX_PER_IP)) return res.status(200).json(OK_MSG);
+  if (!await checkRateLimit(`send-reset-email:${normalised}`, RATE_LIMIT_MAX_PER_EMAIL)) return res.status(200).json(OK_MSG);
 
   try {
     const emailKey = `useremail:${normalised}`;

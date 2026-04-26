@@ -20,37 +20,6 @@ async function sget(key, timeoutMs = 8000) {
   } catch(e) { console.error("sget error", key, e); return null; }
 }
 
-async function sset(key, val) {
-  try {
-    const res = await fetch("/api/db", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value: val }),
-    });
-    if (!res.ok) { console.error("sset error", key, res.status); return false; }
-    return true;
-  } catch(e) { console.error("sset error", key, e); return false; }
-}
-
-async function sdel(key) {
-  try {
-    const res = await fetch(`/api/db?key=${encodeURIComponent(key)}`, { method: "DELETE" });
-    return res.ok;
-  } catch(e) { console.error("sdel error", key, e); return false; }
-}
-
-async function spatch(key, path, value) {
-  try {
-    const res = await fetch("/api/db", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, path, value }),
-    });
-    if (!res.ok) { console.error("spatch error", key, path, res.status); return false; }
-    return true;
-  } catch(e) { console.error("spatch error", key, path, e); return false; }
-}
-
 async function callAPI(action, payload = {}) {
   try {
     const res = await fetch('/api/security', {
@@ -64,15 +33,6 @@ async function callAPI(action, payload = {}) {
   } catch (e) {
     return { ok: false, error: 'Network error. Please try again.', data: {} };
   }
-}
-
-const SITE_PREFS_KEY = "site:preferences";
-
-function applyPath(obj, dotPath, value) {
-  const parts = dotPath.split(".");
-  if (parts.length === 1) return { ...obj, [parts[0]]: value };
-  const nested = (obj[parts[0]] !== null && typeof obj[parts[0]] === "object") ? obj[parts[0]] : {};
-  return { ...obj, [parts[0]]: applyPath(nested, parts.slice(1).join("."), value) };
 }
 
 // Session stored locally (only needed on this browser)
@@ -2299,7 +2259,10 @@ export default function App() {
   const userRef=useRef(null);
   const setTheme=useCallback((t)=>{
     setThemeRaw(t);
-    if(userRef.current?.username)spatch(`user:${userRef.current.username}`,"theme",t).catch(()=>{});
+    // /api/db is read-only; theme persistence goes through the auth endpoint so it
+    // survives to other devices. Fire-and-forget — localStorage already keeps it
+    // snappy on this device.
+    if(userRef.current?.username)callAPI('account-set-theme',{theme:t}).catch(()=>{});
   },[]);
   const [toast,setToast]=useState(null);
   const konamiIndexRef=useRef(0);

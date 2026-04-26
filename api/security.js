@@ -21,24 +21,25 @@ const SITE_DEFAULTS = { defaultTheme: "dark", landingTheme: null };
 
 // ── Rate limiting (Firestore-backed, reliable across serverless instances) ───
 const RATE_LIMIT_WINDOW_MS = 60_000;      // 1 minute window
-const RATE_LIMIT_MAX_AUTH   = 10;         // max login/register attempts per window
-const RATE_LIMIT_MAX_UNLOCK = 30;         // looser limit for non-auth actions
+const RATE_LIMIT_MAX_AUTH_PER_ACCOUNT = 10; // per (ip, username) - brute force against one account
+const RATE_LIMIT_MAX_AUTH_PER_IP      = 100;// per ip only - password spraying / bot abuse
+const RATE_LIMIT_MAX_REGISTER_PER_IP  = 20; // per ip only - registration spam
 
 function getClientIp(req) {
   const fwd = req.headers["x-forwarded-for"];
   return (fwd ? fwd.split(",")[0] : req.socket?.remoteAddress || "unknown").trim();
 }
 
-async function checkRateLimit(ip, action, max = RATE_LIMIT_MAX_AUTH) {
-  const key = `ratelimit:${action}:${ip}`;
+async function checkRateLimit(key, max) {
+  const fullKey = `ratelimit:${key}`;
   const now = Date.now();
   try {
-    const record = await getValue(key);
+    const record = await getValue(fullKey);
     if (record && record.resetAt > now) {
       if (record.count >= max) return false;
-      await setValue(key, { count: record.count + 1, resetAt: record.resetAt });
+      await setValue(fullKey, { count: record.count + 1, resetAt: record.resetAt });
     } else {
-      await setValue(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+      await setValue(fullKey, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     }
     return true;
   } catch {
@@ -248,7 +249,7 @@ export default async function handler(req, res) {
 
   if (action === 'auth-register' && req.method === 'POST') {
     const ip = getClientIp(req);
-    if (!await checkRateLimit(ip, 'auth-register')) return bad(res, 429, "Too many attempts. Try again in a minute.");
+    if (!await checkRateLimit(`auth-register:${ip}`, RATE_LIMIT_MAX_REGISTER_PER_IP)) return bad(res, 429, "Too many attempts. Try again in a minute.");
     const { username, password, email } = req.body || {};
     const uname = normalizeUsername(username);
     const mail = normalizeEmail(email);
@@ -279,10 +280,14 @@ export default async function handler(req, res) {
 
   if (action === 'auth-login' && req.method === 'POST') {
     const ip = getClientIp(req);
-    if (!await checkRateLimit(ip, 'auth-login')) return bad(res, 429, "Too many attempts. Try again in a minute.");
     const { username, password } = req.body || {};
     const uname = normalizeUsername(username);
     if (!uname || !password) return bad(res, 400, "Missing fields");
+    // Two-layer rate limit: per (ip, username) prevents brute force on a single account,
+    // per ip prevents password spraying and also the old bug where one typo-prone user
+    // behind a NAT would lock out every other user behind the same IP.
+    if (!await checkRateLimit(`auth-login:${ip}:${uname}`, RATE_LIMIT_MAX_AUTH_PER_ACCOUNT)) return bad(res, 429, "Too many attempts. Try again in a minute.");
+    if (!await checkRateLimit(`auth-login-ip:${ip}`, RATE_LIMIT_MAX_AUTH_PER_IP)) return bad(res, 429, "Too many attempts. Try again in a minute.");
     const user = await getValue(`user:${uname}`);
     if (!user) return bad(res, 401, "Invalid credentials");
 
@@ -323,6 +328,17 @@ export default async function handler(req, res) {
     // in the DB forever alongside the new hash.
     const { password: _legacyPlaintext, ...userWithoutPlaintext } = user;
     await setValue(`user:${username}`, { ...userWithoutPlaintext, passwordHash });
+    return res.status(200).json({ ok: true });
+  }
+
+  if (action === 'account-set-theme' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const { theme } = req.body || {};
+    if (!theme || typeof theme !== 'string' || theme.length > 40) return bad(res, 400, 'Invalid theme');
+    const user = await getValue(`user:${username}`);
+    if (!user) return bad(res, 404, 'User not found');
+    await setValue(`user:${username}`, { ...user, theme });
     return res.status(200).json({ ok: true });
   }
 
@@ -861,10 +877,14 @@ export default async function handler(req, res) {
     }
 
     if (payload.type === 'sync-all-dates') {
-      const matchesRes = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}/api/fixtures?season=${group.season || 2025}&competition=${group.competition || 'PL'}`);
-      if (!matchesRes.ok) return bad(res, matchesRes.status, `API error ${matchesRes.status}`);
-      const matchesData = await matchesRes.json();
-      const matches = matchesData.matches || [];
+      // Previously did a loopback fetch to http://127.0.0.1/api/fixtures which never
+      // resolves from inside a Vercel serverless function. Call the Football-Data API
+      // directly like every other handler in this file does.
+      const comp = group.competition || 'PL';
+      const seas = comp === 'WC' ? 2026 : (group.season || 2025);
+      let matches;
+      try { matches = await fetchFromFD(null, seas, comp); }
+      catch (e) { return bad(res, e.status || 500, e.message); }
       if (!matches.length) return res.status(200).json({ group, updated: 0 });
       const dateByTeams = {};
       matches.forEach(m => {
