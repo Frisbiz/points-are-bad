@@ -318,7 +318,11 @@ export default async function handler(req, res) {
       : user.password === String(currentPassword);
     if (!ok) return bad(res, 400, "Current password incorrect.");
     const passwordHash = await hashPassword(String(newPassword));
-    await setValue(`user:${username}`, { ...user, passwordHash });
+    // Strip any stale plaintext `password` field so legacy users get fully migrated
+    // to bcrypt after changing their password. Otherwise the old plaintext lingers
+    // in the DB forever alongside the new hash.
+    const { password: _legacyPlaintext, ...userWithoutPlaintext } = user;
+    await setValue(`user:${username}`, { ...userWithoutPlaintext, passwordHash });
     return res.status(200).json({ ok: true });
   }
 

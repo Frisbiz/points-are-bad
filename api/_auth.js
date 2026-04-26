@@ -70,10 +70,14 @@ export function readSessionToken(req) {
 
 export function setSessionCookie(res, token, expiry) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  res.setHeader("Set-Cookie", `pab_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiry).toUTCString()}${secure}`);
+  // SameSite=Lax (not Strict) so the session cookie survives top-level navigations
+  // from external origins (email links, bookmarks, messenger previews, in-app browsers).
+  // Strict silently drops the cookie on those, which surfaces to users as "my password
+  // stopped working" when their session was actually just missing.
+  res.setHeader("Set-Cookie", `pab_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Expires=${new Date(expiry).toUTCString()}${secure}`);
 }
 
 export function clearSessionCookie(res) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  res.setHeader("Set-Cookie", `pab_session=; Path=/; HttpOnly; SameSite=Strict; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`);
+  res.setHeader("Set-Cookie", `pab_session=; Path=/; HttpOnly; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`);
 }
