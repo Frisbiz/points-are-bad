@@ -184,6 +184,21 @@ function calcPts(pred, result) {
   return Math.abs(ph - rh) + Math.abs(pa - ra);
 }
 
+// Best-available scoreline for RENDERING/DISPLAY purposes only.
+// Prefers the final result, then a cached live score, then the Yahoo live feed.
+// DO NOT use this in computeStats or any Trends/standings aggregation — those
+// must stay locked to f.result only so season totals, rankings, and charts
+// don't flip mid-match.
+function effectiveFixtureResult(fixture, liveScores) {
+  if (fixture.result) return fixture.result;
+  if (fixture.liveScore) return fixture.liveScore;
+  const lm = liveScores?.[`${fixture.home}|${fixture.away}`];
+  if (lm && (lm.status === "in_progress" || lm.status === "halftime") && lm.homeScore != null && lm.awayScore != null) {
+    return `${lm.homeScore}-${lm.awayScore}`;
+  }
+  return null;
+}
+
 function getFixtureSeasonIndex(group, fixtureId) {
   const gws = (group.gameweeks || [])
     .slice()
@@ -3519,8 +3534,9 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const [draftHome, draftAway] = String(myPred).split("-");
-        const pts = calcPts(myPreds[f.id],f.result);
-        const effectivePts = pts!==null?pts:(f.result&&!myPreds[f.id]?(userPreJoin?null:MISSED_PICK_PTS):null);
+        const effResult = effectiveFixtureResult(f, liveScores);
+        const pts = calcPts(myPreds[f.id], effResult);
+        const effectivePts = pts!==null?pts:(effResult&&!myPreds[f.id]?(userPreJoin?null:MISSED_PICK_PTS):null);
         const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const locked = hardLocked || picksLocked;
         const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
@@ -3716,12 +3732,16 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
   const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
   const members = group.members||[];
   const preds = group.predictions||{};
-  const scored = gwFixtures.filter(f=>f.result);
+  // "scored" here means "has an effective scoreline to project against" — final result
+  // OR current live score. Trends/standings keep filtering on f.result only; this
+  // inclusive filter is a display-only thing and never reaches computeStats.
+  const effResults = useMemo(()=>{const m={};gwFixtures.forEach(f=>{m[f.id]=effectiveFixtureResult(f,liveScores);});return m;},[gwFixtures,liveScores]);
+  const scored = gwFixtures.filter(f=>effResults[f.id]);
   const gwObj = (group.gameweeks||[]).find(g=>g.gw===(viewedGW??group.currentGW)&&(g.fixtures||[]).some(f=>gwFixtures.some(gf=>gf.id===f.id)));
   const activeSeason = group.season||2025;
   const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
   const preJoinMap = useMemo(()=>{const m={};members.forEach(u=>{m[u]=gwObj?isPreJoinGW(firstPicks,u,gwObj,activeSeason):false;});return m;},[members,gwObj,firstPicks,activeSeason]);
-  const weeklyTotals = members.map(u=>{if(preJoinMap[u])return null;return scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],f.result);return sum+(pts!==null?pts:MISSED_PICK_PTS);},0);});
+  const weeklyTotals = members.map(u=>{if(preJoinMap[u])return null;return scored.reduce((sum,f)=>{const pts=calcPts(preds[u]?.[f.id],effResults[f.id]);return sum+(pts!==null?pts:MISSED_PICK_PTS);},0);});
   const hasAnyPicks = scored.some(f=>members.some(u=>preds[u]?.[f.id]));
   const sortedUnique = [...new Set(weeklyTotals.filter(t=>t!==null))].sort((a,b)=>a-b);
   const weeklyColor = t=>{if(t===null||!hasAnyPicks)return "var(--text-dim)";const r=sortedUnique.indexOf(t);return r===0?"#fbbf24":r===1?"#9ca3af":r===2?"#cd7f32":"var(--text)";};
@@ -3816,8 +3836,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                 })()}</td>
                 {members.map(u=>{
                   const pred=preds[u]?.[f.id];
-                  const pts=calcPts(pred,f.result);
-                  const effectivePts=pts!==null?pts:(f.result&&!pred?(preJoinMap[u]?null:MISSED_PICK_PTS):null);
+                  const effRes=effResults[f.id];
+                  const pts=calcPts(pred,effRes);
+                  const effectivePts=pts!==null?pts:(effRes&&!pred?(preJoinMap[u]?null:MISSED_PICK_PTS):null);
                   const key=editKey(u,f.id);
                   const isEditingCell=editing[key]!==undefined;
                   if(theme==="excel"){
