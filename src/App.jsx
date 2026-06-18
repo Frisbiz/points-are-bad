@@ -2900,14 +2900,18 @@ function WCStandingsTab({ group, theme="dark" }) {
 
   useEffect(()=>{
     let cancelled=false;
-    setLoading(true);
-    setError("");
-    fetch("/api/wc-standings")
-      .then(r=>r.ok?r.json():Promise.reject(new Error(`HTTP ${r.status}`)))
-      .then(data=>{if(!cancelled)setStandings(data);})
-      .catch(()=>{if(!cancelled)setError("Standings unavailable");})
-      .finally(()=>{if(!cancelled)setLoading(false);});
-    return()=>{cancelled=true;};
+    const load=(showLoading=false)=>{
+      if(showLoading)setLoading(true);
+      setError("");
+      fetch("/api/wc-standings")
+        .then(r=>r.ok?r.json():Promise.reject(new Error(`HTTP ${r.status}`)))
+        .then(data=>{if(!cancelled)setStandings(data);})
+        .catch(()=>{if(!cancelled)setError("Standings unavailable");})
+        .finally(()=>{if(!cancelled&&showLoading)setLoading(false);});
+    };
+    load(true);
+    const refresh=setInterval(()=>load(false),120000);
+    return()=>{cancelled=true;clearInterval(refresh);};
   },[]);
 
   const groups=standings?.groups||[];
@@ -2938,56 +2942,32 @@ function WCStandingsTab({ group, theme="dark" }) {
       </div>
 
       {section==="groups"
-        ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme} rules={standings?.qualificationRules}/>
+        ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme}/>
         : <WCKnockoutStage group={group} theme={theme} embedded/>
       }
     </div>
   );
 }
 
-function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=null }) {
+function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
   const mob=useMobile();
   if (loading && !groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>Loading standings...</div>;
   if (error && !groups.length) return <div style={{color:"#ef4444",fontSize:12,padding:"28px 0"}}>{error}</div>;
   if (!groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>No group standings yet.</div>;
-  const knockoutTeams=rules?.knockoutTeams||32;
-  const automaticTeams=(rules?.groupCount||12)*(rules?.automaticPerGroup||2);
-  const bestThirdCount=rules?.bestThirdCount||8;
-  const chipStyle={display:"inline-flex",alignItems:"center",gap:6,border:"1px solid var(--border2)",borderRadius:5,padding:"5px 8px",color:"var(--text-mid)",fontSize:10,fontWeight:700,letterSpacing:0.5,whiteSpace:"nowrap"};
-  const qualBadge=(row)=>{
-    if (!(row.qualified ?? row.pos<=2)) return <span style={{color:"var(--text-dim3)"}}>—</span>;
-    const bestThird=row.qualification?.type==="best-third";
-    const label=bestThird?`3rd #${row.qualification.rank}`:"Auto";
-    const title=bestThird?`Best third-place team #${row.qualification.rank}`:"Top two qualify automatically";
-    return <span title={title} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minWidth:bestThird?52:40,border:"1px solid rgba(96,165,250,0.36)",borderRadius:5,padding:"3px 7px",color:"#93c5fd",background:"rgba(96,165,250,0.08)",fontSize:9,fontWeight:800,letterSpacing:0.6,whiteSpace:"nowrap"}}>{label}</span>;
-  };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:28}}>
-      <div style={{borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",padding:"14px 0 15px",display:"grid",gridTemplateColumns:mob?"1fr":"minmax(160px,0.55fr) 1fr",gap:mob?12:20,alignItems:"center"}}>
-        <div>
-          <div style={{color:"var(--text-bright)",fontSize:15,fontWeight:900,letterSpacing:-0.2}}>Round of 32</div>
-          <div style={{color:"var(--text-dim2)",fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginTop:3}}>{knockoutTeams} advance</div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          <span style={chipStyle}><span style={{width:7,height:7,borderRadius:"50%",background:"#93c5fd",display:"inline-block"}}/>Top two · {automaticTeams}</span>
-          <span style={chipStyle}><span style={{width:7,height:7,borderRadius:"50%",background:"transparent",border:"1px solid #93c5fd",display:"inline-block"}}/>Best thirds · {bestThirdCount}</span>
-          <span style={{color:"var(--text-dim2)",fontSize:10,lineHeight:1.6,letterSpacing:0.4}}>
-            Tiebreakers: Pts, GD, GF, fair play, FIFA ranking{rules?.cutoffTieUsesUnavailableCriteria ? " · cutoff ties provisional" : ""}
-          </span>
-        </div>
-      </div>
+    <div style={{display:"flex",flexDirection:"column",gap:26}}>
       {groups.map(group=>(
         <div key={group.name}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
             <h2 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:16,fontWeight:800,color:"var(--text-bright)",margin:0,letterSpacing:-0.2}}>{group.name}</h2>
           </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-            <table style={{width:"100%",minWidth:mob?650:700,borderCollapse:"collapse",fontSize:12}}>
+            <table style={{width:"100%",minWidth:mob?560:620,borderCollapse:"collapse",fontSize:12}}>
               <thead>
                 <tr style={{borderBottom:"1px solid var(--border2)"}}>
-                  {["","Team","MP","W","D","L","GF","GA","GD","Pts","Qual"].map((h,i)=>(
-                    <th key={h||"pos"} style={{padding:"8px 8px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?30:i===10?70:i>1?44:undefined}}>{h}</th>
+                  {["","Team","MP","W","D","L","GF","GA","GD","Pts"].map((h,i)=>(
+                    <th key={h||"pos"} style={{padding:"8px 8px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?30:i>1?44:undefined}}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -2996,7 +2976,7 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=nul
                   const advanced=row.qualified ?? row.pos<=2;
                   return (
                     <tr key={row.teamId||row.team} className="frow" style={{borderBottom:"1px solid var(--border3)",background:advanced?"rgba(96,165,250,0.045)":"transparent"}}>
-                      <td style={{padding:"9px 8px",color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center"}}>{row.pos}</td>
+                      <td style={{padding:"9px 8px",color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center",boxShadow:advanced?"inset 3px 0 0 #3b82f6":"none"}}>{row.pos}</td>
                       <td style={{padding:"9px 8px",minWidth:190}}>
                         <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
                           <TeamBadge team={row.team} crest={row.crest} size={20}/>
@@ -3006,7 +2986,6 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=nul
                       {[row.p,row.w,row.d,row.l,row.gf,row.ga,row.gd,row.pts].map((v,i)=>(
                         <td key={i} style={{padding:"9px 8px",textAlign:"center",color:i===7?"var(--text-bright)":"var(--text-mid)",fontWeight:i===7?800:700}}>{v}</td>
                       ))}
-                      <td style={{padding:"9px 8px",textAlign:"center"}}>{qualBadge(row)}</td>
                     </tr>
                   );
                 })}
@@ -3015,6 +2994,15 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=nul
           </div>
         </div>
       ))}
+      <div style={{background:"var(--card-hi)",border:"1px solid var(--border2)",borderRadius:4,padding:"14px 16px",display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontSize:10,color:"var(--text-bright)",fontWeight:800,marginBottom:8}}>Qualification</div>
+          <div style={{display:"flex",alignItems:"center",gap:8,color:"var(--text-mid)",fontSize:10,fontWeight:700}}>
+            <span style={{width:7,height:7,background:"#3b82f6",display:"inline-block"}}/>
+            Knockout stage
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
