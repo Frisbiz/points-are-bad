@@ -2924,10 +2924,7 @@ function WCStandingsTab({ group, theme="dark" }) {
           <h1 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:34,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
           <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>WORLD CUP 2026</p>
         </div>
-        <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1.4,textTransform:"uppercase"}}>
-          {hasLive ? <span style={{color:"#22c55e",marginRight:10}}>Live</span> : null}
-          {standings?.source || "Yahoo Sports"}
-        </div>
+        {hasLive&&<div style={{fontSize:10,color:"#22c55e",letterSpacing:1.4,textTransform:"uppercase"}}>Live</div>}
       </div>
 
       <div style={{borderBottom:"1px solid var(--border)",display:"grid",gridTemplateColumns:"1fr 1fr",marginBottom:24}}>
