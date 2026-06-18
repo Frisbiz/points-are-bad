@@ -2027,7 +2027,7 @@ const BOT_NAV_ICONS = {
   Trends:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,18 9,11 13,14 21,6"/><path d="M3 21h18"/></svg>,
   Members:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
   Group:    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
-  Bracket:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="6" height="4" rx="1"/><rect x="1" y="16" width="6" height="4" rx="1"/><rect x="9" y="10" width="6" height="4" rx="1"/><rect x="17" y="10" width="6" height="4" rx="1"/><path d="M7 6h1v10H7M15 12h2"/></svg>,
+  Standings:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19V5M4 19h16M8 16V9M12 16V7M16 16v-4M20 16V5"/></svg>,
 };
 const SECRET_THEME = "velvet";
 const SECRET_THEME_CLICKS_REQUIRED = 99;
@@ -2747,7 +2747,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     recapContent = { gwNum, winners, minPts, totalGoals, flavor: getWeeklyWinnerFlavor(minPts, winners.length, totalGoals) };
   }
   const isWCGroup = (group.competition || "PL") === "WC";
-  const nav = isWCGroup ? [...NAV.slice(0,2), "Bracket", ...NAV.slice(2)] : NAV;
+  const nav = isWCGroup ? [...NAV.slice(0,2), "Standings", ...NAV.slice(2)] : NAV;
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
@@ -2881,7 +2881,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
         <TabErrorBoundary key={tab} tabName={tab}>
           {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
           {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup}/>}
-          {tab==="Bracket"&&<WCBracketTab group={group} theme={theme}/>}
+          {tab==="Standings"&&<WCStandingsTab group={group} theme={theme}/>}
           {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
           {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
           {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
@@ -2892,7 +2892,111 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
 }
 
 /* ── WC BRACKET ──────────────────────────────────── */
-function WCBracketTab({ group, theme="dark" }) {
+function WCStandingsTab({ group, theme="dark" }) {
+  const [section,setSection]=useState("groups");
+  const [standings,setStandings]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+
+  useEffect(()=>{
+    let cancelled=false;
+    setLoading(true);
+    setError("");
+    fetch("/api/wc-standings")
+      .then(r=>r.ok?r.json():Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(data=>{if(!cancelled)setStandings(data);})
+      .catch(()=>{if(!cancelled)setError("Standings unavailable");})
+      .finally(()=>{if(!cancelled)setLoading(false);});
+    return()=>{cancelled=true;};
+  },[]);
+
+  const groups=standings?.groups||[];
+  const hasLive=groups.some(g=>g.rows?.some(r=>r.live));
+
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:16,marginBottom:20,flexWrap:"wrap"}}>
+        <div>
+          <h1 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:34,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1}}>Standings</h1>
+          <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>WORLD CUP 2026</p>
+        </div>
+        <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1.4,textTransform:"uppercase"}}>
+          {hasLive ? <span style={{color:"#22c55e",marginRight:10}}>Live</span> : null}
+          {standings?.source || "Yahoo Sports"}
+        </div>
+      </div>
+
+      <div style={{borderBottom:"1px solid var(--border)",display:"grid",gridTemplateColumns:"1fr 1fr",marginBottom:24}}>
+        {[["groups","Group Stage"],["knockout","Knockout Stage"]].map(([key,label])=>{
+          const active=section===key;
+          return (
+            <button key={key} onClick={()=>setSection(key)} style={{background:"none",border:"none",borderBottom:`2px solid ${active?"var(--text-bright)":"transparent"}`,color:active?"var(--text-bright)":"var(--text-dim2)",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:active?700:500,padding:"13px 10px 14px",transition:"color 0.15s,border-color 0.15s"}}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {section==="groups"
+        ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme}/>
+        : <WCKnockoutStage group={group} theme={theme} embedded/>
+      }
+    </div>
+  );
+}
+
+function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
+  const mob=useMobile();
+  if (loading && !groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>Loading standings...</div>;
+  if (error && !groups.length) return <div style={{color:"#ef4444",fontSize:12,padding:"28px 0"}}>{error}</div>;
+  if (!groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>No group standings yet.</div>;
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:26}}>
+      {groups.map(group=>(
+        <div key={group.name}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+            <h2 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:16,fontWeight:800,color:"var(--text-bright)",margin:0,letterSpacing:-0.2}}>{group.name}</h2>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1.2}}>TOP 2 ADVANCE</div>
+          </div>
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+            <table style={{width:"100%",minWidth:mob?560:620,borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{borderBottom:"1px solid var(--border2)"}}>
+                  {["","Team","MP","W","D","L","GF","GA","GD","Pts"].map((h,i)=>(
+                    <th key={h||"pos"} style={{padding:"8px 8px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?30:i>1?44:undefined}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(group.rows||[]).map(row=>{
+                  const advanced=row.pos<=2;
+                  return (
+                    <tr key={row.teamId||row.team} style={{borderBottom:"1px solid var(--border3)",background:advanced?"rgba(96,165,250,0.055)":"transparent"}}>
+                      <td style={{padding:"9px 8px",color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center"}}>{row.pos}</td>
+                      <td style={{padding:"9px 8px",minWidth:190}}>
+                        <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
+                          <TeamBadge team={row.team} crest={row.crest} size={20}/>
+                          <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
+                          {advanced&&<span style={{fontSize:9,color:"#60a5fa",border:"1px solid #60a5fa45",borderRadius:4,padding:"1px 5px",letterSpacing:1}}>Q</span>}
+                        </div>
+                      </td>
+                      {[row.p,row.w,row.d,row.l,row.gf,row.ga,row.gd,row.pts].map((v,i)=>(
+                        <td key={i} style={{padding:"9px 8px",textAlign:"center",color:i===7?"var(--text-bright)":"var(--text-mid)",fontWeight:i===7?800:700}}>{v}</td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const mob = useMobile();
   const SLOT_H = mob ? 36 : 56;
   const CARD_H = mob ? 28 : 46;
@@ -2983,12 +3087,12 @@ function WCBracketTab({ group, theme="dark" }) {
 
   return (
     <div>
-      <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:24}}>
+      {!embedded&&<div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:24}}>
         <div>
-          <h1 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:34,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1}}>Bracket</h1>
+          <h1 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:34,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1}}>Knockout Stage</h1>
           <p style={{color:"var(--text-dim)",fontSize:11,letterSpacing:2,marginTop:4}}>WORLD CUP 2026 · KNOCKOUT STAGE</p>
         </div>
-      </div>
+      </div>}
       <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:16}}>
         <div style={{display:"flex",alignItems:"flex-start",paddingBottom:8}}>
           {ROUNDS.map(({gw,label,count},ri) => {
