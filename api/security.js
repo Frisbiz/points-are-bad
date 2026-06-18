@@ -59,6 +59,34 @@ function genCode() {
   return code;
 }
 
+function normalizeDraw11Limit(value, fallback = null) {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) return fallback;
+  if (raw === 'unlimited' || raw === 'none') return raw;
+  if (!/^\d+$/.test(raw)) return fallback;
+  const n = Math.max(0, Math.min(99, Number(raw)));
+  return n === 0 ? 'none' : String(n);
+}
+
+function draw11LimitMax(value) {
+  const limit = normalizeDraw11Limit(value, 'unlimited');
+  if (limit === 'unlimited') return Infinity;
+  if (limit === 'none') return 0;
+  return Number(limit);
+}
+
+function draw11LimitPeriod(group) {
+  return (group.competition || 'PL') === 'WC' ? 'round' : 'gameweek';
+}
+
+function findFixtureGW(group, fixtureId) {
+  for (const gw of group.gameweeks || []) {
+    const fixture = (gw.fixtures || []).find(f => f.id === fixtureId);
+    if (fixture) return { gw, fixture };
+  }
+  return null;
+}
+
 function makeFixturesFallback(gw, season = 2025) {
   const prefix = season !== 2025 ? `${season}-` : '';
   return Array.from({ length: 10 }, (_, i) => ({ id: `${prefix}gw${gw}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
@@ -341,6 +369,7 @@ export default async function handler(req, res) {
     if (!username) return;
     const { theme } = req.body || {};
     if (!theme || typeof theme !== 'string' || theme.length > 40) return bad(res, 400, 'Invalid theme');
+    if (username === DEMO_SHARED_USERNAME) return res.status(200).json({ ok: true });
     const user = await getValue(`user:${username}`);
     if (!user) return bad(res, 404, 'User not found');
     await setValue(`user:${username}`, { ...user, theme });
@@ -446,7 +475,7 @@ export default async function handler(req, res) {
     const isLL = competition === 'LL';
     const startGW = Math.max(1, Math.min(38, parseInt(setupGW) || 1));
     const leagueSeason = 2025;
-    const baseGroup = { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], currentGW: isWC ? 1 : startGW, apiKey: '', hiddenGWs: [], scoreScope: 'all', draw11Limit: setupLimit || 'unlimited', mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
+    const baseGroup = { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], currentGW: isWC ? 1 : startGW, apiKey: '', hiddenGWs: [], scoreScope: 'all', draw11Limit: normalizeDraw11Limit(setupLimit, 'unlimited'), mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
     let group;
     if (isWC) {
       group = { ...baseGroup, gameweeks: makeWCRounds(), season: 2026, competition: 'WC' };
@@ -609,6 +638,10 @@ export default async function handler(req, res) {
       const fixtureId = payload.fixtureId;
       const value = String(payload.value || '');
       if (!fixtureId || !/^\d+-\d+$/.test(value)) return bad(res, 400, 'Invalid prediction');
+      const target = findFixtureGW(group, fixtureId);
+      if (!target) return bad(res, 400, 'Fixture not found');
+      const fixtureLocked = !!(target.fixture.result || target.fixture.status === 'FINISHED' || target.fixture.status === 'IN_PLAY' || target.fixture.status === 'PAUSED' || target.fixture.status === 'POSTPONED' || (target.fixture.date && new Date(target.fixture.date) <= new Date()));
+      if (fixtureLocked) return bad(res, 400, 'Fixture is locked');
       if (group.mode === 'dibs') {
         const freshTurn = computeDibsTurn(group, fixtureId);
         if (freshTurn !== username) return bad(res, 400, 'Not your turn');
@@ -616,6 +649,18 @@ export default async function handler(req, res) {
           .filter(([u]) => u !== username)
           .some(([, picks]) => picks?.[fixtureId] === value);
         if (takenFresh) return bad(res, 400, 'Prediction already taken');
+      }
+      if (value === '1-1') {
+        const max = draw11LimitMax(group.draw11Limit);
+        if (Number.isFinite(max)) {
+          const picks = group.predictions?.[username] || {};
+          const used = (target.gw.fixtures || []).filter(f => f.id !== fixtureId && picks[f.id] === '1-1').length;
+          if (used >= max) {
+            return bad(res, 400, max === 0
+              ? '1-1 predictions are not allowed in this group.'
+              : `You can only make ${max} 1-1 prediction${max > 1 ? 's' : ''} per ${draw11LimitPeriod(group)}.`);
+          }
+        }
       }
       const predictions = { ...(group.predictions || {}) };
       predictions[username] = { ...(predictions[username] || {}), [fixtureId]: value };
@@ -762,7 +807,9 @@ export default async function handler(req, res) {
     }
 
     if (payload.type === 'save-11-limit') {
-      const next = { ...group, draw11Limit: payload.value };
+      const value = normalizeDraw11Limit(payload.value);
+      if (!value) return bad(res, 400, 'Invalid 1-1 limit');
+      const next = { ...group, draw11Limit: value };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
     }

@@ -373,6 +373,40 @@ function gwLabel(group, gwNum) {
   return stageLabel(stage, gwNum);
 }
 
+const DRAW_11_LIMIT_PRESETS = [["unlimited","Unlimited"],["2","2"],["1","1"],["none","None"]];
+
+function cleanDraw11LimitInput(value) {
+  return String(value || "").replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 2);
+}
+
+function normalizeDraw11Limit(value) {
+  const raw = String(value || "unlimited").trim().toLowerCase();
+  if (raw === "unlimited" || raw === "none") return raw;
+  const cleaned = cleanDraw11LimitInput(raw);
+  if (!cleaned) return "unlimited";
+  const n = Math.max(0, Math.min(99, Number(cleaned)));
+  return n === 0 ? "none" : String(n);
+}
+
+function draw11LimitMax(value) {
+  const limit = normalizeDraw11Limit(value);
+  if (limit === "unlimited") return Infinity;
+  if (limit === "none") return 0;
+  return Number(limit);
+}
+
+function draw11LimitPeriod(groupOrCompetition) {
+  const comp = typeof groupOrCompetition === "string" ? groupOrCompetition : (groupOrCompetition?.competition || "PL");
+  return comp === "WC" ? "round" : "gameweek";
+}
+
+function draw11LimitLabel(group) {
+  const limit = normalizeDraw11Limit(group.draw11Limit);
+  if (limit === "unlimited") return "Unlimited";
+  if (limit === "none") return "No 1-1s";
+  return `${limit} / ${draw11LimitPeriod(group)}`;
+}
+
 const Avatar = ({ name, size = 36, color }) => {
   const ini = (name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   const hue = [...(name||"")].reduce((a,c)=>a+c.charCodeAt(0),0)%360;
@@ -420,8 +454,8 @@ const Spinner = ({ size = 4 }) => (
   </span>
 );
 
-const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus}) => (
-  <input className="pab-input" type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus}
+const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus,inputMode,pattern}) => (
+  <input className="pab-input" type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus} inputMode={inputMode} pattern={pattern}
     style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
 );
 
@@ -1645,6 +1679,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const [setupCompetition,setSetupCompetition]=useState("PL");
   const [setupGW,setSetupGW]=useState("1");
   const [setupLimit,setSetupLimit]=useState("unlimited");
+  const [setupCustomLimit,setSetupCustomLimit]=useState("");
   const [setupGWLoading,setSetupGWLoading]=useState(false);
   const [setupPickMode,setSetupPickMode]=useState("open");
 
@@ -1737,9 +1772,9 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     if (!createName.trim()) return;
     setCreating(true);
     try {
-      const { ok, data } = await callAPI('create-group', { name:createName.trim(), competition:setupCompetition, setupGW, setupLimit, setupPickMode });
+      const { ok, data } = await callAPI('create-group', { name:createName.trim(), competition:setupCompetition, setupGW, setupLimit:normalizeDraw11Limit(setupLimit), setupPickMode });
       if (!ok || !data.group || !data.user) return;
-      onUpdateUser(data.user);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupPickMode("open");setSetupCompetition("PL");
+      onUpdateUser(data.user);setCreateName("");setSetupMode(false);setSetupGW("1");setSetupLimit("unlimited");setSetupCustomLimit("");setSetupPickMode("open");setSetupCompetition("PL");
       onEnterGroup(data.group);
     } finally {
       setCreating(false);
@@ -1760,6 +1795,9 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       setInviteLoading(false);
     }
   };
+  const normalizedSetupLimit = normalizeDraw11Limit(setupLimit);
+  const setupLimitPeriod = draw11LimitPeriod(setupCompetition);
+  const setupCustomActive = !DRAW_11_LIMIT_PRESETS.some(([val]) => val === normalizedSetupLimit);
 
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'DM Mono',monospace",color:"var(--text)"}}>
@@ -1769,7 +1807,10 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           {user.username===DEMO_SHARED_USERNAME?(
-            <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,padding:0,color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit"}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <DemoThemeSwitcher theme={theme} setTheme={setTheme}/>
+              <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,padding:0,color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit",whiteSpace:"nowrap"}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+            </div>
           ):(
             <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center"}}>
               <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,padding:0,borderRadius:4}}>
@@ -1948,15 +1989,19 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
                   </div>
                 </div>
                 <div>
-                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>1-1 LIMIT PER WEEK</div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>1-1 LIMIT PER {setupLimitPeriod.toUpperCase()}</div>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                    {[["unlimited","Unlimited"],["2","2"],["1","1"],["none","None"]].map(([val,label])=>(
-                      <button key={val} onClick={()=>setSetupLimit(val)} style={{background:setupLimit===val?"var(--btn-bg)":"var(--card)",color:setupLimit===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
+                    {DRAW_11_LIMIT_PRESETS.map(([val,label])=>(
+                      <button key={val} onClick={()=>setSetupLimit(val)} style={{background:normalizedSetupLimit===val?"var(--btn-bg)":"var(--card)",color:normalizedSetupLimit===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
                     ))}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+                    <Input value={setupCustomLimit} onChange={v=>{const cleaned=cleanDraw11LimitInput(v);setSetupCustomLimit(cleaned);if(cleaned)setSetupLimit(cleaned);}} placeholder="Custom" inputMode="numeric" pattern="[0-9]*" style={{width:96,padding:"6px 10px",fontSize:11}} />
+                    <span style={{fontSize:11,color:setupCustomActive?"var(--text-bright)":"var(--text-dim2)",letterSpacing:1}}>{setupCustomActive?`${normalizedSetupLimit} / ${setupLimitPeriod}`:`/ ${setupLimitPeriod}`}</span>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:4}}>
-                  <Btn variant="ghost" small onClick={()=>{setSetupMode(false);setSetupPickMode("open");setSetupCompetition("PL");}}>← Back</Btn>
+                  <Btn variant="ghost" small onClick={()=>{setSetupMode(false);setSetupPickMode("open");setSetupCompetition("PL");setSetupCustomLimit("");}}>← Back</Btn>
                   <Btn onClick={createGroup} disabled={creating} style={{flex:1,textAlign:"center"}}>{creating?<Spinner/>:"Create Group →"}</Btn>
                 </div>
               </div>
@@ -2009,6 +2054,51 @@ function getAvailableThemes(user) {
 
 function getSecretThemeMeta(user) {
   return THEME_META.filter(t => t.key !== SECRET_THEME || isSecretThemeUnlockedForUser(user));
+}
+
+function DemoThemeSwitcher({ theme, setTheme }) {
+  const [open,setOpen]=useState(false);
+  const ref=useRef(null);
+  const demoThemes=THEME_META.filter(t=>!t.secret);
+  const current=demoThemes.find(t=>t.key===theme) || demoThemes[0];
+  useEffect(()=>{
+    if(!open)return;
+    const handler=(e)=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",handler);
+    return()=>document.removeEventListener("mousedown",handler);
+  },[open]);
+  return (
+    <div ref={ref} style={{position:"relative",display:"flex",alignItems:"center",height:"100%"}}>
+      <button
+        onClick={()=>setOpen(o=>!o)}
+        title="Try a different theme"
+        style={{height:34,background:open?"var(--surface)":"var(--card)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text-mid)",cursor:"pointer",fontSize:10,letterSpacing:1.2,fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,padding:"0 10px",whiteSpace:"nowrap"}}
+      >
+        <span className="mob-hide">THEME</span>
+        <span style={{display:"flex",gap:3}}>
+          {current.swatches.map((c,i)=><span key={i} style={{width:10,height:10,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.22)"}} />)}
+        </span>
+      </button>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,zIndex:120,background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:8,minWidth:238,boxShadow:"0 10px 26px #00000038"}}>
+          <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,padding:"3px 4px 8px"}}>TRY A THEME</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {demoThemes.map(t=>{
+              const active=theme===t.key;
+              return (
+                <button key={t.key} onClick={()=>{setTheme(t.key);setOpen(false);}} style={{background:active?"var(--surface)":"var(--card)",color:active?"var(--text-bright)":"var(--text-dim2)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:8,padding:"9px 8px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:0.8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                  <span>{t.label}</span>
+                  <span style={{display:"flex",gap:3}}>
+                    {t.swatches.map((c,i)=><span key={i} style={{width:9,height:9,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.2)"}} />)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function getPickFlavor(pred) {
@@ -2277,7 +2367,7 @@ export default function App() {
     // /api/db is read-only; theme persistence goes through the auth endpoint so it
     // survives to other devices. Fire-and-forget — localStorage already keeps it
     // snappy on this device.
-    if(userRef.current?.username)callAPI('account-set-theme',{theme:t}).catch(()=>{});
+    if(userRef.current?.username&&userRef.current.username!==DEMO_SHARED_USERNAME)callAPI('account-set-theme',{theme:t}).catch(()=>{});
   },[]);
   const [toast,setToast]=useState(null);
   const konamiIndexRef=useRef(0);
@@ -2398,7 +2488,7 @@ export default function App() {
     const u = sessionData.user;
     if(u){
       setUser(u);
-      if(u.theme)setThemeRaw(u.theme);
+      if(u.username!==DEMO_SHARED_USERNAME&&u.theme)setThemeRaw(u.theme);
       setNeedsSetup(!u.email);
       const allGroups = (await Promise.all((u.groupIds||[]).map(id=>sget(`group:${id}`)))).filter(Boolean);
       setGroups(allGroups);
@@ -2462,7 +2552,7 @@ export default function App() {
     setGroup(null);
     setShowLanding(false);
     setUser(nextUser);
-    if(nextUser.theme)setThemeRaw(nextUser.theme);
+    if(nextUser.username!==DEMO_SHARED_USERNAME&&nextUser.theme)setThemeRaw(nextUser.theme);
     setNeedsSetup(false);
     if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
       const onlyGroup = loginGroups[0] || await sget(`group:${nextUser.groupIds[0]}`);
@@ -2677,7 +2767,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
             ))}
           </nav>
           {user.username===DEMO_SHARED_USERNAME ? (
-            <button onClick={onLogout} style={{marginLeft:"auto",height:"100%",background:"none",border:"none",borderLeft:"1px solid var(--border)",paddingLeft:20,cursor:"pointer",color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,flexShrink:0}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+            <div style={{marginLeft:"auto",height:"100%",borderLeft:"1px solid var(--border)",paddingLeft:theme==="index"?8:16,display:"flex",alignItems:"center",gap:theme==="index"?6:10,flexShrink:0}}>
+              <DemoThemeSwitcher theme={theme} setTheme={setTheme}/>
+              <button onClick={onLogout} style={{height:"100%",background:"none",border:"none",padding:0,cursor:"pointer",color:"#8888cc",fontSize:11,letterSpacing:1.5,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,flexShrink:0,whiteSpace:"nowrap"}}><LogOut size={13} color="#8888cc"/>EXIT DEMO</button>
+            </div>
           ) : (
           <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
             <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
@@ -3235,14 +3328,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
       }
     }
     if (val === "1-1") {
-      const limit = group.draw11Limit || "unlimited";
-      if (limit !== "unlimited") {
-        const max = limit === "none" ? 0 : parseInt(limit);
+      const max = draw11LimitMax(group.draw11Limit);
+      if (Number.isFinite(max)) {
         const used = gwFixtures.filter(f => f.id !== fixtureId && myPreds[f.id] === "1-1").length;
         if (used >= max) {
           alert(max === 0
             ? "1-1 predictions are not allowed in this group."
-            : `You can only make ${max} 1-1 prediction${max > 1 ? "s" : ""} per gameweek. Limit reached.`);
+            : `You can only make ${max} 1-1 prediction${max > 1 ? "s" : ""} per ${draw11LimitPeriod(group)}. Limit reached.`);
           setPredDraft(d => ({...d, [fixtureId]: myPreds[fixtureId] || ""}));
           return;
         }
@@ -4687,6 +4779,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const [season,setSeason]=useState(String(group.season||2025));
   const [copied,setCopied]=useState(false);
   const [limitSaved,setLimitSaved]=useState(false);
+  const currentDraw11Limit = normalizeDraw11Limit(group.draw11Limit);
+  const [custom11Limit,setCustom11Limit]=useState(DRAW_11_LIMIT_PRESETS.some(([val])=>val===currentDraw11Limit) ? "" : currentDraw11Limit);
   const [newSeasonYear,setNewSeasonYear]=useState("");
   const [seasonMsg,setSeasonMsg]=useState("");
   const [backfillMsg, setBackfillMsg] = useState("");
@@ -4704,6 +4798,10 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const [reminderLoading, setReminderLoading] = useState(false);
   const [reminderMsg, setReminderMsg] = useState("");
   const [openSection, setOpenSection] = useState("info");
+  useEffect(()=>{
+    if (!DRAW_11_LIMIT_PRESETS.some(([val])=>val===currentDraw11Limit)) setCustom11Limit(currentDraw11Limit);
+    else setCustom11Limit("");
+  },[currentDraw11Limit]);
 
   const activeSeason=group.season||2025;
   const seasonStats = useMemo(()=>computeStats(group),[group]);
@@ -4731,7 +4829,9 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const copyCode=()=>{navigator.clipboard?.writeText(group.code).catch(()=>{});setCopied(true);setTimeout(()=>setCopied(false),2000);};
   const [copiedLink,setCopiedLink]=useState(false);
   const copyLink=()=>{navigator.clipboard?.writeText(`https://pab.wtf/join/${group.code}`).catch(()=>{});setCopiedLink(true);setTimeout(()=>setCopiedLink(false),2000);};
-  const save11Limit=async(val)=>{const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-11-limit',value:val}});if(ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
+  const save11Limit=async(val)=>{const nextLimit=normalizeDraw11Limit(val);const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-11-limit',value:nextLimit}});if(ok&&data.group){setGroup(data.group);setLimitSaved(true);setTimeout(()=>setLimitSaved(false),2000);}};
+  const custom11LimitValue=cleanDraw11LimitInput(custom11Limit);
+  const saveCustom11Limit=()=>{if(!custom11LimitValue)return;save11Limit(custom11LimitValue);};
   const saveName=async()=>{if(!newName.trim())return;const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-name',name:newName.trim()}});if(ok&&data.group){setGroup(data.group);setNameSaved(true);setTimeout(()=>setNameSaved(false),2000);}};
   const saveApiKey=async()=>{const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-api-settings',apiKey:group.apiKey,season:parseInt(season)||2025}});if(ok&&data.group){setGroup(data.group);setApiSaved(true);setTimeout(()=>setApiSaved(false),2000);}};
   const saveScope=async(val)=>{const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'save-scope',value:val}});if(ok&&data.group)setGroup(data.group);};
@@ -4839,7 +4939,9 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
 
   const isIndex = theme === "index";
 
-  const drawLimitLabel = (group.draw11Limit||"unlimited")==="unlimited"?"Unlimited":(group.draw11Limit||"unlimited")==="none"?"No 1-1s":`${group.draw11Limit} / week`;
+  const drawLimitLabel = draw11LimitLabel(group);
+  const drawLimitPeriod = draw11LimitPeriod(group);
+  const custom11LimitActive = !DRAW_11_LIMIT_PRESETS.some(([val])=>val===currentDraw11Limit);
   const scopeLabel = (group.scoreScope||"all")==="all"?"All seasons":"Current only";
 
   const sections = [
@@ -4901,12 +5003,18 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
           {/* Prediction limits */}
           {isAdmin ? (
             <div>
-              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>MAX 1-1 PREDICTIONS PER GAMEWEEK</div>
+              <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>MAX 1-1 PREDICTIONS PER {drawLimitPeriod.toUpperCase()}</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {[["unlimited","Unlimited"],["2","2 / week"],["1","1 / week"],["none","None"]].map(([val,label])=>{
-                  const active=(group.draw11Limit||"unlimited")===val;
-                  return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>;
+                {DRAW_11_LIMIT_PRESETS.map(([val,label])=>{
+                  const displayLabel = val==="unlimited" || val==="none" ? label : `${label} / ${drawLimitPeriod}`;
+                  const active=currentDraw11Limit===val;
+                  return <button key={val} onClick={()=>save11Limit(val)} style={{background:active?"var(--btn-bg)":"var(--card)",color:active?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 14px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{displayLabel}</button>;
                 })}
+              </div>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:10,flexWrap:"wrap"}}>
+                <Input value={custom11Limit} onChange={v=>setCustom11Limit(cleanDraw11LimitInput(v))} placeholder="Custom" inputMode="numeric" pattern="[0-9]*" style={{width:96,padding:"7px 10px",fontSize:11}} onKeyDown={e=>e.key==="Enter"&&saveCustom11Limit()} />
+                <Btn small variant={custom11LimitActive?"default":"ghost"} disabled={!custom11LimitValue} onClick={saveCustom11Limit}>Set</Btn>
+                <span style={{fontSize:11,color:custom11LimitActive?"var(--text-bright)":"var(--text-dim2)",letterSpacing:0.5}}>{custom11LimitActive?`${currentDraw11Limit} / ${drawLimitPeriod}`:`Custom / ${drawLimitPeriod}`}</span>
               </div>
               {limitSaved&&<div style={{fontSize:11,color:"#22c55e",marginTop:8}}>Saved</div>}
             </div>
