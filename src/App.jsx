@@ -2950,43 +2950,63 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=nul
   if (loading && !groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>Loading standings...</div>;
   if (error && !groups.length) return <div style={{color:"#ef4444",fontSize:12,padding:"28px 0"}}>{error}</div>;
   if (!groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>No group standings yet.</div>;
+  const knockoutTeams=rules?.knockoutTeams||32;
+  const automaticTeams=(rules?.groupCount||12)*(rules?.automaticPerGroup||2);
+  const bestThirdCount=rules?.bestThirdCount||8;
+  const chipStyle={display:"inline-flex",alignItems:"center",gap:6,border:"1px solid var(--border2)",borderRadius:5,padding:"5px 8px",color:"var(--text-mid)",fontSize:10,fontWeight:700,letterSpacing:0.5,whiteSpace:"nowrap"};
+  const qualBadge=(row)=>{
+    if (!(row.qualified ?? row.pos<=2)) return <span style={{color:"var(--text-dim3)"}}>—</span>;
+    const bestThird=row.qualification?.type==="best-third";
+    const label=bestThird?`3rd #${row.qualification.rank}`:"Auto";
+    const title=bestThird?`Best third-place team #${row.qualification.rank}`:"Top two qualify automatically";
+    return <span title={title} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minWidth:bestThird?52:40,border:"1px solid rgba(96,165,250,0.36)",borderRadius:5,padding:"3px 7px",color:"#93c5fd",background:"rgba(96,165,250,0.08)",fontSize:9,fontWeight:800,letterSpacing:0.6,whiteSpace:"nowrap"}}>{label}</span>;
+  };
 
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:26}}>
+    <div style={{display:"flex",flexDirection:"column",gap:28}}>
+      <div style={{borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",padding:"14px 0 15px",display:"grid",gridTemplateColumns:mob?"1fr":"minmax(160px,0.55fr) 1fr",gap:mob?12:20,alignItems:"center"}}>
+        <div>
+          <div style={{color:"var(--text-bright)",fontSize:15,fontWeight:900,letterSpacing:-0.2}}>Round of 32</div>
+          <div style={{color:"var(--text-dim2)",fontSize:10,letterSpacing:1.2,textTransform:"uppercase",marginTop:3}}>{knockoutTeams} advance</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <span style={chipStyle}><span style={{width:7,height:7,borderRadius:"50%",background:"#93c5fd",display:"inline-block"}}/>Top two · {automaticTeams}</span>
+          <span style={chipStyle}><span style={{width:7,height:7,borderRadius:"50%",background:"transparent",border:"1px solid #93c5fd",display:"inline-block"}}/>Best thirds · {bestThirdCount}</span>
+          <span style={{color:"var(--text-dim2)",fontSize:10,lineHeight:1.6,letterSpacing:0.4}}>
+            Tiebreakers: Pts, GD, GF, fair play, FIFA ranking{rules?.cutoffTieUsesUnavailableCriteria ? " · cutoff ties provisional" : ""}
+          </span>
+        </div>
+      </div>
       {groups.map(group=>(
         <div key={group.name}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
             <h2 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:16,fontWeight:800,color:"var(--text-bright)",margin:0,letterSpacing:-0.2}}>{group.name}</h2>
-            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1.2}}>TOP 2 + BEST 8 THIRDS</div>
           </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-            <table style={{width:"100%",minWidth:mob?560:620,borderCollapse:"collapse",fontSize:12}}>
+            <table style={{width:"100%",minWidth:mob?650:700,borderCollapse:"collapse",fontSize:12}}>
               <thead>
                 <tr style={{borderBottom:"1px solid var(--border2)"}}>
-                  {["","Team","MP","W","D","L","GF","GA","GD","Pts"].map((h,i)=>(
-                    <th key={h||"pos"} style={{padding:"8px 8px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?30:i>1?44:undefined}}>{h}</th>
+                  {["","Team","MP","W","D","L","GF","GA","GD","Pts","Qual"].map((h,i)=>(
+                    <th key={h||"pos"} style={{padding:"8px 8px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?30:i===10?70:i>1?44:undefined}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {(group.rows||[]).map(row=>{
                   const advanced=row.qualified ?? row.pos<=2;
-                  const bestThird=row.qualification?.type==="best-third";
-                  const badgeLabel=bestThird?`3rd #${row.qualification.rank}`:"Q";
-                  const badgeTitle=bestThird?`Best third-place team #${row.qualification.rank}`:"Top two qualify automatically";
                   return (
-                    <tr key={row.teamId||row.team} style={{borderBottom:"1px solid var(--border3)",background:advanced?"rgba(96,165,250,0.055)":"transparent"}}>
+                    <tr key={row.teamId||row.team} className="frow" style={{borderBottom:"1px solid var(--border3)",background:advanced?"rgba(96,165,250,0.045)":"transparent"}}>
                       <td style={{padding:"9px 8px",color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center"}}>{row.pos}</td>
                       <td style={{padding:"9px 8px",minWidth:190}}>
                         <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
                           <TeamBadge team={row.team} crest={row.crest} size={20}/>
                           <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
-                          {advanced&&<span title={badgeTitle} style={{fontSize:9,color:"#60a5fa",border:"1px solid #60a5fa45",borderRadius:4,padding:"1px 5px",letterSpacing:1,whiteSpace:"nowrap"}}>{badgeLabel}</span>}
                         </div>
                       </td>
                       {[row.p,row.w,row.d,row.l,row.gf,row.ga,row.gd,row.pts].map((v,i)=>(
                         <td key={i} style={{padding:"9px 8px",textAlign:"center",color:i===7?"var(--text-bright)":"var(--text-mid)",fontWeight:i===7?800:700}}>{v}</td>
                       ))}
+                      <td style={{padding:"9px 8px",textAlign:"center"}}>{qualBadge(row)}</td>
                     </tr>
                   );
                 })}
@@ -2995,15 +3015,6 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=nul
           </div>
         </div>
       ))}
-      <div style={{borderTop:"1px solid var(--border2)",display:"flex",gap:18,justifyContent:"space-between",paddingTop:14,flexWrap:"wrap"}}>
-        <div style={{color:"var(--text-dim2)",fontSize:10,lineHeight:1.7,letterSpacing:0.5}}>
-          <span style={{color:"var(--text-bright)",fontWeight:700}}>Qualification:</span> top two in each group plus the eight best third-place teams reach the Round of 32.
-        </div>
-        <div style={{color:"var(--text-dim2)",fontSize:10,lineHeight:1.7,letterSpacing:0.5}}>
-          <span style={{color:"var(--text-bright)",fontWeight:700}}>Third-place order:</span> Pts, GD, GF, fair play, FIFA ranking.
-          {rules?.cutoffTieUsesUnavailableCriteria ? " Cutoff ties may depend on fair play." : ""}
-        </div>
-      </div>
     </div>
   );
 }
