@@ -26,6 +26,13 @@ function num(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function optionalNum(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 function pickLogo(teamXml) {
   const images = blocksOf(teamXml, "image").map(block => ({
     type: textOf(block, "type"),
@@ -38,6 +45,80 @@ function pickLogo(teamXml) {
     images.find(img => img.url)?.url ||
     null
   );
+}
+
+function rowKey(row) {
+  return row.teamId || `${row.group}:${row.team}`;
+}
+
+function compareThirdPlace(a, b) {
+  return (
+    b.pts - a.pts ||
+    b.gd - a.gd ||
+    b.gf - a.gf ||
+    (b.conductScore ?? 0) - (a.conductScore ?? 0) ||
+    a.group.localeCompare(b.group, undefined, { numeric: true }) ||
+    a.team.localeCompare(b.team)
+  );
+}
+
+function sameAvailableThirdScore(a, b) {
+  return Boolean(a && b && a.pts === b.pts && a.gd === b.gd && a.gf === b.gf);
+}
+
+function applyWorldCupQualification(groups) {
+  const thirdPlaceRanking = groups
+    .map(group => group.rows.find(row => row.pos === 3))
+    .filter(Boolean)
+    .sort(compareThirdPlace)
+    .map((row, index) => ({
+      group: row.group,
+      teamId: row.teamId,
+      team: row.team,
+      crest: row.crest,
+      rank: index + 1,
+      qualified: index < 8,
+      pts: row.pts,
+      gd: row.gd,
+      gf: row.gf,
+      conductScore: row.conductScore,
+    }));
+
+  const thirdQualifiers = new Map(thirdPlaceRanking.slice(0, 8).map(row => [rowKey(row), row.rank]));
+  const cutoffTieUsesUnavailableCriteria = sameAvailableThirdScore(thirdPlaceRanking[7], thirdPlaceRanking[8]) &&
+    (thirdPlaceRanking[7]?.conductScore == null || thirdPlaceRanking[8]?.conductScore == null);
+
+  return {
+    groups: groups.map(group => ({
+      ...group,
+      rows: group.rows.map(row => {
+        const key = rowKey(row);
+        const thirdRank = thirdQualifiers.get(key);
+        const automatic = row.pos <= 2;
+        const bestThird = row.pos === 3 && thirdRank;
+        return {
+          ...row,
+          qualified: automatic || Boolean(bestThird),
+          qualification: automatic
+            ? { type: "automatic", label: "Top two" }
+            : bestThird
+              ? { type: "best-third", label: "Best third-place", rank: thirdRank }
+              : null,
+        };
+      }),
+    })),
+    thirdPlaceRanking,
+    qualificationRules: {
+      groupCount: 12,
+      teamsPerGroup: 4,
+      automaticPerGroup: 2,
+      bestThirdCount: 8,
+      knockoutTeams: 32,
+      thirdPlaceCriteria: ["points", "goalDifference", "goalsFor", "teamConductScore", "fifaRanking"],
+      yahooProvidesConductScore: thirdPlaceRanking.some(row => row.conductScore != null),
+      cutoffTieUsesUnavailableCriteria,
+    },
+  };
 }
 
 function parseYahooWorldCupStandings(xml) {
@@ -64,6 +145,7 @@ function parseYahooWorldCupStandings(xml) {
         ga,
         gd: gf - ga,
         pts: num(textOf(standing, "points")),
+        conductScore: optionalNum(textOf(standing, "team_conduct_score")),
         live: textOf(standing, "live_status") === "true",
         record: textOf(record, "display"),
       };
@@ -90,7 +172,7 @@ function parseYahooWorldCupStandings(xml) {
     }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
-  return groups;
+  return applyWorldCupQualification(groups);
 }
 
 export default async function handler(req, res) {
@@ -106,7 +188,8 @@ export default async function handler(req, res) {
     }
 
     const xml = await response.text();
-    const groups = parseYahooWorldCupStandings(xml);
+    const standings = parseYahooWorldCupStandings(xml);
+    const { groups, thirdPlaceRanking, qualificationRules } = standings;
     if (!groups.length) return res.status(502).json({ error: "Yahoo standings payload did not include groups" });
 
     res.setHeader("Cache-Control", "public, max-age=120, s-maxage=120");
@@ -114,6 +197,8 @@ export default async function handler(req, res) {
       source: "Yahoo Sports",
       league: YAHOO_WC_LEAGUE,
       updatedAt: Date.now(),
+      qualificationRules,
+      thirdPlaceRanking,
       groups,
     });
   } catch (e) {

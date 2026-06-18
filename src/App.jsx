@@ -2891,7 +2891,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
   );
 }
 
-/* ── WC BRACKET ──────────────────────────────────── */
+/* World Cup standings */
 function WCStandingsTab({ group, theme="dark" }) {
   const [section,setSection]=useState("groups");
   const [standings,setStandings]=useState(null);
@@ -2938,14 +2938,14 @@ function WCStandingsTab({ group, theme="dark" }) {
       </div>
 
       {section==="groups"
-        ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme}/>
+        ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme} rules={standings?.qualificationRules}/>
         : <WCKnockoutStage group={group} theme={theme} embedded/>
       }
     </div>
   );
 }
 
-function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
+function WCGroupStageStandings({ groups, loading, error, theme="dark", rules=null }) {
   const mob=useMobile();
   if (loading && !groups.length) return <div style={{color:"var(--text-dim)",fontSize:12,padding:"28px 0"}}>Loading standings...</div>;
   if (error && !groups.length) return <div style={{color:"#ef4444",fontSize:12,padding:"28px 0"}}>{error}</div>;
@@ -2957,7 +2957,7 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
         <div key={group.name}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
             <h2 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:16,fontWeight:800,color:"var(--text-bright)",margin:0,letterSpacing:-0.2}}>{group.name}</h2>
-            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1.2}}>TOP 2 ADVANCE</div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:1.2}}>TOP 2 + BEST 8 THIRDS</div>
           </div>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
             <table style={{width:"100%",minWidth:mob?560:620,borderCollapse:"collapse",fontSize:12}}>
@@ -2970,7 +2970,10 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
               </thead>
               <tbody>
                 {(group.rows||[]).map(row=>{
-                  const advanced=row.pos<=2;
+                  const advanced=row.qualified ?? row.pos<=2;
+                  const bestThird=row.qualification?.type==="best-third";
+                  const badgeLabel=bestThird?`3rd #${row.qualification.rank}`:"Q";
+                  const badgeTitle=bestThird?`Best third-place team #${row.qualification.rank}`:"Top two qualify automatically";
                   return (
                     <tr key={row.teamId||row.team} style={{borderBottom:"1px solid var(--border3)",background:advanced?"rgba(96,165,250,0.055)":"transparent"}}>
                       <td style={{padding:"9px 8px",color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center"}}>{row.pos}</td>
@@ -2978,7 +2981,7 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
                         <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
                           <TeamBadge team={row.team} crest={row.crest} size={20}/>
                           <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
-                          {advanced&&<span style={{fontSize:9,color:"#60a5fa",border:"1px solid #60a5fa45",borderRadius:4,padding:"1px 5px",letterSpacing:1}}>Q</span>}
+                          {advanced&&<span title={badgeTitle} style={{fontSize:9,color:"#60a5fa",border:"1px solid #60a5fa45",borderRadius:4,padding:"1px 5px",letterSpacing:1,whiteSpace:"nowrap"}}>{badgeLabel}</span>}
                         </div>
                       </td>
                       {[row.p,row.w,row.d,row.l,row.gf,row.ga,row.gd,row.pts].map((v,i)=>(
@@ -2992,6 +2995,15 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
           </div>
         </div>
       ))}
+      <div style={{borderTop:"1px solid var(--border2)",display:"flex",gap:18,justifyContent:"space-between",paddingTop:14,flexWrap:"wrap"}}>
+        <div style={{color:"var(--text-dim2)",fontSize:10,lineHeight:1.7,letterSpacing:0.5}}>
+          <span style={{color:"var(--text-bright)",fontWeight:700}}>Qualification:</span> top two in each group plus the eight best third-place teams reach the Round of 32.
+        </div>
+        <div style={{color:"var(--text-dim2)",fontSize:10,lineHeight:1.7,letterSpacing:0.5}}>
+          <span style={{color:"var(--text-bright)",fontWeight:700}}>Third-place order:</span> Pts, GD, GF, fair play, FIFA ranking.
+          {rules?.cutoffTieUsesUnavailableCriteria ? " Cutoff ties may depend on fair play." : ""}
+        </div>
+      </div>
     </div>
   );
 }
