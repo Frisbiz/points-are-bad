@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const seas = comp === "WC" ? 2026 : Number(season || 2025);
     const globalDoc = await getValue(fixtureGlobalKey(comp, seas));
     const fixtures = (globalDoc?.gameweeks || []).find(gw => gw.gw === Number(week))?.fixtures || [];
-    res.setHeader("Cache-Control", "public, max-age=15, s-maxage=15");
+    res.setHeader("Cache-Control", "public, max-age=5, s-maxage=5");
     return res.status(200).json({ matches: liveMatchesFromFixtures(fixtures), week: Number.parseInt(week, 10), competition: comp });
   } catch (e) {
     console.error("Live cache read error:", e.message);

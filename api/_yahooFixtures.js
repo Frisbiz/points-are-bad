@@ -3,6 +3,7 @@ import { normName, regroupGlobalDoc } from "./_fixtureSync.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const REQUEST_HEADERS = { "User-Agent": "Mozilla/5.0" };
+const LIVE_REFRESH_MS = 20_000;
 
 const COMP_CONFIG = {
   PL: {
@@ -327,7 +328,7 @@ function refreshIntervalMs(globalDoc, targetGW) {
   if (!globalDoc?.updatedAt) return 0;
   const fixtures = getTargetFixtures(globalDoc, targetGW);
   if (!fixtures.length) return 0;
-  if (hasLiveWindow(fixtures)) return 60_000;
+  if (hasLiveWindow(fixtures)) return LIVE_REFRESH_MS;
   if (hasRecentOrTodayWindow(fixtures)) return 5 * 60_000;
   return 60 * 60_000;
 }

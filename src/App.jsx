@@ -567,7 +567,7 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025) {
         });
         setLiveData(map);
       } catch (_) {}
-      if (!cancelled) timer = setTimeout(poll, 60000);
+      if (!cancelled) timer = setTimeout(poll, 5000);
     };
 
     poll();
@@ -2695,7 +2695,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       running = false;
     };
     hydrate();
-    const timer = setInterval(hydrate, 60000);
+    const timer = setInterval(hydrate, 20000);
     return () => { cancelled = true; clearInterval(timer); };
   },[group.id, group.code, setGroup]);
   const [thumbs,setThumbs]=useState([]);
