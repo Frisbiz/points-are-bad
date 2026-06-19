@@ -2998,16 +2998,16 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
   const rowPad=mob?"9px 6px":"9px 8px";
   const stickyBg="var(--bg)";
   const fadeColor=({
-    light:"rgba(37,34,28,0.72)",
-    excel:"rgba(18,18,18,0.58)",
-    terminal:"rgba(0,12,3,0.94)",
-    nord:"rgba(30,35,45,0.92)",
-    pitch:"rgba(6,16,6,0.94)",
-    velvet:"rgba(22,9,27,0.94)",
-    clarity:"rgba(17,17,17,0.92)",
-    spotify:"rgba(18,18,18,0.94)",
-    index:"rgba(18,20,23,0.62)",
-  })[theme]||"rgba(8,8,16,0.94)";
+    light:"rgba(42,40,35,0.22)",
+    excel:"rgba(32,32,32,0.16)",
+    terminal:"rgba(0,10,2,0.42)",
+    nord:"rgba(34,39,49,0.34)",
+    pitch:"rgba(6,18,6,0.36)",
+    velvet:"rgba(24,12,30,0.38)",
+    clarity:"rgba(24,24,24,0.34)",
+    spotify:"rgba(18,18,18,0.36)",
+    index:"rgba(58,62,68,0.24)",
+  })[theme]||"rgba(12,12,20,0.34)";
 
   return (
     <div>
@@ -3051,8 +3051,8 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
             </tbody>
           </table>
         </div>
-        {fade.left&&<div style={{position:"absolute",left:rankW+teamW,top:0,bottom:0,width:20,pointerEvents:"none",background:`linear-gradient(90deg, ${fadeColor}, transparent)`,zIndex:4}}/>}
-        {fade.right&&<div style={{position:"absolute",right:0,top:0,bottom:0,width:34,pointerEvents:"none",background:`linear-gradient(270deg, ${fadeColor}, transparent)`,zIndex:4}}/>}
+        {fade.left&&<div style={{position:"absolute",left:rankW+teamW,top:0,bottom:0,width:16,pointerEvents:"none",background:`linear-gradient(90deg, ${fadeColor}, transparent)`,zIndex:4}}/>}
+        {fade.right&&<div style={{position:"absolute",right:0,top:0,bottom:0,width:26,pointerEvents:"none",background:`linear-gradient(270deg, ${fadeColor}, transparent)`,zIndex:4}}/>}
       </div>
     </div>
   );
