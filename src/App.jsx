@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
-import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User, Sync } from "griddy-icons";
-import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "../api/_fixtureSync.js";
+import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -44,33 +43,6 @@ function lset(key, val) {
 }
 function ldel(key) {
   try { localStorage.removeItem(key); } catch {}
-}
-
-const FD_BASE = "https://api.football-data.org/v4";
-const PL_CODE = "PL";
-// Global API key (works for all groups automatically)
-const GLOBAL_API_KEY = import.meta.env.VITE_FD_API_KEY;
-
-async function fetchMatchweek(apiKey, matchday, season = 2025, competition = "PL") {
-  const url = matchday != null
-    ? `/api/fixtures?matchday=${matchday}&season=${season}&competition=${competition}`
-    : `/api/fixtures?season=${season}&competition=${competition}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    if (res.status === 403) throw new Error("Invalid API key.");
-    if (res.status === 429) throw new Error("Rate limited. Wait a minute and try again.");
-    if (res.status === 404) throw new Error("Gameweek not found. Check the GW number.");
-    throw new Error(`API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.matches || [];
-}
-
-async function fetchLiveMatches() {
-  const res = await fetch(`/api/fixtures?live=true`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.matches || [];
 }
 
 const MISSED_PICK_PTS = 4;
@@ -373,6 +345,34 @@ function gwLabel(group, gwNum) {
   return stageLabel(stage, gwNum);
 }
 
+function autoSyncTargetGW(group) {
+  if (!group) return null;
+  const seas = group.season || 2025;
+  const now = Date.now();
+  const candidates = [];
+  const incomplete = [];
+  (group.gameweeks || [])
+    .filter(gw => (gw.season || seas) === seas)
+    .forEach(gw => {
+      (gw.fixtures || []).forEach(f => {
+        if (f.result || f.status === "FINISHED" || f.status === "POSTPONED") return;
+        incomplete.push(gw.gw);
+        if (!f.date) return;
+        const kickoff = new Date(f.date).getTime();
+        if (!Number.isFinite(kickoff)) return;
+        const inLiveWindow = kickoff <= now + 30 * 60000 && kickoff >= now - 4 * 3600000;
+        const nearUpcoming = kickoff <= now + 24 * 3600000 && kickoff >= now;
+        candidates.push({ gw: gw.gw, kickoff, score: inLiveWindow ? 0 : nearUpcoming ? 1 : kickoff > now ? 2 : 3 });
+      });
+    });
+  if (candidates.length) {
+    candidates.sort((a, b) => a.score - b.score || Math.abs(a.kickoff - now) - Math.abs(b.kickoff - now));
+    return candidates[0].gw;
+  }
+  if (incomplete.length) return Math.min(...incomplete);
+  return group.currentGW || 1;
+}
+
 const DRAW_11_LIMIT_PRESETS = [["unlimited","Unlimited"],["2","2"],["1","1"],["none","None"]];
 
 function cleanDraw11LimitInput(value) {
@@ -515,13 +515,16 @@ function useHorizontalScroll() {
 }
 
 // Poll Yahoo Sports API for live scores during active match windows
-function useLiveScores(gw, fixtures) {
+function useLiveScores(gw, fixtures, competition = "PL", season = 2025) {
   const [liveData, setLiveData] = useState({});
   const fixturesRef = useRef(fixtures);
   fixturesRef.current = fixtures;
 
   useEffect(() => {
-    if (!gw) return;
+    if (!gw || (competition !== "PL" && competition !== "WC")) {
+      setLiveData({});
+      return;
+    }
     let cancelled = false;
     let timer = null;
 
@@ -549,7 +552,12 @@ function useLiveScores(gw, fixtures) {
         return;
       }
       try {
-        const res = await fetch(`/api/live?week=${gw}`);
+        const dateList = competition === "WC"
+          ? [...new Set((fixturesRef.current || []).map(f => String(f.date || "").slice(0, 10)).filter(Boolean))]
+          : [];
+        const params = new URLSearchParams({ week: String(gw), competition, season: String(season) });
+        if (dateList.length) params.set("dates", dateList.join(","));
+        const res = await fetch(`/api/live?${params}`);
         if (!res.ok) throw new Error();
         const data = await res.json();
         if (cancelled) return;
@@ -559,12 +567,12 @@ function useLiveScores(gw, fixtures) {
         });
         setLiveData(map);
       } catch (_) {}
-      if (!cancelled) timer = setTimeout(poll, 30000);
+      if (!cancelled) timer = setTimeout(poll, 60000);
     };
 
     poll();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
-  }, [gw]);
+  }, [gw, competition, season]);
 
   return liveData;
 }
@@ -2666,6 +2674,30 @@ export default function App() {
 /* ── GAME SHELL ──────────────────────────────────── */
 function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpdateUser,refreshGroup,theme,setTheme,setGroup,unlockSecretTheme,sitePrefs=null,setSitePrefs=()=>{},names={},setNames=()=>{},onOpenWhatsNew=()=>{}}) {
   useEffect(()=>{refreshGroup();},[tab]);
+  const liveGroupRef = useRef(group);
+  useEffect(()=>{ liveGroupRef.current = group; },[group]);
+  useEffect(()=>{
+    if (!group?.id || group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) return;
+    let cancelled = false;
+    let running = false;
+    const hydrate = async () => {
+      if (cancelled || running) return;
+      const current = liveGroupRef.current;
+      const targetGW = autoSyncTargetGW(current);
+      if (!targetGW) return;
+      running = true;
+      try {
+        const { ok, data } = await callAPI("group-user", { groupId: current.id, payload: { type: "auto-sync-fixtures", gw: targetGW } });
+        if (!cancelled && ok && data.group && JSON.stringify(data.group) !== JSON.stringify(liveGroupRef.current)) {
+          setGroup(data.group);
+        }
+      } catch (_) {}
+      running = false;
+    };
+    hydrate();
+    const timer = setInterval(hydrate, 60000);
+    return () => { cancelled = true; clearInterval(timer); };
+  },[group.id, group.code, setGroup]);
   const [thumbs,setThumbs]=useState([]);
   const [profileOpen,setProfileOpen]=useState(false);
   const [accountOpen,setAccountOpen]=useState(false);
@@ -3409,11 +3441,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
   const isIndex = theme === "index";
   const gwStripRef = useRef(null);
   const pickInputRefs = useRef({});
-  const [resultDraft,setResultDraft]=useState({});
   const [predDraft,setPredDraft]=useState({});
   const [saving,setSaving]=useState({});
-  const [fetching,setFetching]=useState(false);
-  const [fetchMsg,setFetchMsg]=useState("");
   const [wizardQueue, setWizardQueue] = useState(null);
   const [wizardStep, setWizardStep] = useState(0);
   const [deleteGWStep, setDeleteGWStep] = useState(0);
@@ -3449,7 +3478,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
-  const liveScores = useLiveScores(currentGW, gwFixtures);
+  const liveScores = useLiveScores(currentGW, gwFixtures, group.competition || "PL", activeSeason);
   const gwObj = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
   const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
   const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
@@ -3459,7 +3488,6 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     return !!f.result || hiddenPostponed;
   });
   const myPreds = group.predictions?.[user.username]||{};
-  const hasApiKey = true; // Global API key always active
   const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
   const dibsTurnFor = group.mode==="dibs"
     ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
@@ -3517,40 +3545,9 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     setSaving(s=>{const n={...s};delete n[fixtureId];return n;});
   };
 
-  const saveResult = async (fixtureId) => {
-    const val = resultDraft[fixtureId];
-    if (!val||!/^[0-9]+-[0-9]+$/.test(val)) return;
-    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'set-result', fixtureId, value: val } });
-    if (ok && data.group) {
-      setGroup(data.group);
-      setResultDraft(d=>{const n={...d};delete n[fixtureId];return n;});
-    }
-  };
-
-  const clearResult = async (fixtureId) => {
-    const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'clear-result', fixtureId } });
-    if (ok && data.group) setGroup(data.group);
-  };
-
   const toggleFixtureHidden = async (fixtureId) => {
     const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'toggle-hidden-fixture', fixtureId } });
     if (ok && data.group) setGroup(data.group);
-  };
-
-  const fetchFromAPI = async () => {
-    const roundLabel = gwLabel(group, currentGW);
-    setFetching(true); setFetchMsg(`Syncing ${roundLabel}...`);
-    try {
-      const { ok, data } = await callAPI('group-admin', { groupId: group.id, payload:{ type:'sync-fixtures', gw: currentGW } });
-      if (!ok) {
-        setFetchMsg(data.error || 'Sync failed.');
-      } else if (data.group) {
-        setGroup(data.group);
-        setFetchMsg(`✓ Updated ${data.fixtures || 0} fixtures${(data.results || 0)>0?`, ${data.results} with results`:""}`);
-      }
-    } catch(e) { setFetchMsg(`Error: ${e.message}`); }
-    setFetching(false);
-    setTimeout(()=>setFetchMsg(""),6000);
   };
 
   const deleteGW = async () => {
@@ -3610,34 +3607,6 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     if (unpicked.length>0){setWizardQueue(unpicked);setWizardStep(0);setWizardPred("");}
     else setWizardQueue(null);
   },[currentGW,group.id]);
-
-  useEffect(()=>{
-    const seas = group.season||2025;
-    const incompleteGWs=(group.gameweeks||[])
-      .filter(gw=>(gw.season||seas)===seas&&(gw.fixtures||[]).some(f=>!f.result));
-    if(!incompleteGWs.length) return;
-    const targetGW=Math.max(...incompleteGWs.map(gw=>gw.gw));
-    (async()=>{
-      try {
-        const comp = group.competition||"PL";
-        const isWC = comp === "WC";
-        const now=Date.now();
-        const fullSyncKey=isWC?`fixtures-full-sync:WC:2026`:`fixtures-full-sync:${comp}:${seas}`;
-        const cooldownKey=isWC?`gw-api-sync:WC:2026:${targetGW}`:`gw-api-sync:${comp}:${seas}:${targetGW}`;
-        const globalKey=isWC?`fixtures:WC:2026`:`fixtures:${comp}:${seas}`;
-        const globalDoc=await sget(globalKey)||{season:seas,updatedAt:0,gameweeks:[]};
-        const existingGWNums=new Set((globalDoc.gameweeks||[]).map(g=>g.gw));
-        const missingPast=Array.from({length:targetGW-1},(_,i)=>i+1).some(n=>!existingGWNums.has(n));
-        const keyToTouch=missingPast?fullSyncKey:cooldownKey;
-        const windowMs=missingPast?86_400_000:3_600_000;
-        const last=lget(keyToTouch);
-        if(last&&(now-last)<=windowMs) return;
-        lset(keyToTouch,now);
-        const{ok,data}=await callAPI('group-user',{groupId:group.id,payload:{type:'auto-sync-fixtures',gw:targetGW}});
-        if(ok&&data.updated&&data.group)setGroup(data.group);
-      } catch(_){}
-    })();
-  },[activeSeason,group.currentGW]);
 
   const showWizard = wizardQueue!==null&&wizardStep<(wizardQueue?.length??0)&&lget(wizardKey)!==currentGW;
   const wizardFixture = showWizard?wizardQueue[wizardStep]:null;
@@ -3762,15 +3731,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <Btn variant="danger" small onClick={removeGW}>Yes, delete</Btn>
             <Btn variant="muted" small onClick={()=>setRemoveGWStep(0)}>Cancel</Btn>
           </div>}
-          {isAdmin&&<Btn variant={hasApiKey?"amber":"muted"} small onClick={fetchFromAPI} disabled={fetching} style={{display:"flex",alignItems:"center",gap:5}}>{fetching?"Fetching...":<><Sync size={12} color="currentColor"/>{hasApiKey?"Sync Fixtures":"Sync (needs API key)"}</>}</Btn>}
         </div>
       </div>
-
-      {fetchMsg&&<div className={isIndex?"liquid-card":undefined} style={{background:fetchMsg.startsWith("✓")?"#22c55e12":"#ef444412",border:`1px solid ${fetchMsg.startsWith("✓")?"#22c55e35":"#ef444435"}`,borderRadius:isIndex?18:8,padding:"10px 16px",marginBottom:16,fontSize:12,color:fetchMsg.startsWith("✓")?"#22c55e":"#ef4444"}}>{fetchMsg}</div>}
-
-      {isAdmin&&<div style={{background:isIndex?"#f6f6f7":"#f59e0b10",border:"1px solid #f59e0b25",borderRadius:isIndex?18:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#f59e0b",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
-        <Flash size={12} color="#f59e0b" style={{flexShrink:0}}/> ADMIN · {hasApiKey?"Click 'Sync Fixtures' to auto-load matches and results.":"Add your football-data.org API key in the Group tab."}
-      </div>}
 
       <NextMatchCountdown group={group} myPreds={myPreds} />
 
@@ -3789,7 +3751,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
 
-      {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Create all 38 GWs in the Group tab, then sync from API."}</div>:gwFixtures.map(f=>{
+      {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Global fixtures will appear automatically."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const [draftHome, draftAway] = String(myPred).split("-");
         const effResult = effectiveFixtureResult(f, liveScores);
@@ -3805,7 +3767,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         const yahooLive = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime");
         const isLive = f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooLive;
         const scoreStr = f.result || f.liveScore || (yahooLive ? `${liveMatch.homeScore}-${liveMatch.awayScore}` : null);
-        const elapsed = yahooLive ? liveMatch.elapsed : null;
+        const elapsed = yahooLive ? liveMatch.elapsed : (isLive ? f.elapsed : null);
         const scoreParts = scoreStr ? scoreStr.split("-") : null;
         const resultBlock = scoreParts?(
           <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
@@ -3815,7 +3777,6 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
               <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0}}>{scoreParts[1]}</span>
               {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
               {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>{elapsed||"LIVE"}</span>}
-              {isAdmin&&!hasApiKey&&<button onClick={()=>clearResult(f.id)} style={{background:"none",border:"none",color:"var(--text-dim)",cursor:"pointer",fontSize:10,padding:0}}>✕</button>}
             </span>
           </div>
         ):f.status==="POSTPONED"?(
@@ -3823,14 +3784,6 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
             {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
           </div>
-        ):isAdmin&&!hasApiKey?(
-          <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-            <input placeholder="0-0" value={resultDraft[f.id]||""} onChange={e=>setResultDraft(d=>({...d,[f.id]:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&saveResult(f.id)}
-              style={{width:56,background:"var(--input-bg)",border:"1px solid var(--border2)",borderRadius:6,color:"#f59e0b",padding:"5px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
-            <button onClick={()=>saveResult(f.id)} style={{background:"#22c55e18",border:"1px solid #22c55e35",borderRadius:6,color:"#22c55e",cursor:"pointer",padding:"5px 7px",fontSize:11}}>✓</button>
-          </div>
-        ):isAdmin&&hasApiKey?(
-          <span style={{color:"var(--text-dim)",fontSize:11}}>sync ↑</span>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
@@ -5143,10 +5096,10 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
           <div>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>INFO</div>
             <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
-              {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["API Status","Active"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
+              {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["Fixture Data","Automatic"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
                   <span style={{color:"var(--text-dim)"}}>{l}</span>
-                  <span style={{color:l==="API Status"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
+                  <span style={{color:l==="Fixture Data"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
                 </div>
               ))}
             </div>
@@ -5269,7 +5222,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
             </div>
             <div style={{fontSize:10,color:"var(--text-dim)",marginTop:10,letterSpacing:0.4,lineHeight:1.5}}>Visible rounds are bright. Hidden rounds are dimmed.</div>
           </div>
-          {/* Create GWs + Sync dates */}
+          {/* Create GWs + fill dates */}
           <div>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>MANAGE</div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
@@ -5278,21 +5231,20 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
               {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
-              <Btn variant="amber" small onClick={syncAllDates} disabled={syncingDates}>{syncingDates?"Syncing...":"Sync all dates"}</Btn>
+              <Btn variant="amber" small onClick={syncAllDates} disabled={syncingDates}>{syncingDates?"Filling...":"Fill missing dates"}</Btn>
               {syncDatesMsg&&<span style={{fontSize:11,color:syncDatesMsg.startsWith("\u2713")?"#22c55e":"#ef4444"}}>{syncDatesMsg}</span>}
             </div>
           </div>
-          {/* Live Data */}
+          {/* Fixture data */}
           <div>
-            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>LIVE DATA</div>
+            <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>FIXTURE DATA</div>
             <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"18px 20px"}}>
               <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                 <div style={{width:8,height:8,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
-                <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>API Connected Globally</span>
+                <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>Automatic Results Active</span>
               </div>
               <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
-                Live Premier League data is active for all groups automatically.<br/>
-                <br/><span style={{color:"var(--text-dim)"}}>Go to </span><strong style={{color:"#f59e0b"}}>Fixtures &gt; Sync Fixtures</strong><span style={{color:"var(--text-dim)"}}> to pull the latest matches and results at any time.</span>
+                Premier League and World Cup scores refresh from the shared fixture cache. La Liga still uses the date tools above.
               </div>
               <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
                 <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>

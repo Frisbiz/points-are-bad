@@ -1,6 +1,7 @@
 import { db, docKey, getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
-import { normName, parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
+import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
+import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 
 const FD_COMP_MAP = { PL: 'PL', LL: 'PD', WC: 'WC' };
@@ -488,7 +489,9 @@ export default async function handler(req, res) {
     try {
       const globalDoc = await getValue(globalCacheKey);
       if (globalDoc && (globalDoc.gameweeks || []).length) group = mergeGlobalIntoGroup(globalDoc, group);
-    } catch {}
+    } catch (_) {
+      // Group creation can continue without a warmed global fixture cache.
+    }
     await setValue(`group:${id}`, group);
     const claimedCode = await getValue(`groupcode:${code}`);
     if (claimedCode && claimedCode !== id) {
@@ -682,48 +685,48 @@ export default async function handler(req, res) {
     }
 
     if (payload.type === 'auto-sync-fixtures') {
-      // Any member can trigger a fixture sync - this refreshes global fixture data and applies to group
       const targetGW = Number(payload.gw || group.currentGW || 1);
       const comp = group.competition || 'PL';
       const isWC = comp === 'WC';
       const seas = group.season || 2025;
-      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:${comp}:${seas}`;
-      let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
-      const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
-      const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
-      try {
-        if (missingPast) {
-          const allMatches = await fetchFromFD(null, isWC ? 2026 : seas, comp);
-          if (!allMatches.length) return res.status(200).json({ group, updated: false });
-          if (isWC) {
-            const byGW = {};
-            allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-            const otherGWs = (globalDoc.gameweeks || []).filter(g => !byGW[g.gw]);
-            const newGWs = Object.entries(byGW).map(([gw, ms]) => ({ gw: Number(gw), fixtures: parseMatchesToFixtures(ms, Number(gw), 'WC') }));
-            globalDoc = { ...globalDoc, updatedAt: Date.now(), gameweeks: [...otherGWs, ...newGWs] };
-          } else {
+      let globalDoc;
+      let syncInfo = { fetched: false, reason: 'cached' };
+      if (comp === 'LL') {
+        const globalKey = fixtureGlobalKey(comp, seas);
+        globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
+        const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
+        const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
+        try {
+          if (missingPast) {
+            const allMatches = await fetchFromFD(null, seas, comp);
+            if (!allMatches.length) return res.status(200).json({ group, updated: false });
             let updated = { ...globalDoc };
             const byGW = {};
             allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
             Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), comp)); });
             globalDoc = updated;
+          } else {
+            const matches = await fetchFromFD(targetGW, seas, comp);
+            if (!matches.length) return res.status(200).json({ group, updated: false });
+            globalDoc = regroupGlobalDoc(globalDoc, targetGW, parseMatchesToFixtures(matches, targetGW, comp));
           }
-        } else {
-          const matches = await fetchFromFD(targetGW, isWC ? 2026 : seas, comp);
-          if (!matches.length) return res.status(200).json({ group, updated: false });
-          const apiFixtures = parseMatchesToFixtures(matches, targetGW, comp);
-          globalDoc = isWC
-            ? { ...globalDoc, updatedAt: Date.now(), gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== targetGW), { gw: targetGW, fixtures: apiFixtures }] }
-            : regroupGlobalDoc(globalDoc, targetGW, apiFixtures);
+        } catch (e) { return bad(res, e.status || 500, e.message); }
+        await setValue(globalKey, globalDoc);
+        syncInfo = { fetched: true, source: 'football-data' };
+      } else {
+        try {
+          syncInfo = await refreshYahooFixtureCache({ competition: isWC ? 'WC' : 'PL', season: isWC ? 2026 : seas, targetGW });
+          globalDoc = syncInfo.globalDoc;
+        } catch (e) {
+          return bad(res, e.status || 500, e.message);
         }
-      } catch (e) { return bad(res, e.status || 500, e.message); }
-      await setValue(globalKey, globalDoc);
+      }
       if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) return res.status(200).json({ group, updated: false });
       const merged = mergeGlobalIntoGroup(globalDoc, group);
       if (!merged) return res.status(200).json({ group, updated: false });
       const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
       await setValue(groupKey, next);
-      return res.status(200).json({ group: next, updated: true });
+      return res.status(200).json({ group: next, updated: true, sync: syncInfo });
     }
 
     return bad(res, 400, 'Unsupported group user action');
@@ -1020,23 +1023,37 @@ export default async function handler(req, res) {
 
     if (payload.type === 'sync-fixtures') {
       const currentGW = Number(payload.gw || group.currentGW || 1);
-      const isWC = (group.competition || 'PL') === 'WC';
+      const comp = group.competition || 'PL';
+      const isWC = comp === 'WC';
       const seas = group.season || 2025;
-      const comp = isWC ? 'WC' : 'PL';
-      let matches;
-      try { matches = await fetchFromFD(currentGW, isWC ? 2026 : seas, comp); }
-      catch (e) { return bad(res, e.status || 500, e.message); }
-      if (!matches.length) return bad(res, 404, 'No matches found for this round.');
-      const apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
-      const globalKey = isWC ? `fixtures:WC:2026` : `fixtures:PL:${seas}`;
-      const existingGlobal = await getValue(globalKey) || { season: isWC ? 2026 : seas, updatedAt: 0, gameweeks: [] };
-      const updatedGlobal = isWC
-        ? { ...existingGlobal, updatedAt: Date.now(), gameweeks: [...(existingGlobal.gameweeks || []).filter(g => g.gw !== currentGW), { gw: currentGW, fixtures: apiFixtures }] }
-        : regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
-      await setValue(globalKey, updatedGlobal);
+      let updatedGlobal;
+      let apiFixtures = [];
+      let source = 'football-data';
+      if (comp === 'PL' || comp === 'WC') {
+        let syncInfo;
+        try {
+          syncInfo = await refreshYahooFixtureCache({ competition: isWC ? 'WC' : 'PL', season: isWC ? 2026 : seas, targetGW: currentGW, force: true });
+        } catch (e) {
+          return bad(res, e.status || 500, e.message);
+        }
+        updatedGlobal = syncInfo.globalDoc;
+        apiFixtures = (updatedGlobal.gameweeks || []).find(g => g.gw === currentGW)?.fixtures || [];
+        source = 'yahoo';
+      } else {
+        let matches;
+        try { matches = await fetchFromFD(currentGW, seas, comp); }
+        catch (e) { return bad(res, e.status || 500, e.message); }
+        if (!matches.length) return bad(res, 404, 'No matches found for this round.');
+        apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
+        const globalKey = fixtureGlobalKey(comp, seas);
+        const existingGlobal = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
+        updatedGlobal = regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
+        await setValue(globalKey, updatedGlobal);
+      }
+      if (!apiFixtures.length) return bad(res, 404, 'No matches found for this round.');
       const next = mergeGlobalIntoGroup(updatedGlobal, group);
       const finished = apiFixtures.filter(f => f.result).length;
-      next.adminLog = [...(next.adminLog || []), { id: Date.now(), at: Date.now(), by: username, action: 'api-sync', gw: currentGW, fixtures: apiFixtures.length, results: finished }];
+      next.adminLog = [...(next.adminLog || []), { id: Date.now(), at: Date.now(), by: username, action: 'api-sync', source, gw: currentGW, fixtures: apiFixtures.length, results: finished }];
       await setValue(groupKey, next);
       return res.status(200).json({ group: next, fixtures: apiFixtures.length, results: finished });
     }
