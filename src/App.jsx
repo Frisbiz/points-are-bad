@@ -341,7 +341,8 @@ function gwLabel(group, gwNum) {
   const comp = group.competition || "PL";
   if (comp === "PL" || comp === "LL") return `GW${gwNum}`;
   const gwObj = (group.gameweeks || []).find(g => g.gw === gwNum);
-  const stage = (gwObj?.fixtures || []).find(f => f.stage)?.stage;
+  const stages = (gwObj?.fixtures || []).map(f => f.stage).filter(Boolean);
+  const stage = gwNum === 8 && stages.includes("FINAL") ? "FINAL" : stages[0];
   return stageLabel(stage, gwNum);
 }
 

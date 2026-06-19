@@ -20,6 +20,15 @@ const COMP_CONFIG = {
   },
 };
 
+const WC_EXTRA_STATE_4_DATES = new Set([
+  "2026-07-04",
+  "2026-07-05",
+  "2026-07-06",
+  "2026-07-07",
+  "2026-07-08",
+  "2026-07-18",
+]);
+
 const NAME_MAP = {
   "Brighton and Hove Albion": "Brighton",
   "Korea Republic": "South Korea",
@@ -106,14 +115,14 @@ function stableId(value) {
   return String(value || Date.now()).replace(/[^a-zA-Z0-9_-]+/g, "-");
 }
 
-function normalizeGames(scoreboard, competition, gwHint = null) {
+function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = null) {
   const isWC = competition === "WC";
   const byRound = {};
   for (const game of Object.values(scoreboard?.games || {})) {
     const apiId = game.gameid || game.global_gameid;
     const date = game.start_time ? new Date(game.start_time) : null;
     const dateIso = date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : "";
-    const gw = isWC ? wcRoundForGame(game, dateIso) : Number(gwHint || game.week_number || 1);
+    const gw = isWC ? wcRoundForGame(game, scheduleDate || dateIso) : Number(gwHint || game.week_number || 1);
     if (!gw) continue;
 
     const home = resolveTeam(scoreboard, game.home_team_id);
@@ -150,7 +159,7 @@ function normalizeGames(scoreboard, competition, gwHint = null) {
   }));
 }
 
-async function fetchScoreboard({ competition = "PL", week = null, date = null }) {
+async function fetchScoreboard({ competition = "PL", week = null, date = null, schedStates = null }) {
   const cfg = COMP_CONFIG[competition];
   if (!cfg) {
     const err = new Error(`Yahoo fixtures are not configured for ${competition}`);
@@ -164,7 +173,7 @@ async function fetchScoreboard({ competition = "PL", week = null, date = null })
     leagues: cfg.league,
     v: "2",
     ysp_enable_last_update: "1",
-    sched_states: cfg.schedStates,
+    sched_states: schedStates || cfg.schedStates,
   });
   if (date) params.set("date", date);
   else params.set("week", String(week ?? "current"));
@@ -177,6 +186,14 @@ async function fetchScoreboard({ competition = "PL", week = null, date = null })
   }
   const data = await response.json();
   return data?.service?.scoreboard || {};
+}
+
+async function fetchYahooWCDayGroups(date) {
+  const scoreboards = [await fetchScoreboard({ competition: "WC", date })];
+  if (WC_EXTRA_STATE_4_DATES.has(date)) {
+    scoreboards.push(await fetchScoreboard({ competition: "WC", date, schedStates: "4" }));
+  }
+  return scoreboards.flatMap(scoreboard => normalizeGames(scoreboard, "WC", null, date));
 }
 
 function addDays(isoDate, days) {
@@ -213,8 +230,7 @@ export async function fetchYahooFixturesForWeek(competition, week) {
 
 async function fetchYahooWCRoundByDates(dates, targetGW) {
   const groups = await mapLimit(dates, 6, async date => {
-    const scoreboard = await fetchScoreboard({ competition: "WC", date });
-    return normalizeGames(scoreboard, "WC");
+    return fetchYahooWCDayGroups(date);
   });
   const fixtures = groups
     .flat()
@@ -261,8 +277,7 @@ async function fetchYahooSeason(competition) {
   if (competition === "WC") {
     const dates = dateRange(COMP_CONFIG.WC.dates.start, COMP_CONFIG.WC.dates.end);
     const dayGroups = await mapLimit(dates, 6, async date => {
-      const scoreboard = await fetchScoreboard({ competition: "WC", date });
-      return normalizeGames(scoreboard, "WC");
+      return fetchYahooWCDayGroups(date);
     });
     const byGW = {};
     dayGroups.flat().forEach(gwObj => {
