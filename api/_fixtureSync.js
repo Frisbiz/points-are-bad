@@ -118,10 +118,33 @@ export const TEAM_NAME_MAP = {
   "Inter Milan": "Inter",
   "Bayern München": "Bayern",
   "Borussia Mönchengladbach": "Gladbach",
+  // International aliases
+  "Korea Republic": "South Korea",
+  "United States": "USA",
+  "United States of America": "USA",
+  "Congo DR": "DR Congo",
+  "Congo, DR": "DR Congo",
+  "Cote d'Ivoire": "Ivory Coast",
+  "Côte d'Ivoire": "Ivory Coast",
+  "Turkiye": "Turkey",
+  "Türkiye": "Turkey",
 };
 
 export function normName(n) {
   return TEAM_NAME_MAP[n] || n?.replace(/ FC$/, '').replace(/ AFC$/, '') || n;
+}
+
+function teamKey(n) {
+  return normName(n)
+    ?.normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/gi, '')
+    .toLowerCase() || '';
+}
+
+function fixturePairKey(f) {
+  return `${teamKey(f.home)}|${teamKey(f.away)}`;
 }
 
 export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
@@ -172,12 +195,12 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     const oldByTeams = {};
     oldFixtures.forEach(f => {
       if (f.apiId) oldByApiId[String(f.apiId)] = f;
-      oldByTeams[`${f.home}|${f.away}`] = f;
+      oldByTeams[fixturePairKey(f)] = f;
     });
     const working = [...oldFixtures];
     const toAdd = [];
     globalFixtures.forEach(gf => {
-      const existing = (gf.apiId && oldByApiId[String(gf.apiId)]) || oldByTeams[`${gf.home}|${gf.away}`];
+      const existing = (gf.apiId && oldByApiId[String(gf.apiId)]) || oldByTeams[fixturePairKey(gf)];
       if (existing) {
         const idx = working.findIndex(f => f.id === existing.id);
         if (idx >= 0) working[idx] = { ...existing, result: gf.result, status: gf.status, date: gf.date, apiId: gf.apiId, home: gf.home, away: gf.away, liveScore: gf.liveScore || null };
@@ -192,12 +215,12 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
   }
   const globalPairToGW = {};
   (globalDoc.gameweeks || []).forEach(gwObj => {
-    (gwObj.fixtures || []).forEach(f => { globalPairToGW[`${f.home}|${f.away}`] = gwObj.gw; });
+    (gwObj.fixtures || []).forEach(f => { globalPairToGW[fixturePairKey(f)] = gwObj.gw; });
   });
   const deduped = updatedGameweeks.map(gwObj => {
     if ((gwObj.season || seas) !== seas) return gwObj;
     const filtered = (gwObj.fixtures || []).filter(f => {
-      const globalGW = globalPairToGW[`${f.home}|${f.away}`];
+      const globalGW = globalPairToGW[fixturePairKey(f)];
       if (globalGW === undefined || globalGW === gwObj.gw) return true;
       return hasPick(f.id);
     });
@@ -240,8 +263,8 @@ export function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
   const updatedOthers = otherGWs.map(gwObj => {
     const additions = orphaned.filter(o => o.targetGW === gwObj.gw).map(o => o.fixture);
     if (!additions.length) return gwObj;
-    const addPairs = new Set(additions.map(f => `${f.home}|${f.away}`));
-    const kept = (gwObj.fixtures || []).filter(f => !addPairs.has(`${f.home}|${f.away}`));
+    const addPairs = new Set(additions.map(fixturePairKey));
+    const kept = (gwObj.fixtures || []).filter(f => !addPairs.has(fixturePairKey(f)));
     return { ...gwObj, fixtures: [...kept, ...additions] };
   });
   return { ...globalDoc, updatedAt: Date.now(), gameweeks: [...updatedOthers, { gw: gwNum, fixtures: normal }] };
