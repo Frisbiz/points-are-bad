@@ -4016,9 +4016,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
               const isWinner=hasAnyPicks&&scored.length>0&&weeklyTotals[ui]!==null&&weeklyTotals[ui]===sortedUnique[0];
               const excelBg=theme==="excel"?PALETTE[ui%PALETTE.length]:undefined;
               const isAwaiting = Object.values(dibsTurnFor).some(turn => turn === u);
-              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:"8px 12px",textAlign:"center",width:theme==="excel"?undefined:"72px",minWidth:theme==="excel"?undefined:"72px",maxWidth:theme==="excel"?undefined:"72px",background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
-                ? <span style={{animation:"pulse 1.2s ease-in-out infinite",display:"inline-block"}}>{names[u]||u}</span>
-                : <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{isWinner&&!excelBg&&<Star size={13} color="#fbbf24" filled style={{marginRight:4,filter:"drop-shadow(0 0 4px #fbbf24aa)",flexShrink:0}}/>}{names[u]||u}</span>
+              const headerWidth = isWinner ? 96 : 76;
+              const nameLabel = names[u] || u;
+              return <th key={u} colSpan={theme==="excel"?2:1} style={{padding:theme==="excel"?"8px 12px":"8px 6px",textAlign:"center",width:theme==="excel"?undefined:headerWidth,minWidth:theme==="excel"?undefined:headerWidth,maxWidth:theme==="excel"?undefined:headerWidth,background:excelBg,color:theme==="excel"?"#fff":isWinner?"#fbbf24":"var(--text-mid)",fontWeight:700,fontSize:theme==="excel"?13:undefined,textShadow:isWinner&&!excelBg?"0 0 10px #fbbf2488":"none"}}>{isAwaiting
+                ? <span style={{animation:"pulse 1.2s ease-in-out infinite",display:"inline-flex",alignItems:"center",justifyContent:"center",maxWidth:"100%",minWidth:0}}><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{nameLabel}</span></span>
+                : <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:3,maxWidth:"100%",minWidth:0,verticalAlign:"middle"}}>{isWinner&&!excelBg&&<Star size={12} color="#fbbf24" filled style={{filter:"drop-shadow(0 0 4px #fbbf24aa)",flex:"0 0 auto"}}/>}<span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{nameLabel}</span></span>
               }</th>;
             })}
           </tr></thead>
