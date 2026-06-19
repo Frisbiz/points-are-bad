@@ -654,6 +654,7 @@ const CSS = `
     [data-theme="index"] .index-mobile-marquee{margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;}
   }
   .gw-strip{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}.gw-strip::-webkit-scrollbar{display:none;}
+  .wc-standings-scroll::-webkit-scrollbar{display:none;}
   .excel-mode table,.excel-mode table *{font-family:Arial,Calibri,sans-serif!important;}
   .excel-mode table td,.excel-mode table th{border:1px solid #888888;border-radius:0!important;padding:5px 8px!important;}
   .excel-mode table thead tr{background:var(--card-hi)!important;}
@@ -2955,41 +2956,7 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
   return (
     <div style={{display:"flex",flexDirection:"column",gap:26}}>
       {groups.map(group=>(
-        <div key={group.name}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-            <h2 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:16,fontWeight:800,color:"var(--text-bright)",margin:0,letterSpacing:-0.2}}>{group.name}</h2>
-          </div>
-          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
-            <table style={{width:"100%",minWidth:mob?560:620,borderCollapse:"collapse",fontSize:12}}>
-              <thead>
-                <tr style={{borderBottom:"1px solid var(--border2)"}}>
-                  {["","Team","MP","W","D","L","GF","GA","GD","Pts"].map((h,i)=>(
-                    <th key={h||"pos"} style={{padding:"8px 8px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?30:i>1?44:undefined}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(group.rows||[]).map(row=>{
-                  const advanced=row.qualified ?? row.pos<=2;
-                  return (
-                    <tr key={row.teamId||row.team} className="frow" style={{borderBottom:"1px solid var(--border3)",background:advanced?"rgba(96,165,250,0.045)":"transparent"}}>
-                      <td style={{padding:"9px 8px",color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center",boxShadow:advanced?"inset 3px 0 0 #3b82f6":"none"}}>{row.pos}</td>
-                      <td style={{padding:"9px 8px",minWidth:190}}>
-                        <div style={{display:"flex",alignItems:"center",gap:9,minWidth:0}}>
-                          <TeamBadge team={row.team} crest={row.crest} size={20}/>
-                          <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
-                        </div>
-                      </td>
-                      {[row.p,row.w,row.d,row.l,row.gf,row.ga,row.gd,row.pts].map((v,i)=>(
-                        <td key={i} style={{padding:"9px 8px",textAlign:"center",color:i===7?"var(--text-bright)":"var(--text-mid)",fontWeight:i===7?800:700}}>{v}</td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <WCStandingsGroupTable key={group.name} group={group} theme={theme} mob={mob}/>
       ))}
       <div style={{background:"var(--card-hi)",border:"1px solid var(--border2)",borderRadius:4,padding:"14px 16px",display:"flex",gap:24,alignItems:"flex-start",flexWrap:"wrap"}}>
         <div>
@@ -2999,6 +2966,93 @@ function WCGroupStageStandings({ groups, loading, error, theme="dark" }) {
             Knockout stage
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
+  const scrollRef=useRef(null);
+  const [fade,setFade]=useState({left:false,right:false});
+  const updateFade=useCallback(()=>{
+    const node=scrollRef.current;
+    if(!node)return;
+    const max=node.scrollWidth-node.clientWidth;
+    setFade({left:node.scrollLeft>2,right:node.scrollLeft<max-2});
+  },[]);
+  useEffect(()=>{
+    updateFade();
+    const node=scrollRef.current;
+    if(!node)return;
+    const onScroll=()=>updateFade();
+    const onResize=()=>updateFade();
+    node.addEventListener("scroll",onScroll,{passive:true});
+    window.addEventListener("resize",onResize);
+    return()=>{node.removeEventListener("scroll",onScroll);window.removeEventListener("resize",onResize);};
+  },[group.rows,updateFade]);
+
+  const headers=["","Team","MP","W","D","L","Pts","GF","GA","GD"];
+  const rankW=mob?24:30;
+  const teamW=mob?150:190;
+  const statW=mob?36:44;
+  const rowPad=mob?"9px 6px":"9px 8px";
+  const stickyBg="var(--bg)";
+  const fadeColor=({
+    light:"rgba(37,34,28,0.72)",
+    excel:"rgba(18,18,18,0.58)",
+    terminal:"rgba(0,12,3,0.94)",
+    nord:"rgba(30,35,45,0.92)",
+    pitch:"rgba(6,16,6,0.94)",
+    velvet:"rgba(22,9,27,0.94)",
+    clarity:"rgba(17,17,17,0.92)",
+    spotify:"rgba(18,18,18,0.94)",
+    index:"rgba(18,20,23,0.62)",
+  })[theme]||"rgba(8,8,16,0.94)";
+
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+        <h2 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:mob?15:16,fontWeight:800,color:"var(--text-bright)",margin:0,letterSpacing:-0.2}}>{group.name}</h2>
+      </div>
+      <div style={{position:"relative"}}>
+        <div ref={scrollRef} style={{overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}} className="wc-standings-scroll">
+          <table style={{width:"max-content",minWidth:"100%",borderCollapse:"separate",borderSpacing:0,fontSize:mob?12:12,tableLayout:"fixed"}}>
+            <thead>
+              <tr>
+                {headers.map((h,i)=>{
+                  const sticky=i<=1;
+                  const left=i===0?0:rankW;
+                  return (
+                    <th key={h||"pos"} style={{position:sticky?"sticky":"static",left:sticky?left:undefined,zIndex:sticky?3:1,background:stickyBg,padding:"8px 6px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?rankW:i===1?teamW:statW,minWidth:i===0?rankW:i===1?teamW:statW,borderBottom:"1px solid var(--border2)"}}>{h}</th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {(group.rows||[]).map(row=>{
+                const advanced=row.qualified ?? row.pos<=2;
+                const rowBg=advanced?"color-mix(in srgb, var(--bg) 94%, #3b82f6 6%)":stickyBg;
+                const values=[row.p,row.w,row.d,row.l,row.pts,row.gf,row.ga,row.gd];
+                return (
+                  <tr key={row.teamId||row.team} className="frow">
+                    <td style={{position:"sticky",left:0,zIndex:2,background:rowBg,padding:rowPad,color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center",width:rankW,minWidth:rankW,borderBottom:"1px solid var(--border3)",boxShadow:advanced?"inset 3px 0 0 #3b82f6":"none"}}>{row.pos}</td>
+                    <td style={{position:"sticky",left:rankW,zIndex:2,background:rowBg,padding:rowPad,width:teamW,minWidth:teamW,borderBottom:"1px solid var(--border3)"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:mob?8:9,minWidth:0}}>
+                        <TeamBadge team={row.team} crest={row.crest} size={mob?18:20}/>
+                        <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
+                      </div>
+                    </td>
+                    {values.map((v,i)=>(
+                      <td key={i} style={{padding:rowPad,textAlign:"center",color:i===4?"var(--text-bright)":"var(--text-mid)",fontWeight:i===4?800:700,width:statW,minWidth:statW,borderBottom:"1px solid var(--border3)",background:advanced?"color-mix(in srgb, var(--bg) 94%, #3b82f6 6%)":"transparent"}}>{v}</td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {fade.left&&<div style={{position:"absolute",left:rankW+teamW,top:0,bottom:0,width:20,pointerEvents:"none",background:`linear-gradient(90deg, ${fadeColor}, transparent)`,zIndex:4}}/>}
+        {fade.right&&<div style={{position:"absolute",right:0,top:0,bottom:0,width:34,pointerEvents:"none",background:`linear-gradient(270deg, ${fadeColor}, transparent)`,zIndex:4}}/>}
       </div>
     </div>
   );
