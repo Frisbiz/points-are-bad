@@ -126,6 +126,9 @@ export const TEAM_NAME_MAP = {
   "Congo, DR": "DR Congo",
   "Cote d'Ivoire": "Ivory Coast",
   "Côte d'Ivoire": "Ivory Coast",
+  "Cura\u00e7ao": "Curacao",
+  "Cura\u00c3\u00a7ao": "Curacao",
+  "Cura?ao": "Curacao",
   "Turkiye": "Turkey",
   "Türkiye": "Turkey",
 };
@@ -145,6 +148,181 @@ function teamKey(n) {
 
 function fixturePairKey(f) {
   return `${teamKey(f.home)}|${teamKey(f.away)}`;
+}
+
+function fixtureDateKey(f) {
+  if (!f?.date) return '';
+  const time = new Date(f.date).getTime();
+  if (!Number.isFinite(time)) return '';
+  return new Date(time).toISOString().slice(0, 16);
+}
+
+export function fixtureDedupeKey(f) {
+  const pair = fixturePairKey(f);
+  if (!pair || pair === '|') return String(f?.apiId || f?.id || '');
+  const date = fixtureDateKey(f);
+  return date ? `${pair}|${date}` : pair;
+}
+
+function fixtureLookupKeys(f) {
+  const pair = fixturePairKey(f);
+  const keys = [];
+  const dated = fixtureDedupeKey(f);
+  if (dated) keys.push(dated);
+  if (pair && pair !== '|' && pair !== dated) keys.push(pair);
+  if (f?.apiId) keys.push(`api:${f.apiId}`);
+  return keys;
+}
+
+function fixtureStatusRank(status) {
+  switch (status) {
+    case 'FINISHED': return 5;
+    case 'IN_PLAY': return 4;
+    case 'PAUSED': return 3;
+    case 'POSTPONED': return 2;
+    case 'SCHEDULED': return 1;
+    default: return 0;
+  }
+}
+
+function fixtureDataScore(f) {
+  if (!f) return -1;
+  return fixtureStatusRank(f.status) * 10
+    + (f.result ? 6 : 0)
+    + (f.liveScore ? 4 : 0)
+    + (f.date ? 2 : 0)
+    + (f.apiId ? 1 : 0)
+    + (f.homeCrest ? 1 : 0)
+    + (f.awayCrest ? 1 : 0);
+}
+
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj || {}, key);
+}
+
+function fixturePickCount(predictions, fixtureId) {
+  if (!fixtureId) return 0;
+  return Object.values(predictions || {}).reduce((count, picks) => count + (hasOwn(picks, fixtureId) ? 1 : 0), 0);
+}
+
+function remapPredictionId(predictions, fromId, toId) {
+  if (!predictions || !fromId || !toId || fromId === toId) return predictions;
+  let next = predictions;
+  Object.entries(predictions).forEach(([username, picks]) => {
+    if (!hasOwn(picks, fromId)) return;
+    if (next === predictions) next = { ...predictions };
+    const updated = { ...(picks || {}) };
+    if (!hasOwn(updated, toId)) updated[toId] = updated[fromId];
+    delete updated[fromId];
+    next[username] = updated;
+  });
+  return next;
+}
+
+function shouldReplaceFixtureKeeper(current, candidate, predictions) {
+  const currentPicks = fixturePickCount(predictions, current?.id);
+  const candidatePicks = fixturePickCount(predictions, candidate?.id);
+  if (currentPicks !== candidatePicks) return candidatePicks > currentPicks;
+  return fixtureDataScore(candidate) > fixtureDataScore(current);
+}
+
+function mergeFixtureData(keeper, duplicate) {
+  const best = fixtureDataScore(duplicate) > fixtureDataScore(keeper) ? duplicate : keeper;
+  return {
+    ...keeper,
+    apiId: best.apiId || keeper.apiId || duplicate.apiId,
+    home: normName(best.home || keeper.home || duplicate.home),
+    away: normName(best.away || keeper.away || duplicate.away),
+    result: best.result ?? keeper.result ?? duplicate.result ?? null,
+    status: best.status || keeper.status || duplicate.status,
+    date: best.date || keeper.date || duplicate.date || null,
+    liveScore: best.liveScore || keeper.liveScore || duplicate.liveScore || null,
+    homeCrest: best.homeCrest || keeper.homeCrest || duplicate.homeCrest || null,
+    awayCrest: best.awayCrest || keeper.awayCrest || duplicate.awayCrest || null,
+    stage: best.stage || keeper.stage || duplicate.stage || null,
+    elapsed: best.elapsed || keeper.elapsed || duplicate.elapsed || null,
+    yahooLastUpdated: best.yahooLastUpdated || keeper.yahooLastUpdated || duplicate.yahooLastUpdated || null,
+  };
+}
+
+function dedupeFixtureList(fixtures = [], predictions = null) {
+  const out = [];
+  const indexByKey = new Map();
+  let nextPredictions = predictions;
+  const remaps = [];
+  let changed = false;
+
+  fixtures.forEach(fixture => {
+    const keys = fixtureLookupKeys(fixture);
+    const existingIndex = keys.map(key => indexByKey.get(key)).find(idx => idx !== undefined);
+    if (existingIndex === undefined) {
+      const nextIndex = out.length;
+      out.push(fixture);
+      keys.forEach(key => indexByKey.set(key, nextIndex));
+      return;
+    }
+
+    changed = true;
+    const current = out[existingIndex];
+    const replace = shouldReplaceFixtureKeeper(current, fixture, nextPredictions);
+    const keeper = replace ? fixture : current;
+    const duplicate = replace ? current : fixture;
+    if (duplicate.id && keeper.id && duplicate.id !== keeper.id) {
+      nextPredictions = remapPredictionId(nextPredictions, duplicate.id, keeper.id);
+      remaps.push([duplicate.id, keeper.id]);
+    }
+    out[existingIndex] = mergeFixtureData(keeper, duplicate);
+    fixtureLookupKeys(out[existingIndex]).forEach(key => indexByKey.set(key, existingIndex));
+  });
+
+  return { fixtures: out, predictions: nextPredictions, remaps, changed };
+}
+
+export function dedupeFixtures(fixtures = []) {
+  return dedupeFixtureList(fixtures).fixtures;
+}
+
+function applyFixtureIdRemaps(group, remaps = []) {
+  if (!remaps.length) return group;
+  const alias = new Map(remaps);
+  const resolve = id => {
+    let next = id;
+    const seen = new Set();
+    while (alias.has(next) && !seen.has(next)) {
+      seen.add(next);
+      next = alias.get(next);
+    }
+    return next;
+  };
+  const next = { ...group };
+  if (Array.isArray(group.hiddenFixtures)) {
+    next.hiddenFixtures = Array.from(new Set(group.hiddenFixtures.map(resolve)));
+  }
+  if (group.dibsSkips) {
+    next.dibsSkips = Object.entries(group.dibsSkips).reduce((acc, [fixtureId, skips]) => {
+      const key = resolve(fixtureId);
+      acc[key] = Array.from(new Set([...(acc[key] || []), ...(skips || [])]));
+      return acc;
+    }, {});
+  }
+  return next;
+}
+
+export function dedupeGroupFixtures(g) {
+  const originalPredictions = g.predictions || {};
+  let predictions = originalPredictions;
+  const remaps = [];
+  let changed = false;
+  const gameweeks = (g.gameweeks || []).map(gwObj => {
+    const cleaned = dedupeFixtureList(gwObj.fixtures || [], predictions);
+    predictions = cleaned.predictions || predictions;
+    remaps.push(...cleaned.remaps);
+    if (!cleaned.changed) return gwObj;
+    changed = true;
+    return { ...gwObj, fixtures: cleaned.fixtures };
+  });
+  if (!changed && predictions === originalPredictions) return g;
+  return applyFixtureIdRemaps({ ...g, gameweeks, predictions }, remaps);
 }
 
 export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
@@ -180,27 +358,36 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
 
 export function mergeGlobalIntoGroup(globalDoc, g) {
   const seas = g.season || 2025;
+  let predictions = g.predictions || {};
+  const remaps = [];
   const globalGWMap = {};
-  (globalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = gwObj.fixtures; });
-  const preds = g.predictions || {};
-  const hasPick = id => Object.values(preds).some(up => up[id] !== undefined);
+  (globalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = dedupeFixtures(gwObj.fixtures || []); });
+  const hasPick = id => Object.values(predictions).some(up => up[id] !== undefined);
   const updatedGameweeks = (g.gameweeks || []).map(gwObj => {
     if ((gwObj.season || seas) !== seas) return gwObj;
     const globalFixtures = globalGWMap[gwObj.gw];
     if (!globalFixtures || !globalFixtures.length) return gwObj;
-    const oldFixtures = gwObj.fixtures || [];
+    const cleanedOld = dedupeFixtureList(gwObj.fixtures || [], predictions);
+    predictions = cleanedOld.predictions || predictions;
+    remaps.push(...cleanedOld.remaps);
+    const oldFixtures = cleanedOld.fixtures;
     const gwHasPicks = oldFixtures.some(f => hasPick(f.id));
     if (!gwHasPicks) return { ...gwObj, fixtures: globalFixtures };
     const oldByApiId = {};
+    const oldByMatch = {};
     const oldByTeams = {};
     oldFixtures.forEach(f => {
       if (f.apiId) oldByApiId[String(f.apiId)] = f;
+      oldByMatch[fixtureDedupeKey(f)] = f;
       oldByTeams[fixturePairKey(f)] = f;
     });
     const working = [...oldFixtures];
     const toAdd = [];
     globalFixtures.forEach(gf => {
-      const existing = (gf.apiId && oldByApiId[String(gf.apiId)]) || oldByTeams[fixturePairKey(gf)];
+      const byApi = gf.apiId && oldByApiId[String(gf.apiId)];
+      const byMatch = oldByMatch[fixtureDedupeKey(gf)];
+      const byTeams = oldByTeams[fixturePairKey(gf)];
+      const existing = [byApi, byMatch, byTeams].filter(Boolean).sort((a, b) => fixturePickCount(predictions, b.id) - fixturePickCount(predictions, a.id))[0];
       if (existing) {
         const idx = working.findIndex(f => f.id === existing.id);
         if (idx >= 0) working[idx] = { ...existing, result: gf.result, status: gf.status, date: gf.date, apiId: gf.apiId, home: gf.home, away: gf.away, liveScore: gf.liveScore || null };
@@ -211,7 +398,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     return { ...gwObj, fixtures: [...working, ...toAdd] };
   });
   if ((g.competition || 'PL') === 'WC') {
-    return { ...g, gameweeks: updatedGameweeks, lastAutoSync: Date.now() };
+    return applyFixtureIdRemaps({ ...g, gameweeks: updatedGameweeks, predictions, lastAutoSync: Date.now() }, remaps);
   }
   const globalPairToGW = {};
   (globalDoc.gameweeks || []).forEach(gwObj => {
@@ -226,10 +413,11 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return { ...gwObj, fixtures: filtered };
   });
-  return { ...g, gameweeks: deduped, lastAutoSync: Date.now() };
+  return applyFixtureIdRemaps({ ...g, gameweeks: deduped, predictions, lastAutoSync: Date.now() }, remaps);
 }
 
 export function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
+  newFixtures = dedupeFixtures(newFixtures);
   const otherGWs = (globalDoc.gameweeks || []).filter(g => g.gw !== gwNum);
   const dates = newFixtures.filter(f => f.date).map(f => new Date(f.date).getTime()).sort((a, b) => a - b);
   if (dates.length < 3) {

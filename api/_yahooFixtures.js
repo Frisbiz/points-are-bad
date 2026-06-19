@@ -1,5 +1,5 @@
 import { db, docKey, getValue, setValue } from "./_db.js";
-import { normName, regroupGlobalDoc } from "./_fixtureSync.js";
+import { dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const REQUEST_HEADERS = { "User-Agent": "Mozilla/5.0" };
@@ -36,6 +36,9 @@ const NAME_MAP = {
   "Congo DR": "DR Congo",
   "Cote d'Ivoire": "Ivory Coast",
   "Côte d'Ivoire": "Ivory Coast",
+  "Cura\u00e7ao": "Curacao",
+  "Cura\u00c3\u00a7ao": "Curacao",
+  "Cura?ao": "Curacao",
   Turkiye: "Turkey",
 };
 
@@ -155,7 +158,7 @@ function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = n
   return Object.entries(byRound).map(([gw, fixtures]) => ({
     gw: Number(gw),
     season: isWC ? 2026 : COMP_CONFIG.PL.season,
-    fixtures: fixtures.sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))),
+    fixtures: dedupeFixtures(fixtures).sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))),
   }));
 }
 
@@ -236,13 +239,7 @@ async function fetchYahooWCRoundByDates(dates, targetGW) {
     .flat()
     .filter(gwObj => gwObj.gw === Number(targetGW))
     .flatMap(gwObj => gwObj.fixtures);
-  const seen = new Set();
-  return fixtures.filter(f => {
-    const key = f.apiId || `${f.home}|${f.away}|${f.date}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+  return dedupeFixtures(fixtures).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
 }
 
 export async function fetchYahooLiveMatches(competition, week, dates = []) {
@@ -285,13 +282,7 @@ async function fetchYahooSeason(competition) {
       byGW[gwObj.gw].push(...gwObj.fixtures);
     });
     return Object.entries(byGW).map(([gw, fixtures]) => {
-      const seen = new Set();
-      const unique = fixtures.filter(f => {
-        const key = f.apiId || `${f.home}|${f.away}|${f.date}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      const unique = dedupeFixtures(fixtures);
       return {
         gw: Number(gw),
         season: 2026,
@@ -361,7 +352,7 @@ function mergeGameweek(globalDoc, competition, gw, fixtures) {
     return {
       ...globalDoc,
       updatedAt: Date.now(),
-      gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== gw), { gw, season: 2026, fixtures }]
+      gameweeks: [...(globalDoc.gameweeks || []).filter(g => g.gw !== gw), { gw, season: 2026, fixtures: dedupeFixtures(fixtures) }]
         .sort((a, b) => a.gw - b.gw),
     };
   }

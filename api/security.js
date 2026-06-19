@@ -1,6 +1,6 @@
 import { db, docKey, getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
-import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc } from "./_fixtureSync.js";
+import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeGroupFixtures } from "./_fixtureSync.js";
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 
@@ -721,8 +721,15 @@ export default async function handler(req, res) {
           return bad(res, e.status || 500, e.message);
         }
       }
-      if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) return res.status(200).json({ group, updated: false });
-      const merged = mergeGlobalIntoGroup(globalDoc, group);
+      const cleanedGroup = dedupeGroupFixtures(group);
+      if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) {
+        if (cleanedGroup !== group) {
+          await setValue(groupKey, cleanedGroup);
+          return res.status(200).json({ group: cleanedGroup, updated: true, sync: { ...syncInfo, cleanup: true } });
+        }
+        return res.status(200).json({ group, updated: false });
+      }
+      const merged = mergeGlobalIntoGroup(globalDoc, cleanedGroup);
       if (!merged) return res.status(200).json({ group, updated: false });
       const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
       await setValue(groupKey, next);
