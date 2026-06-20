@@ -119,6 +119,10 @@ export const TEAM_NAME_MAP = {
   "Bayern München": "Bayern",
   "Borussia Mönchengladbach": "Gladbach",
   // International aliases
+  "Bosnia and Herzegovina": "Bosnia-Herzegovina",
+  "Bosnia & Herzegovina": "Bosnia-Herzegovina",
+  "Cape Verde Islands": "Cape Verde",
+  "Cabo Verde": "Cape Verde",
   "Korea Republic": "South Korea",
   "United States": "USA",
   "United States of America": "USA",

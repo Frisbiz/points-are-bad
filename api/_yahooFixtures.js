@@ -4,7 +4,7 @@ import { dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const REQUEST_HEADERS = { "User-Agent": "Mozilla/5.0" };
 const LIVE_REFRESH_MS = 20_000;
-const SYNC_LOCK_VERSION = "v2";
+const SYNC_LOCK_VERSION = "v3";
 
 const COMP_CONFIG = {
   PL: {
@@ -43,6 +43,10 @@ const WC_ROUND_DATE_RANGES = {
 
 const NAME_MAP = {
   "Brighton and Hove Albion": "Brighton",
+  "Bosnia and Herzegovina": "Bosnia-Herzegovina",
+  "Bosnia & Herzegovina": "Bosnia-Herzegovina",
+  "Cape Verde Islands": "Cape Verde",
+  "Cabo Verde": "Cape Verde",
   "Korea Republic": "South Korea",
   "United States": "USA",
   "Congo DR": "DR Congo",
