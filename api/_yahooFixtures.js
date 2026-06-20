@@ -4,6 +4,7 @@ import { dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const REQUEST_HEADERS = { "User-Agent": "Mozilla/5.0" };
 const LIVE_REFRESH_MS = 20_000;
+const SYNC_LOCK_VERSION = "v2";
 
 const COMP_CONFIG = {
   PL: {
@@ -430,7 +431,7 @@ export async function refreshYahooFixtureCache({ competition = "PL", season = nu
     return { globalDoc, fetched: false, reason: "fresh", intervalMs: interval };
   }
 
-  const lockKey = `sync-lock:yahoo-fixtures:${comp}:${seas}:${seasonSync ? "season" : `gw-${targetGW}`}`;
+  const lockKey = `sync-lock:yahoo-fixtures:${SYNC_LOCK_VERSION}:${comp}:${seas}:${seasonSync ? "season" : `gw-${targetGW}`}`;
   const lock = await acquireLock(lockKey, minInterval || 60_000, force);
   if (!lock.acquired) {
     globalDoc = await getValue(globalKey) || globalDoc;
