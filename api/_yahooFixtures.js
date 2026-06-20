@@ -384,7 +384,10 @@ function refreshIntervalMs(globalDoc, targetGW) {
 function needsSeasonSync(globalDoc, competition, targetGW) {
   const gws = new Set((globalDoc?.gameweeks || []).map(gw => gw.gw));
   if (!gws.size) return true;
-  if (competition === "WC") return Array.from({ length: 8 }, (_, i) => i + 1).some(gw => !gws.has(gw));
+  // WC knockout fixtures are not always published far ahead of time. Requiring
+  // all 8 rounds here can trap live group-stage updates behind the full-season
+  // sync cooldown. Once any WC cache exists, refresh the requested round directly.
+  if (competition === "WC") return false;
   const target = Math.max(1, Math.min(COMP_CONFIG.PL.weeks, Number(targetGW || 1)));
   return Array.from({ length: target }, (_, i) => i + 1).some(gw => !gws.has(gw));
 }
@@ -428,7 +431,7 @@ export async function refreshYahooFixtureCache({ competition = "PL", season = nu
   let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [], source: "yahoo" };
   const interval = refreshIntervalMs(globalDoc, targetGW);
   const seasonSync = full || needsSeasonSync(globalDoc, comp, targetGW);
-  const minInterval = seasonSync ? 12 * 60 * 60_000 : interval;
+  const minInterval = seasonSync ? (comp === "WC" ? 5 * 60_000 : 12 * 60 * 60_000) : interval;
   const now = Date.now();
 
   if (!force && !seasonSync && interval > 0 && now - (globalDoc.updatedAt || 0) < interval) {

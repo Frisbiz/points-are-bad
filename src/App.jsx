@@ -169,11 +169,11 @@ function shortTeamName(name, max = TEAM_DISPLAY_LIMIT) {
 // don't flip mid-match.
 function effectiveFixtureResult(fixture, liveScores) {
   if (fixture.result) return fixture.result;
-  if (fixture.liveScore) return fixture.liveScore;
   const lm = liveScores?.[`${fixture.home}|${fixture.away}`];
   if (lm && (lm.status === "in_progress" || lm.status === "halftime") && lm.homeScore != null && lm.awayScore != null) {
     return `${lm.homeScore}-${lm.awayScore}`;
   }
+  if (fixture.liveScore) return fixture.liveScore;
   return null;
 }
 
@@ -3773,7 +3773,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         const liveMatch = liveScores[`${f.home}|${f.away}`];
         const yahooLive = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime");
         const isLive = f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooLive;
-        const scoreStr = f.result || f.liveScore || (yahooLive ? `${liveMatch.homeScore}-${liveMatch.awayScore}` : null);
+        const scoreStr = f.result || (yahooLive ? `${liveMatch.homeScore}-${liveMatch.awayScore}` : f.liveScore || null);
         const elapsed = yahooLive ? liveMatch.elapsed : (isLive ? f.elapsed : null);
         const scoreParts = scoreStr ? scoreStr.split("-") : null;
         const resultBlock = scoreParts?(
@@ -4049,7 +4049,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{(()=>{
                   const lm = liveScores[`${f.home}|${f.away}`];
                   const yLive = !f.result && lm && (lm.status==="in_progress"||lm.status==="halftime");
-                  const liveStr = f.liveScore || (yLive ? `${lm.homeScore}-${lm.awayScore}` : null);
+                  const liveStr = yLive ? `${lm.homeScore}-${lm.awayScore}` : f.liveScore || null;
                   if (f.result) return f.result;
                   if (liveStr) return <span style={{color:"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:"pulse 1.5s infinite"}}>{lm?.elapsed||"LIVE"}</span></span>;
                   if (f.status==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
