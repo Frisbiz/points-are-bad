@@ -156,6 +156,12 @@ function calcPts(pred, result) {
   return Math.abs(ph - rh) + Math.abs(pa - ra);
 }
 
+const TEAM_DISPLAY_LIMIT = 13;
+function shortTeamName(name, max = TEAM_DISPLAY_LIMIT) {
+  const text = String(name || "");
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
 // Best-available scoreline for RENDERING/DISPLAY purposes only.
 // Prefers the final result, then a cached live score, then the Yahoo live feed.
 // DO NOT use this in computeStats or any Trends/standings aggregation — those
@@ -3072,7 +3078,7 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
                     <td style={{position:"sticky",left:rankW,zIndex:2,background:rowBg,padding:rowPad,width:teamW,minWidth:teamW,borderBottom:"1px solid var(--border3)"}}>
                       <div style={{display:"flex",alignItems:"center",gap:mob?8:9,minWidth:0}}>
                         <TeamBadge team={row.team} crest={row.crest} size={mob?18:20}/>
-                        <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
+                        <span title={row.team} style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mob?shortTeamName(row.team):row.team}</span>
                       </div>
                     </td>
                     {values.map((v,i)=>(
@@ -3141,7 +3147,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
               background:wins?"var(--card-hi)":"transparent",
             }}>
               <TeamBadge team={team||"?"} crest={crest} size={mob?11:16} />
-              <span style={{fontSize:mob?9:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
+              <span title={team||"TBD"} style={{fontSize:mob?9:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team ? (mob?shortTeamName(team):team) : "TBD"}</span>
               {score!=null&&<span style={{fontSize:mob?9:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:mob?10:14,textAlign:"right"}}>{score}</span>}
             </div>
           );
@@ -3225,7 +3231,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
               return (
                 <div key={side} style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderBottom:side==="home"?"1px solid var(--border3)":"none",opacity:loses?0.38:1,background:wins?"var(--card-hi)":"transparent"}}>
                   <TeamBadge team={team||"?"} crest={crest} size={16}/>
-                  <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
+                  <span title={team||"TBD"} style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team?shortTeamName(team):"TBD"}</span>
                   {score!=null&&<span style={{fontSize:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace"}}>{score}</span>}
                 </div>
               );
@@ -3315,7 +3321,7 @@ function LeagueTab({group,user,names,theme}) {
                 return (
                   <div key={r.pos} style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:mob?12:13,color:"var(--text-mid)",borderBottom:idx<leagueTable.length-1?"1px solid var(--border)":"none",borderLeft:zc?`3px solid ${zc}`:"3px solid transparent",background:"var(--card)"}}>
                     <div style={{color:"var(--text-dim)",fontSize:11}}>{r.pos}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} crest={r.crest} size={mob?16:18}/><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{r.team}</span></div>
+                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} crest={r.crest} size={mob?16:18}/><span title={r.team} style={{overflow:"hidden",textOverflow:"ellipsis"}}>{mob?shortTeamName(r.team):r.team}</span></div>
                     {!mob&&<div style={{textAlign:"center"}}>{r.w}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.d}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.l}</div>}
@@ -3394,13 +3400,13 @@ function NextMatchCountdown({ group, myPreds = {} }) {
       <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",marginBottom:7}}>{deadpanLine}</div>
       <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"var(--text-mid)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,flex:1,minWidth:0}}>
-          <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+          <span title={next.home} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shortTeamName(next.home)}</span>
           <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
         </div>
         <span style={{color:"var(--text-dim)",flexShrink:0}}>vs</span>
         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:6,flex:1,minWidth:0}}>
           <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
-          <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+          <span title={next.away} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shortTeamName(next.away)}</span>
         </div>
       </div>
     </div>
@@ -3413,13 +3419,13 @@ function NextMatchCountdown({ group, myPreds = {} }) {
         <div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",lineHeight:1.3,marginTop:4}}>{deadpanLine}</div>
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
-        <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+        <span title={next.home} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
         <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
       </div>
       <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)"}}>vs</div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
         <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
-        <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+        <span title={next.away} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
       </div>
       <div style={{gridColumn:"5/7"}}>{timerEl}</div>
     </div>
@@ -3629,14 +3635,14 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
           <div className="modal-panel" style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
             <div style={{fontSize:13,color:"var(--text-dim)",letterSpacing:2,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
-              <div style={{textAlign:"right",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8}}>
-                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
+              <div style={{textAlign:"right",flex:1,minWidth:0,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8}}>
+                <span title={wizardFixture.home} style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mob?shortTeamName(wizardFixture.home):wizardFixture.home}</span>
                 <TeamBadge team={wizardFixture.home} crest={wizardFixture.homeCrest} size={22}/>
               </div>
               <span style={{fontSize:12,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
-              <div style={{textAlign:"left",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8}}>
+              <div style={{textAlign:"left",flex:1,minWidth:0,display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8}}>
                 <TeamBadge team={wizardFixture.away} crest={wizardFixture.awayCrest} size={22}/>
-                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
+                <span title={wizardFixture.away} style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mob?shortTeamName(wizardFixture.away):wizardFixture.away}</span>
               </div>
             </div>
             {wizardFixture.date&&<div style={{fontSize:13,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
@@ -3876,11 +3882,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
                 <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.home)}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.away)}</a>
                 <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               </div>
             </div>
@@ -3899,13 +3905,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
           <div key={f.id} className={`frow${isIndex?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
               <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}</div>
             <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
@@ -3940,6 +3946,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
 }
 
 function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,dibsTurnFor={},setGroup,liveScores={}}) {
+  const mob = useMobile();
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
   const members = group.members||[];
@@ -4033,10 +4040,10 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                 <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,justifyContent:"flex-start",flexWrap:"nowrap",whiteSpace:"nowrap",overflow:"hidden"}}>
                     <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
-                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</span>
+                    <span title={f.home} style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mob?shortTeamName(f.home):f.home}</span>
                     <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:1,flexShrink:0}}>vs</span>
                     <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
-                    <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</span>
+                    <span title={f.away} style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mob?shortTeamName(f.away):f.away}</span>
                   </div>
                 </td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{(()=>{
