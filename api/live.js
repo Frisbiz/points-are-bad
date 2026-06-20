@@ -1,12 +1,13 @@
 import { getValue } from "./_db.js";
+import { normName } from "./_fixtureSync.js";
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 
 function liveMatchesFromFixtures(fixtures = []) {
   return fixtures.map(f => {
     const [homeScore, awayScore] = String(f.liveScore || f.result || "0-0").split("-").map(n => Number.parseInt(n, 10));
     return {
-      home: f.home,
-      away: f.away,
+      home: normName(f.home),
+      away: normName(f.away),
       homeScore: Number.isFinite(homeScore) ? homeScore : 0,
       awayScore: Number.isFinite(awayScore) ? awayScore : 0,
       elapsed: f.elapsed || null,
