@@ -29,6 +29,17 @@ const WC_EXTRA_STATE_4_DATES = new Set([
   "2026-07-18",
 ]);
 
+const WC_ROUND_DATE_RANGES = {
+  1: ["2026-06-11", "2026-06-17"],
+  2: ["2026-06-18", "2026-06-23"],
+  3: ["2026-06-24", "2026-06-27"],
+  4: ["2026-06-28", "2026-07-03"],
+  5: ["2026-07-04", "2026-07-07"],
+  6: ["2026-07-09", "2026-07-11"],
+  7: ["2026-07-14", "2026-07-15"],
+  8: ["2026-07-18", "2026-07-19"],
+};
+
 const NAME_MAP = {
   "Brighton and Hove Albion": "Brighton",
   "Korea Republic": "South Korea",
@@ -144,6 +155,7 @@ function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = n
       result: status === "FINISHED" ? scoreline : null,
       status,
       date: dateIso ? date.toISOString() : null,
+      yahooDate: scheduleDate || dateIso || null,
       liveScore: (status === "IN_PLAY" || status === "PAUSED") ? scoreline : null,
       yahooLastUpdated: game.last_updated || null,
     };
@@ -209,6 +221,12 @@ function dateRange(start, end) {
   const out = [];
   for (let d = start; d <= end; d = addDays(d, 1)) out.push(d);
   return out;
+}
+
+function wcDatesForRound(targetGW, fixtures = []) {
+  const range = WC_ROUND_DATE_RANGES[Number(targetGW)];
+  const expected = range ? dateRange(range[0], range[1]) : [];
+  return Array.from(new Set([...expected, ...refreshDatesForFixtures(fixtures)])).sort();
 }
 
 async function mapLimit(items, limit, worker) {
@@ -318,15 +336,32 @@ function getTargetFixtures(globalDoc, targetGW) {
   return (globalDoc?.gameweeks || []).find(gw => gw.gw === Number(targetGW))?.fixtures || [];
 }
 
+function expectedWCRoundFixtureCount(targetGW) {
+  return ({ 1: 24, 2: 24, 3: 24, 4: 16, 5: 8, 6: 4, 7: 2, 8: 2 })[Number(targetGW)] || null;
+}
+
 function refreshDatesForFixtures(fixtures = []) {
   const now = Date.now();
-  const allDates = [...new Set(fixtures.map(f => String(f.date || "").slice(0, 10)).filter(Boolean))];
+  const datesForFixture = f => {
+    const dates = new Set();
+    if (f.yahooDate) dates.add(String(f.yahooDate).slice(0, 10));
+    if (f.date) {
+      const time = new Date(f.date).getTime();
+      if (Number.isFinite(time)) {
+        const utcDate = new Date(time).toISOString().slice(0, 10);
+        dates.add(utcDate);
+        dates.add(addDays(utcDate, -1));
+      }
+    }
+    return [...dates].filter(Boolean);
+  };
+  const allDates = [...new Set(fixtures.flatMap(datesForFixture))];
   const focused = [...new Set(fixtures.filter(f => {
     if (!f.date || f.result || f.status === "FINISHED" || f.status === "POSTPONED") return false;
     if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
     const kickoff = new Date(f.date).getTime();
     return kickoff <= now + 24 * 60 * 60_000 && kickoff >= now - 8 * 60 * 60_000;
-  }).map(f => String(f.date || "").slice(0, 10)).filter(Boolean))];
+  }).flatMap(datesForFixture))];
   return focused.length ? focused : allDates;
 }
 
@@ -334,6 +369,8 @@ function refreshIntervalMs(globalDoc, targetGW) {
   if (!globalDoc?.updatedAt) return 0;
   const fixtures = getTargetFixtures(globalDoc, targetGW);
   if (!fixtures.length) return 0;
+  const expectedWcCount = globalDoc?.season === 2026 ? expectedWCRoundFixtureCount(targetGW) : null;
+  if (expectedWcCount && fixtures.length < expectedWcCount) return 0;
   if (hasLiveWindow(fixtures)) return LIVE_REFRESH_MS;
   if (hasRecentOrTodayWindow(fixtures)) return 5 * 60_000;
   return 60 * 60_000;
@@ -409,7 +446,7 @@ export async function refreshYahooFixtureCache({ competition = "PL", season = nu
     } else {
       const gw = Number(targetGW || 1);
       const fixtures = comp === "WC"
-        ? await fetchYahooWCRoundByDates(refreshDatesForFixtures(getTargetFixtures(globalDoc, gw)), gw)
+        ? await fetchYahooWCRoundByDates(wcDatesForRound(gw, getTargetFixtures(globalDoc, gw)), gw)
         : await fetchYahooFixturesForWeek(comp, gw);
       if (fixtures.length) globalDoc = mergeGameweek(globalDoc, comp, gw, fixtures);
     }

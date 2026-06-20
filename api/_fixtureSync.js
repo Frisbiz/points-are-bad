@@ -151,6 +151,7 @@ function fixturePairKey(f) {
 }
 
 function fixtureDateKey(f) {
+  if (f?.yahooDate) return String(f.yahooDate).slice(0, 10);
   if (!f?.date) return '';
   const time = new Date(f.date).getTime();
   if (!Number.isFinite(time)) return '';
@@ -237,6 +238,7 @@ function mergeFixtureData(keeper, duplicate) {
     status: best.status || keeper.status || duplicate.status,
     date: best.date || keeper.date || duplicate.date || null,
     liveScore: best.liveScore || keeper.liveScore || duplicate.liveScore || null,
+    yahooDate: best.yahooDate || keeper.yahooDate || duplicate.yahooDate || null,
     homeCrest: best.homeCrest || keeper.homeCrest || duplicate.homeCrest || null,
     awayCrest: best.awayCrest || keeper.awayCrest || duplicate.awayCrest || null,
     stage: best.stage || keeper.stage || duplicate.stage || null,
@@ -390,7 +392,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
       const existing = [byApi, byMatch, byTeams].filter(Boolean).sort((a, b) => fixturePickCount(predictions, b.id) - fixturePickCount(predictions, a.id))[0];
       if (existing) {
         const idx = working.findIndex(f => f.id === existing.id);
-        if (idx >= 0) working[idx] = { ...existing, result: gf.result, status: gf.status, date: gf.date, apiId: gf.apiId, home: gf.home, away: gf.away, liveScore: gf.liveScore || null };
+        if (idx >= 0) working[idx] = mergeFixtureData(existing, gf);
       } else {
         toAdd.push(gf);
       }
