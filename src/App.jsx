@@ -3030,7 +3030,7 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
     return()=>{node.removeEventListener("scroll",onScroll);window.removeEventListener("resize",onResize);};
   },[group.rows,updateFade]);
 
-  const headers=["","Team","MP","W","D","L","Pts","GF","GA","GD"];
+  const headers=["","Team","MP","W","D","L","GF","GA","GD","Pts"];
   const rankW=mob?24:30;
   const teamW=mob?150:190;
   const statW=mob?36:44;
@@ -3062,7 +3062,7 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
                   const sticky=i<=1;
                   const left=i===0?0:rankW;
                   return (
-                    <th key={h||"pos"} style={{position:sticky?"sticky":"static",left:sticky?left:undefined,zIndex:sticky?3:1,background:stickyBg,padding:"8px 6px",textAlign:i<=1?"left":"center",color:"var(--text-dim2)",fontSize:10,fontWeight:500,letterSpacing:i<=1?0:0.8,width:i===0?rankW:i===1?teamW:statW,minWidth:i===0?rankW:i===1?teamW:statW,borderBottom:"1px solid var(--border2)"}}>{h}</th>
+                    <th key={h||"pos"} style={{position:sticky?"sticky":"static",left:sticky?left:undefined,zIndex:sticky?3:1,background:stickyBg,padding:"8px 6px",textAlign:i<=1?"left":"center",color:h==="Pts"?"var(--text-bright)":"var(--text-dim2)",fontSize:10,fontWeight:h==="Pts"?800:500,letterSpacing:i<=1?0:0.8,width:i===0?rankW:i===1?teamW:statW,minWidth:i===0?rankW:i===1?teamW:statW,borderBottom:"1px solid var(--border2)"}}>{h}</th>
                   );
                 })}
               </tr>
@@ -3071,7 +3071,7 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
               {(group.rows||[]).map(row=>{
                 const advanced=row.qualified ?? row.pos<=2;
                 const rowBg=advanced?"color-mix(in srgb, var(--bg) 94%, #3b82f6 6%)":stickyBg;
-                const values=[row.p,row.w,row.d,row.l,row.pts,row.gf,row.ga,row.gd];
+                const values=[row.p,row.w,row.d,row.l,row.gf,row.ga,row.gd,row.pts];
                 return (
                   <tr key={row.teamId||row.team} className="frow">
                     <td style={{position:"sticky",left:0,zIndex:2,background:rowBg,padding:rowPad,color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center",width:rankW,minWidth:rankW,borderBottom:"1px solid var(--border3)",boxShadow:advanced?"inset 3px 0 0 #3b82f6":"none"}}>{row.pos}</td>
@@ -3082,7 +3082,7 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
                       </div>
                     </td>
                     {values.map((v,i)=>(
-                      <td key={i} style={{padding:rowPad,textAlign:"center",color:i===4?"var(--text-bright)":"var(--text-mid)",fontWeight:i===4?800:700,width:statW,minWidth:statW,borderBottom:"1px solid var(--border3)",background:advanced?"color-mix(in srgb, var(--bg) 94%, #3b82f6 6%)":"transparent"}}>{v}</td>
+                      <td key={i} style={{padding:rowPad,textAlign:"center",color:i===7?"var(--text-bright)":"var(--text-mid)",fontWeight:i===7?800:700,width:statW,minWidth:statW,borderBottom:"1px solid var(--border3)",background:advanced?"color-mix(in srgb, var(--bg) 94%, #3b82f6 6%)":"transparent"}}>{v}</td>
                     ))}
                   </tr>
                 );
