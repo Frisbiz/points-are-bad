@@ -291,17 +291,18 @@ const TEAM_BADGES = {
   "Wolves": "https://resources.premierleague.com/premierleague/badges/t39.png",
 };
 
-function TeamBadge({ team, crest, size = 22, style = {} }) {
+function TeamBadge({ team, crest, size = 22, style = {}, decorative = false }) {
   const countryCode = COUNTRY_CODES[team];
+  const imgAlt = decorative ? "" : team;
   if (countryCode) {
-    return <img src={`https://flagcdn.com/w40/${countryCode}.png`} alt={team} style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:"50%",flexShrink:0,...style}} />;
+    return <img src={`https://flagcdn.com/w40/${countryCode}.png`} alt={imgAlt} aria-hidden={decorative ? "true" : undefined} style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:"50%",flexShrink:0,...style}} />;
   }
   const src = crest || TEAM_BADGES[team];
   if (!src) {
     const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
-    return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
+    return <div aria-hidden={decorative ? "true" : undefined} role={decorative ? undefined : "img"} aria-label={decorative ? undefined : team} style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
   }
-  return <img src={src} alt={team} style={{width:size,height:size,objectFit:"contain",flexShrink:0,...style}} />;
+  return <img src={src} alt={imgAlt} aria-hidden={decorative ? "true" : undefined} style={{width:size,height:size,objectFit:"contain",flexShrink:0,...style}} />;
 }
 
 const PL_CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];
@@ -436,7 +437,7 @@ const BadgeScore = ({ score, missed=false }) => {
   }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative"}}>{score}</span></span>;
 };
 
-const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {
+const Btn = ({children,onClick,variant="default",disabled,small,style:extra={},type="button",...props}) => {
   const base = {fontFamily:"'DM Mono',monospace",cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:8,fontWeight:500,letterSpacing:0.5,transition:"transform 100ms ease-out,background 0.15s,color 0.15s,border-color 0.15s,opacity 0.15s",opacity:disabled?0.4:1,padding:small?"6px 14px":"10px 22px",fontSize:small?12:13};
   const V = {
     default:{background:"var(--btn-bg)",color:"var(--btn-text)"},
@@ -446,7 +447,7 @@ const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}})
     muted:{background:"var(--border)",border:"1px solid var(--border)",color:"var(--text-dim2)"},
     amber:{background:"#f59e0b18",border:"1px solid #f59e0b35",color:"#f59e0b"},
   };
-  return <button className="pab-btn" onClick={disabled?undefined:onClick} style={{...base,...V[variant],...extra}}>{children}</button>;
+  return <button type={type} className="pab-btn" onClick={disabled?undefined:onClick} disabled={disabled} style={{...base,...V[variant],...extra}} {...props}>{children}</button>;
 };
 
 const Spinner = ({ size = 4 }) => (
@@ -455,10 +456,72 @@ const Spinner = ({ size = 4 }) => (
   </span>
 );
 
-const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus,inputMode,pattern}) => (
-  <input className="pab-input" type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} onKeyDown={onKeyDown} autoFocus={autoFocus} inputMode={inputMode} pattern={pattern}
+const Input = ({value,onChange,placeholder,type="text",onKeyDown,style:extra={},autoFocus,inputMode,pattern,label,ariaLabel,id,name,required,autoComplete,describedBy}) => (
+  <input className="pab-input" id={id} name={name} type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} aria-label={ariaLabel || label || placeholder} aria-describedby={describedBy} required={required} onKeyDown={onKeyDown} autoFocus={autoFocus} inputMode={inputMode} pattern={pattern} autoComplete={autoComplete}
     style={{background:"var(--input-bg)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text)",padding:"10px 14px",fontFamily:"'DM Mono',monospace",fontSize:13,outline:"none",width:"100%",...extra}} />
 );
+
+const VisuallyHidden = ({ children, as = "span", ...props }) =>
+  React.createElement(as, { className: "sr-only", ...props }, children);
+
+function ModalPanel({ children, onClose, label, labelledBy, describedBy, className = "", style = {}, onClick, ...props }) {
+  const panelRef = useRef(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    panelRef.current?.focus({ preventScroll: true });
+    const handleKeyDown = e => {
+      if (e.key === "Escape") {
+        onClose?.();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusable = panelRef.current.querySelectorAll(
+        'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])'
+      );
+      const nodes = Array.from(focusable);
+      if (!nodes.length) {
+        e.preventDefault();
+        panelRef.current.focus({ preventScroll: true });
+        return;
+      }
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previous && typeof previous.focus === "function") previous.focus({ preventScroll: true });
+    };
+  }, [onClose]);
+  return (
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      tabIndex={-1}
+      className={`modal-panel${className ? ` ${className}` : ""}`}
+      onClick={onClick || (e => e.stopPropagation())}
+      style={style}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ChartA11ySummary({ title, children }) {
+  return <VisuallyHidden as="p">{title}: {children}</VisuallyHidden>;
+}
 
 const Section = ({title,children}) => (
   <div style={{marginBottom:32}}>
@@ -593,6 +656,8 @@ const CSS = `
   html,body{background:var(--bg);}
   html[data-theme="index"],body[data-theme="index"]{background:#f6f6f7;}
   *{box-sizing:border-box;margin:0;padding:0;}
+  .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+  button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid color-mix(in srgb,var(--btn-bg) 70%,var(--text-bright))!important;outline-offset:3px!important;box-shadow:0 0 0 5px color-mix(in srgb,var(--btn-bg) 18%,transparent)!important;}
   ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:2px;}
   @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
   @keyframes perfectShimmer{0%{transform:translateX(-120%);}55%,100%{transform:translateX(130%);}}
@@ -605,7 +670,7 @@ const CSS = `
   .modal-panel{animation:modalIn 0.2s cubic-bezier(0.23,1,0.32,1) forwards;}
   .pab-btn:active:not([disabled]){transform:scale(0.97);}
   .pab-input{transition:border-color 0.15s,box-shadow 0.15s;}.pab-input:focus{border-color:var(--text-dim)!important;box-shadow:0 0 0 1px var(--text-dim)!important;outline:none;}
-  @media(prefers-reduced-motion:reduce){.fade,.modal-overlay,.modal-panel{animation-duration:0.01ms!important;}.pab-btn:active:not([disabled]){transform:none;}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:0.01ms!important;}.pab-btn:active:not([disabled]){transform:none!important;}}
   .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s,background 0.15s;}
   .nb:hover{color:var(--text-mid)!important;}
   .nb.active{color:var(--text-bright)!important;border-bottom-color:var(--text)!important;}
@@ -1155,7 +1220,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
             <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:isIndex?(mob?"clamp(2rem,8vw,2.6rem)":"clamp(2.4rem,5vw,4rem)"):52,color:"var(--text-bright)",letterSpacing:isIndex?"-0.04em":-3,lineHeight:1.02}}>POINTS</span>
             <span style={{fontFamily:"'DM Mono',monospace",fontWeight:400,fontSize:isIndex?(mob?11:13):14,color:"var(--text-dim)",letterSpacing:3}}>are bad</span>
           </div>
-          {!mob&&<div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Pick scores. Take the damage. Lowest total wins.</>:<>ARE <span onClick={spawnThumb} style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>}
+          {!mob&&<div style={{fontSize:isIndex?14:10,color:"var(--text-dim)",letterSpacing:isIndex?0.2:7,marginTop:10}}>{isIndex?<>Pick scores. Take the damage. Lowest total wins.</>:<>ARE <span onClick={spawnThumb} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();spawnThumb(e);}}} role="button" tabIndex={0} aria-label="Animate bad" style={{cursor:"pointer",userSelect:"none"}}>BAD</span></>}</div>}
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
         </div>
         <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border2)",borderRadius:isIndex?28:14,padding:32}}>
@@ -1330,7 +1395,7 @@ function AccountSetupModal({ user, onDone, onLogout }) {
       zIndex: 2000, display: "flex", alignItems: "center",
       justifyContent: "center", padding: 24,
     }}>
-      <div className="modal-panel" style={{
+      <ModalPanel label="Complete your account" style={{
         background: "var(--card)", border: "1px solid var(--border)",
         borderRadius: 14, padding: 32, width: "100%", maxWidth: 400,
         fontFamily: "'DM Mono',monospace",
@@ -1389,7 +1454,7 @@ function AccountSetupModal({ user, onDone, onLogout }) {
       <div style={{textAlign:"center",marginTop:20}}>
         <button onClick={onLogout} style={{background:"none",border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>Log out</button>
       </div>
-    </div>
+    </ModalPanel>
     </div>,
     document.body
   );
@@ -1527,6 +1592,7 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
         value={formBullets}
         onChange={e => setFormBullets(e.target.value)}
         placeholder={"One bullet per line\nAnother change\nAnd another"}
+        aria-label="What's new bullet list"
         rows={4}
         style={{ width: "100%", background: "var(--input-bg)", border: "1px solid var(--border2)", borderRadius: 6, color: "var(--text)", fontFamily: "inherit", fontSize: 12, padding: "8px 10px", resize: "vertical", boxSizing: "border-box" }}
       />
@@ -1540,10 +1606,10 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.53)", zIndex: 1500, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div className="modal-panel" onClick={e => e.stopPropagation()} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>
+      <ModalPanel onClose={onClose} label="What's new" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 28, width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ fontSize: 10, color: "var(--text-dim2)", letterSpacing: 3, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit", fontWeight: theme==="index"?600:undefined }}>WHAT'S NEW</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
+          <button onClick={onClose} aria-label="Close what's new" style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "0 2px" }}>×</button>
         </div>
         <div style={{ overflowY: "auto", flex: 1 }}>
           {isFaris && editingId !== "new" && (
@@ -1581,8 +1647,8 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
                     {e.version && <span style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: 1, fontFamily: theme==="index"?"'Plus Jakarta Sans',sans-serif":"inherit" }}>{e.version}</span>}
                     {isFaris && (
                       <>
-                        <button onClick={() => openEdit(e)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Edit">✏</button>
-                        <button onClick={() => setDeleteConfirm(e.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Delete">🗑</button>
+                        <button onClick={() => openEdit(e)} aria-label={`Edit ${e.title}`} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Edit">✏</button>
+                        <button onClick={() => setDeleteConfirm(e.id)} aria-label={`Delete ${e.title}`} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-dim)", padding: "2px 4px" }} title="Delete">🗑</button>
                       </>
                     )}
                   </div>
@@ -1597,7 +1663,7 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
             );
           })}
         </div>
-      </div>
+      </ModalPanel>
     </div>,
     document.body
   );
@@ -1814,7 +1880,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       <style>{CSS}</style>
       <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();spawnThumb(e);}}} role="button" tabIndex={0} aria-label="Animate are bad" style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
           {user.username===DEMO_SHARED_USERNAME?(
             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -1823,7 +1889,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
             </div>
           ):(
             <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center"}}>
-              <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,padding:0,borderRadius:4}}>
+              <button onClick={()=>setProfileOpen(o=>!o)} aria-label="Open account menu" aria-expanded={profileOpen} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,padding:0,borderRadius:4}}>
                 <Avatar name={user.displayName} size={28}/>
                 <span style={{fontSize:12,color:"var(--text-dim2)"}}>{user.displayName}</span>
               </button>
@@ -1840,7 +1906,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       </header>
       {inviteGroup&&createPortal(
   <div className="modal-overlay" onClick={()=>setInviteGroup(null)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
+    <ModalPanel onClose={()=>setInviteGroup(null)} label={`Join ${inviteGroup.name}`} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:12}}>GROUP INVITE</div>
       <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:28,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:-1,marginBottom:10}}>{inviteGroup.name}</div>
       <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
@@ -1853,13 +1919,13 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
         <Btn variant="ghost" onClick={()=>setInviteGroup(null)} style={{flex:1,textAlign:"center"}}>Cancel</Btn>
         <Btn onClick={()=>joinGroup(inviteGroup.code)} disabled={inviteLoading} style={{flex:1,textAlign:"center"}}>{inviteLoading?<Spinner/>:"Join Group"}</Btn>
       </div>
-    </div>
+    </ModalPanel>
   </div>,
   document.body
 )}
       {accountOpen&&createPortal(
   <div className="modal-overlay" onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
+    <ModalPanel onClose={()=>setAccountOpen(false)} label="Profile and account settings" style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:12,fontWeight:600}}>PROFILE</div>
       <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
@@ -1893,7 +1959,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
         </div>
       </div>
       <div style={{marginBottom:24}}>
-        <button onClick={()=>setThemePickerOpen(p=>!p)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+        <button onClick={()=>setThemePickerOpen(p=>!p)} aria-expanded={themePickerOpen} aria-controls="lobby-theme-picker" style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
           <span style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,fontWeight:600}}>APPEARANCE</span>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:11,color:"var(--text-dim)"}}>{THEMES.find(t=>t.id===theme)?.label||theme}</span>
@@ -1901,13 +1967,13 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
           </div>
         </button>
         {themePickerOpen && (
-          <div style={{marginTop:12}}>
+          <div id="lobby-theme-picker" style={{marginTop:12}}>
             <div style={{position:"relative"}}>
               <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
                 {[...getSecretThemeMeta(user),...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
                   const active=theme===t.key;
                   return (
-                    <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
+                    <button key={t.key} onClick={()=>setTheme(t.key)} aria-pressed={active} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
                       <div style={{display:"flex",gap:4}}>{t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}</div>
                       <span style={{fontSize:9,letterSpacing:0.8,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--btn-bg)":"var(--text-dim)",whiteSpace:"nowrap",lineHeight:1}}>{t.label}</span>
                     </button>
@@ -1934,7 +2000,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
           <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
         </div>
       </div>
-    </div>
+    </ModalPanel>
   </div>,
   document.body
 )}
@@ -2082,6 +2148,9 @@ function DemoThemeSwitcher({ theme, setTheme }) {
       <button
         onClick={()=>setOpen(o=>!o)}
         title="Try a different theme"
+        aria-label="Try a different theme"
+        aria-expanded={open}
+        aria-controls="demo-theme-menu"
         style={{height:34,background:open?"var(--surface)":"var(--card)",border:"1px solid var(--border)",borderRadius:8,color:"var(--text-mid)",cursor:"pointer",fontSize:10,letterSpacing:1.2,fontFamily:"inherit",display:"flex",alignItems:"center",gap:8,padding:"0 10px",whiteSpace:"nowrap"}}
       >
         <span className="mob-hide">THEME</span>
@@ -2090,13 +2159,13 @@ function DemoThemeSwitcher({ theme, setTheme }) {
         </span>
       </button>
       {open&&(
-        <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,zIndex:120,background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:8,minWidth:238,boxShadow:"0 10px 26px #00000038"}}>
+        <div id="demo-theme-menu" style={{position:"absolute",top:"calc(100% + 8px)",right:0,zIndex:120,background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:8,minWidth:238,boxShadow:"0 10px 26px #00000038"}}>
           <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,padding:"3px 4px 8px"}}>TRY A THEME</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
             {demoThemes.map(t=>{
               const active=theme===t.key;
               return (
-                <button key={t.key} onClick={()=>{setTheme(t.key);setOpen(false);}} style={{background:active?"var(--surface)":"var(--card)",color:active?"var(--text-bright)":"var(--text-dim2)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:8,padding:"9px 8px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:0.8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                <button key={t.key} onClick={()=>{setTheme(t.key);setOpen(false);}} aria-pressed={active} style={{background:active?"var(--surface)":"var(--card)",color:active?"var(--text-bright)":"var(--text-dim2)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:8,padding:"9px 8px",fontSize:10,cursor:"pointer",fontFamily:"inherit",letterSpacing:0.8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
                   <span>{t.label}</span>
                   <span style={{display:"flex",gap:3}}>
                     {t.swatches.map((c,i)=><span key={i} style={{width:9,height:9,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.2)"}} />)}
@@ -2787,7 +2856,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       <style>{CSS}</style>
       <header style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
         <div className={theme==="index"?"pill-nav":undefined} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="index"?48:60,gap:0,borderRadius:theme==="index"?18:0,padding:theme==="index"?"0 10px":undefined}}>
-          <button onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
+          <button onClick={onLeave} aria-label="Back to group lobby" style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
             <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:16,color:"var(--text-bright)",lineHeight:1}}>POINTS</span>
             <span style={{fontFamily:"'DM Mono',monospace",fontWeight:400,fontSize:9,color:"var(--text-dim)",letterSpacing:3}}>are bad</span>
           </button>
@@ -2795,9 +2864,9 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           <div className="mob-hide" style={{flex:1,fontSize:theme==="index"?13:12,color:"var(--text-dim3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:theme==="index"?500:undefined}}>{group.name}</div>
           {theme!=="index"&&<div className="mob-hide" style={{fontSize:10,color:"#22c55e",letterSpacing:1,marginRight:12,background:"#22c55e15",border:"1px solid #22c55e25",borderRadius:4,padding:"3px 8px",flexShrink:0,display:"flex",alignItems:"center",gap:4}}><Flash size={11} color="#22c55e"/> API LIVE</div>}
 
-          <nav className="mob-hide" style={{display:"flex",gap:0,flexShrink:0}}>
+          <nav className="mob-hide" role="tablist" aria-label="Group sections" style={{display:"flex",gap:0,flexShrink:0}}>
             {nav.map(t=>(
-              <button key={t} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:theme==="index"?13:10,letterSpacing:theme==="index"?0.1:2,padding:theme==="index"?"0 12px":"22px 12px 20px",height:theme==="index"?32:undefined,textTransform:theme==="index"?"none":"uppercase",borderRadius:theme==="index"?12:undefined,background:theme==="index"&&tab===t?"rgba(255,255,255,.5)":"transparent"}}>{t}</button>
+              <button key={t} id={`tab-${t.toLowerCase()}`} role="tab" aria-selected={tab===t} aria-controls={`panel-${t.toLowerCase()}`} tabIndex={tab===t?0:-1} onClick={()=>setTab(t)} className={`nb${tab===t?" active":""}`} style={{color:tab===t?"var(--text-bright)":"var(--text-dim)",fontSize:theme==="index"?13:10,letterSpacing:theme==="index"?0.1:2,padding:theme==="index"?"0 12px":"22px 12px 20px",height:theme==="index"?32:undefined,textTransform:theme==="index"?"none":"uppercase",borderRadius:theme==="index"?12:undefined,background:theme==="index"&&tab===t?"rgba(255,255,255,.5)":"transparent"}}>{t}</button>
             ))}
           </nav>
           {user.username===DEMO_SHARED_USERNAME ? (
@@ -2807,7 +2876,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
             </div>
           ) : (
           <div ref={profileRef} style={{position:"relative",display:"flex",alignItems:"center",marginLeft:"auto",borderLeft:"1px solid var(--border)",paddingLeft:20,height:"100%"}}>
-            <button onClick={()=>setProfileOpen(o=>!o)} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
+            <button onClick={()=>setProfileOpen(o=>!o)} aria-label="Open account menu" aria-expanded={profileOpen} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:7,borderRadius:4}}>
               <Avatar name={user.displayName} size={26}/>
               {myRank > 0 && (
                 <span style={{fontSize:11,color:"var(--text-dim2)",fontFamily:"'DM Mono',monospace",letterSpacing:0.5,lineHeight:1}}>
@@ -2828,7 +2897,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       </header>
       {accountOpen&&createPortal(
   <div className="modal-overlay" onClick={()=>setAccountOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-    <div onClick={e=>e.stopPropagation()} className={`modal-panel${theme==="index"?" liquid-card":""}`} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
+    <ModalPanel onClose={()=>setAccountOpen(false)} label="Profile and account settings" className={theme==="index"?"liquid-card":""} style={{background:theme==="index"?undefined:"var(--card)",border:"1px solid var(--border)",borderRadius:theme==="index"?24:14,padding:32,width:"100%",maxWidth:420,maxHeight:"85vh",overflowY:"auto"}}>
       <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,marginBottom:12,fontWeight:600}}>PROFILE</div>
       <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:12,padding:"10px 0",borderBottom:"1px solid var(--border3)"}}>
@@ -2839,7 +2908,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
         </div>
       </div>
       <div style={{marginBottom:24}}>
-        <button onClick={()=>setThemePickerOpen(p=>!p)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+        <button onClick={()=>setThemePickerOpen(p=>!p)} aria-expanded={themePickerOpen} aria-controls="game-theme-picker" style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
           <span style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,fontWeight:600}}>APPEARANCE</span>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:11,color:"var(--text-dim)"}}>{THEMES.find(t=>t.id===theme)?.label||theme}</span>
@@ -2847,13 +2916,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           </div>
         </button>
         {themePickerOpen && (
-          <div style={{marginTop:12}}>
+          <div id="game-theme-picker" style={{marginTop:12}}>
             <div style={{position:"relative"}}>
               <div ref={hScrollRef} style={{display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",padding:"2px 0 8px",scrollbarWidth:"none",msOverflowStyle:"none"}}>
                 {[...getSecretThemeMeta(user), ...(theme==="clarity"?[{key:"clarity",label:"Clarity",swatches:["#111","#666","#fff"]}]:[])].map(t=>{
                   const active=theme===t.key;
                   return (
-                    <button key={t.key} onClick={()=>setTheme(t.key)} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
+                    <button key={t.key} onClick={()=>setTheme(t.key)} aria-pressed={active} style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:7,padding:"10px 12px",background:active?"var(--surface)":"var(--card)",border:`1.5px solid ${active?"var(--btn-bg)":"var(--border2)"}`,borderRadius:10,cursor:"pointer",fontFamily:"inherit",transition:"border-color 0.15s,background 0.15s"}}>
                       <div style={{display:"flex",gap:4}}>
                         {t.swatches.map((c,i)=><div key={i} style={{width:13,height:13,borderRadius:"50%",background:c,border:"1px solid rgba(128,128,128,0.18)"}}/>)}
                       </div>
@@ -2882,15 +2951,15 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           <Btn variant="ghost" onClick={()=>setAccountOpen(false)} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
         </div>
       </div>
-    </div>
+    </ModalPanel>
   </div>,
   document.body
 )}
-      <nav className="bot-nav">
+      <nav className="bot-nav" role="tablist" aria-label="Group sections">
         {nav.map(t=>{
           const active=tab===t;
           return (
-            <button key={t} onClick={()=>setTab(t)} className={`nb${active?" active":""}`} style={{flex:1,color:active?"var(--btn-bg)":"var(--text-dim2)"}}>
+            <button key={t} id={`mobile-tab-${t.toLowerCase()}`} role="tab" aria-selected={active} aria-controls={`panel-${t.toLowerCase()}`} tabIndex={active?0:-1} onClick={()=>setTab(t)} className={`nb${active?" active":""}`} style={{flex:1,color:active?"var(--btn-bg)":"var(--text-dim2)"}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"3px 6px 4px",borderRadius:10,background:active?"var(--card-hi)":"transparent",transition:"background 0.15s",width:"100%"}}>
                 {BOT_NAV_ICONS[t]}
                 <span style={{fontSize:9,letterSpacing:0.3,textTransform:"uppercase",fontWeight:active?700:400,color:active?"var(--text-bright)":"var(--text-dim2)",lineHeight:1.2}}>{t}</span>
@@ -2899,7 +2968,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           );
         })}
       </nav>
-      <main style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
+      <main id={`panel-${tab.toLowerCase()}`} role="tabpanel" aria-labelledby={`tab-${tab.toLowerCase()}`} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot" key={tab}>
         {recapContent && (
           <div style={{background:"#8888cc12",border:"1px solid #8888cc25",borderRadius:8,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
             <div style={{fontSize:12,color:"#8888cc",letterSpacing:1,flex:1,minWidth:0}}>
@@ -2908,7 +2977,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
               {recapContent.totalGoals > 0 && <span style={{opacity:0.7}}>· {recapContent.totalGoals} goals total</span>}
               {recapContent.flavor && <span style={{opacity:0.9}}> · {recapContent.flavor}</span>}
             </div>
-            <button onClick={() => { lset(recapKey, true); setRecapDismissed(true); }}
+            <button onClick={() => { lset(recapKey, true); setRecapDismissed(true); }} aria-label="Dismiss recap"
               style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
           </div>
         )}
@@ -2961,21 +3030,23 @@ function WCStandingsTab({ group, theme="dark" }) {
         {hasLive&&<div style={{fontSize:10,color:"#22c55e",letterSpacing:1.4,textTransform:"uppercase"}}>Live</div>}
       </div>
 
-      <div style={{borderBottom:"1px solid var(--border)",display:"grid",gridTemplateColumns:"1fr 1fr",marginBottom:24}}>
+      <div role="tablist" aria-label="World Cup standings sections" style={{borderBottom:"1px solid var(--border)",display:"grid",gridTemplateColumns:"1fr 1fr",marginBottom:24}}>
         {[["groups","Group Stage"],["knockout","Knockout Stage"]].map(([key,label])=>{
           const active=section===key;
           return (
-            <button key={key} onClick={()=>setSection(key)} style={{background:"none",border:"none",borderBottom:`2px solid ${active?"var(--text-bright)":"transparent"}`,color:active?"var(--text-bright)":"var(--text-dim2)",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:active?700:500,padding:"13px 10px 14px",transition:"color 0.15s,border-color 0.15s"}}>
+            <button key={key} id={`wc-standings-tab-${key}`} role="tab" aria-selected={active} aria-controls={`wc-standings-panel-${key}`} tabIndex={active?0:-1} onClick={()=>setSection(key)} style={{background:"none",border:"none",borderBottom:`2px solid ${active?"var(--text-bright)":"transparent"}`,color:active?"var(--text-bright)":"var(--text-dim2)",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:active?700:500,padding:"13px 10px 14px",transition:"color 0.15s,border-color 0.15s"}}>
               {label}
             </button>
           );
         })}
       </div>
 
-      {section==="groups"
-        ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme}/>
-        : <WCKnockoutStage group={group} theme={theme} embedded/>
-      }
+      <div id={`wc-standings-panel-${section}`} role="tabpanel" aria-labelledby={`wc-standings-tab-${section}`}>
+        {section==="groups"
+          ? <WCGroupStageStandings groups={groups} loading={loading} error={error} theme={theme}/>
+          : <WCKnockoutStage group={group} theme={theme} embedded/>
+        }
+      </div>
     </div>
   );
 }
@@ -3071,7 +3142,7 @@ function WCStandingsGroupTable({ group, theme="dark", mob=false }) {
                     <td style={{position:"sticky",left:0,zIndex:2,background:rowBg,padding:rowPad,color:advanced?"var(--text-bright)":"var(--text-dim)",fontWeight:advanced?700:500,textAlign:"center",width:rankW,minWidth:rankW,borderBottom:"1px solid var(--border3)",boxShadow:advanced?"inset 3px 0 0 #3b82f6":"none"}}>{row.pos}</td>
                     <td style={{position:"sticky",left:rankW,zIndex:2,background:rowBg,padding:rowPad,width:teamW,minWidth:teamW,borderBottom:"1px solid var(--border3)"}}>
                       <div style={{display:"flex",alignItems:"center",gap:mob?8:9,minWidth:0}}>
-                        <TeamBadge team={row.team} crest={row.crest} size={mob?18:20}/>
+                        <TeamBadge team={row.team} crest={row.crest} size={mob?18:20} decorative />
                         <span style={{color:"var(--text-mid)",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.team}</span>
                       </div>
                     </td>
@@ -3140,7 +3211,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
               opacity:loses?0.38:1,
               background:wins?"var(--card-hi)":"transparent",
             }}>
-              <TeamBadge team={team||"?"} crest={crest} size={mob?11:16} />
+              <TeamBadge team={team||"?"} crest={crest} size={mob?11:16} decorative />
               <span style={{fontSize:mob?9:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
               {score!=null&&<span style={{fontSize:mob?9:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:mob?10:14,textAlign:"right"}}>{score}</span>}
             </div>
@@ -3224,7 +3295,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
               const loses = winner && winner!==side;
               return (
                 <div key={side} style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderBottom:side==="home"?"1px solid var(--border3)":"none",opacity:loses?0.38:1,background:wins?"var(--card-hi)":"transparent"}}>
-                  <TeamBadge team={team||"?"} crest={crest} size={16}/>
+                  <TeamBadge team={team||"?"} crest={crest} size={16} decorative />
                   <span style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team||"TBD"}</span>
                   {score!=null&&<span style={{fontSize:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace"}}>{score}</span>}
                 </div>
@@ -3293,11 +3364,11 @@ function LeagueTab({group,user,names,theme}) {
       )}
       {leagueTable&&leagueTable.length>0&&(
         <div style={{marginTop:36}}>
-          <div onClick={()=>setShowTable(!showTable)} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:showTable?12:0,userSelect:"none"}}>
+          <button type="button" onClick={()=>setShowTable(!showTable)} aria-expanded={showTable} style={{background:"none",border:"none",padding:0,width:"100%",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:showTable?12:0,userSelect:"none",fontFamily:"inherit",textAlign:"left"}}>
             <div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/>
             <span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase",flex:1}}>{tableTitle}</span>
             <span style={{fontSize:10,color:"var(--text-dim)",transition:"transform 0.2s",transform:showTable?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
-          </div>
+          </button>
           {showTable&&(
             <div style={{border:"1px solid var(--border3)",borderRadius:isIndex?20:10,overflow:"hidden"}}>
               <div style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:10,color:"var(--text-dim2)",letterSpacing:1,borderBottom:"1px solid var(--border)",background:"var(--surface)"}}>
@@ -3315,7 +3386,7 @@ function LeagueTab({group,user,names,theme}) {
                 return (
                   <div key={r.pos} style={{display:"grid",gridTemplateColumns:mob?"28px 1fr 40px 40px":"28px 1fr 32px 32px 32px 32px 40px 40px",gap:0,padding:"8px 12px",fontSize:mob?12:13,color:"var(--text-mid)",borderBottom:idx<leagueTable.length-1?"1px solid var(--border)":"none",borderLeft:zc?`3px solid ${zc}`:"3px solid transparent",background:"var(--card)"}}>
                     <div style={{color:"var(--text-dim)",fontSize:11}}>{r.pos}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} crest={r.crest} size={mob?16:18}/><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{r.team}</span></div>
+                    <div style={{display:"flex",alignItems:"center",gap:mob?6:8,color:"var(--text-bright)",fontWeight:600,overflow:"hidden",whiteSpace:"nowrap",paddingRight:4}}><TeamBadge team={r.team} crest={r.crest} size={mob?16:18} decorative /><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{r.team}</span></div>
                     {!mob&&<div style={{textAlign:"center"}}>{r.w}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.d}</div>}
                     {!mob&&<div style={{textAlign:"center"}}>{r.l}</div>}
@@ -3373,7 +3444,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
   const pad = n => String(n).padStart(2, "0");
 
   const timerEl = (
-    <div onClick={() => setExpanded(e => !e)} style={{fontFamily:"'DM Mono',monospace",fontSize:mob?15:16,color:timerColor,letterSpacing:mob?2:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined,cursor:"pointer",userSelect:"none"}}>
+    <button type="button" onClick={() => setExpanded(e => !e)} aria-label={expanded ? "Show compact countdown" : "Show detailed countdown"} style={{background:"none",border:"none",padding:0,fontFamily:"'DM Mono',monospace",fontSize:mob?15:16,color:timerColor,letterSpacing:mob?2:3,animation:urgent?"pulse 1s ease-in-out infinite":undefined,cursor:"pointer",userSelect:"none"}}>
       {expanded ? (
         <>{Math.floor(diff / 3600000)}<span style={{fontSize:"0.75em",letterSpacing:1}}>h </span>{pad(mins)}<span style={{fontSize:"0.75em",letterSpacing:1}}>m </span>{pad(secs)}<span style={{fontSize:"0.75em",letterSpacing:1}}>s</span></>
       ) : (
@@ -3382,7 +3453,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
           {pad(hours)}:{pad(mins)}:{pad(secs)}
         </>
       )}
-    </div>
+    </button>
   );
 
   if (mob) return (
@@ -3395,11 +3466,11 @@ function NextMatchCountdown({ group, myPreds = {} }) {
       <div style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"var(--text-mid)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,flex:1,minWidth:0}}>
           <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
-          <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
+          <TeamBadge team={next.home} crest={next.homeCrest} size={22} decorative />
         </div>
         <span style={{color:"var(--text-dim)",flexShrink:0}}>vs</span>
         <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:6,flex:1,minWidth:0}}>
-          <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
+          <TeamBadge team={next.away} crest={next.awayCrest} size={22} decorative />
           <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
         </div>
       </div>
@@ -3414,11 +3485,11 @@ function NextMatchCountdown({ group, myPreds = {} }) {
       </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
         <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
-        <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
+        <TeamBadge team={next.home} crest={next.homeCrest} size={22} decorative />
       </div>
       <div style={{textAlign:"center",fontSize:13,color:"var(--text-dim)"}}>vs</div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
-        <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
+        <TeamBadge team={next.away} crest={next.awayCrest} size={22} decorative />
         <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
       </div>
       <div style={{gridColumn:"5/7"}}>{timerEl}</div>
@@ -3626,21 +3697,22 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     <div>
       {showWizard&&wizardFixture&&createPortal(
         <div className="modal-overlay" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div className="modal-panel" style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
+          <ModalPanel label={`Pick ${wizardFixture.home} vs ${wizardFixture.away}`} style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:16,padding:"36px 32px",maxWidth:420,width:"100%",textAlign:"center"}}>
             <div style={{fontSize:13,color:"var(--text-dim)",letterSpacing:2,marginBottom:24}}>{gwLabel(group,currentGW)} · {wizardQueue.length-wizardStep} MATCH{wizardQueue.length-wizardStep!==1?"ES":""} TO PICK</div>
             <div style={{display:"flex",justifyContent:"center",gap:12,alignItems:"center",marginBottom:24}}>
               <div style={{textAlign:"right",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8}}>
                 <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.home}</span>
-                <TeamBadge team={wizardFixture.home} crest={wizardFixture.homeCrest} size={22}/>
+                <TeamBadge team={wizardFixture.home} crest={wizardFixture.homeCrest} size={22} decorative />
               </div>
               <span style={{fontSize:12,color:"var(--text-dim)",letterSpacing:3,flexShrink:0}}>VS</span>
               <div style={{textAlign:"left",flex:1,display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8}}>
-                <TeamBadge team={wizardFixture.away} crest={wizardFixture.awayCrest} size={22}/>
+                <TeamBadge team={wizardFixture.away} crest={wizardFixture.awayCrest} size={22} decorative />
                 <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5}}>{wizardFixture.away}</span>
               </div>
             </div>
             {wizardFixture.date&&<div style={{fontSize:13,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
             <Input key={wizardStep} value={wizardPred} onChange={setWizardPred} placeholder="e.g. 2-1" autoFocus
+              label={`Prediction for ${wizardFixture.home} vs ${wizardFixture.away}`}
               onKeyDown={e=>e.key==="Enter"&&wizardPred&&/^\d+-\d+$/.test(wizardPred)&&handleWizardSubmit()}
               style={{textAlign:"center",fontSize:22,marginBottom:18,letterSpacing:6}}/>
             <div style={{display:"flex",gap:8,justifyContent:"center"}}>
@@ -3659,7 +3731,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <div style={{marginTop:18,borderTop:"1px solid var(--border)",paddingTop:14}}>
               <Btn variant="muted" small onClick={()=>{lset(wizardKey,currentGW);setWizardQueue(null);}}>Skip all</Btn>
             </div>
-          </div>
+          </ModalPanel>
         </div>,
         document.body
       )}
@@ -3670,7 +3742,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <div className="gw-controls" style={{display:"flex",alignItems:"center",gap:3}}>
-            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
+            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} aria-label="Scroll gameweeks left" style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
             <div style={{position:"relative",flex:1,maxWidth:396}}>
             <div ref={node => { gwStripRef.current = node; if (node && !node._wheelBound) { node._wheelBound = true; node.addEventListener("wheel", e => { e.preventDefault(); node.scrollLeft += e.deltaY; }, { passive: false }); } }} className="gw-strip" style={{display:"flex",gap:3,overflowX:"auto",flex:1}}>
               {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>{
@@ -3708,7 +3780,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
               <div style={{position:"absolute",left:0,top:0,bottom:0,width:20,background:"linear-gradient(to right, var(--bg), transparent)",pointerEvents:"none",zIndex:1}}/>
               <div style={{position:"absolute",right:0,top:0,bottom:0,width:20,background:"linear-gradient(to left, var(--bg), transparent)",pointerEvents:"none",zIndex:1}}/>
             </div>
-            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
+            <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:gwStripRef.current.clientWidth,behavior:"smooth"})} aria-label="Scroll gameweeks right" style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>›</button>
           </div>
           {isAdmin&&deleteGWStep===0&&removeGWStep===0&&<Btn variant="danger" small onClick={()=>setDeleteGWStep(1)}>Clear GW</Btn>}
           {isAdmin&&deleteGWStep===1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -3783,7 +3855,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         ):f.status==="POSTPONED"?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
-            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
+            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} aria-label={isHidden?"Show fixture in picks table":"Hide fixture from picks table"} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
           </div>
         ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
@@ -3811,6 +3883,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         ) : (
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
             <input
+              aria-label={`${f.home} home goals prediction against ${f.away}`}
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={1}
@@ -3841,6 +3914,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             />
             <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>
             <input
+              aria-label={`${f.away} away goals prediction against ${f.home}`}
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={1}
@@ -3875,13 +3949,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
-                <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
+                <TeamBadge team={f.home} crest={f.homeCrest} size={22} decorative />
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</a>
               </div>
               <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</a>
-                <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
+                <TeamBadge team={f.away} crest={f.awayCrest} size={22} decorative />
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -3900,11 +3974,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
-              <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
+              <TeamBadge team={f.home} crest={f.homeCrest} size={22} decorative />
             </div>
             <div style={{textAlign:"center"}}>{resultBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
+              <TeamBadge team={f.away} crest={f.awayCrest} size={22} decorative />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}</div>
@@ -3989,7 +4063,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
     <div style={{marginTop:40}}>
       {editConfirm&&createPortal(
         <div className="modal-overlay" onClick={cancelConfirm} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.53)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:28,width:"100%",maxWidth:340}}>
+          <ModalPanel onClose={cancelConfirm} label="Confirm pick change" style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:14,padding:28,width:"100%",maxWidth:340}}>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:3,marginBottom:14}}>EDIT PICK</div>
             <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>{names[editConfirm.u]||editConfirm.u}</div>
             <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:18}}>{gwFixtures.find(f=>f.id===editConfirm.fid)?.home} vs {gwFixtures.find(f=>f.id===editConfirm.fid)?.away}</div>
@@ -4002,7 +4076,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
               <Btn onClick={confirmSave} style={{flex:1,padding:"10px 0",textAlign:"center",letterSpacing:2}}>SAVE</Btn>
               <Btn variant="ghost" onClick={cancelConfirm} style={{flex:1,padding:"10px 0",textAlign:"center"}}>Cancel</Btn>
             </div>
-          </div>
+          </ModalPanel>
         </div>,
         document.body
       )}
@@ -4032,10 +4106,10 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
               <tr key={f.id} style={{borderBottom:"1px solid var(--border3)",background:rowBg}}>
                 <td style={{padding:theme==="excel"?"6px 8px":"10px 12px",color:"var(--text-mid)",fontSize:theme==="excel"?13:undefined,fontWeight:theme==="excel"?600:undefined}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,justifyContent:"flex-start",flexWrap:"nowrap",whiteSpace:"nowrap",overflow:"hidden"}}>
-                    <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
+                    <TeamBadge team={f.home} crest={f.homeCrest} size={22} decorative />
                     <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.home}</span>
                     <span style={{color:"var(--text-dim)",fontSize:10,letterSpacing:1,flexShrink:0}}>vs</span>
-                    <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
+                    <TeamBadge team={f.away} crest={f.awayCrest} size={22} decorative />
                     <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.away}</span>
                   </div>
                 </td>
@@ -4062,6 +4136,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                       <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"none",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
                           <input autoFocus value={editing[key]}
+                            aria-label={`Edit ${names[u] || u} pick for ${f.home} vs ${f.away}`}
                             onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
                             onBlur={()=>savePred(u,f.id)}
                             onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
@@ -4090,13 +4165,14 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                     }}>
                       {isAdmin&&isEditingCell?(
                         <input autoFocus value={editing[key]}
+                          aria-label={`Edit ${names[u] || u} pick for ${f.home} vs ${f.away}`}
                           onChange={e=>setEditing(ev=>({...ev,[key]:e.target.value}))}
                           onBlur={()=>savePred(u,f.id)}
                           onKeyDown={e=>{if(e.key==="Enter")savePred(u,f.id);if(e.key==="Escape")setEditing(ev=>{const n={...ev};delete n[key];return n;});}}
                           style={{width:52,background:"var(--input-bg)",border:"1px solid #8888cc55",borderRadius:6,color:"#8888cc",padding:"4px 6px",fontFamily:"inherit",fontSize:12,textAlign:"center",outline:"none"}}/>
                       ):(
-                        <div onClick={()=>isAdmin&&startEdit(u,f.id)}
-                          style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
+                        <button type="button" onClick={()=>isAdmin&&startEdit(u,f.id)} disabled={!isAdmin} aria-label={isAdmin ? `Edit ${names[u] || u} pick for ${f.home} vs ${f.away}` : undefined}
+                          style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s",background:"transparent",border:"none",fontFamily:"inherit",margin:"0 auto",color:"inherit",opacity:1}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
                           {pred
@@ -4105,7 +4181,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                               ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                               : <span style={{color:"var(--text-dim3)",fontSize:11}}>–</span>}
                           <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
-                        </div>
+                        </button>
                       )}
                     </td>
                   );
@@ -4151,7 +4227,7 @@ function TrendsTab({group,names,theme}) {
   const perfectsData=useMemo(()=>ds.map(p=>({name:p.dn,perfects:p.perfects})),[ds]);
   const preds=group.predictions||{};
   const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>{if(isPreJoinGW(firstPicks,p.username,g,activeSeason))return;(g.fixtures||[]).forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;});});r[p.dn]=c;});return r;}),[ds,gws,preds,firstPicks,activeSeason]);
-  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const CC=({title,sub,children})=>(<section aria-label={title} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div><ChartA11ySummary title={title}>{sub || "Visual chart data for this section."}</ChartA11ySummary>{children}</section>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
@@ -4425,8 +4501,8 @@ function TrendsTab({group,names,theme}) {
           const color=memberColor(p.username);
           const isSelected=selectedPlayer===p.username;
           return (
-            <div key={p.username} onClick={()=>setSelectedPlayer(prev=>prev===p.username?null:p.username)}
-              style={{background:"var(--surface)",border:`1px solid ${isSelected?color:"var(--border)"}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",opacity:selectedPlayer&&!isSelected?0.35:1,transition:"opacity 0.15s,border-color 0.15s",position:"relative",overflow:"hidden"}}>
+            <button key={p.username} type="button" onClick={()=>setSelectedPlayer(prev=>prev===p.username?null:p.username)} aria-pressed={isSelected}
+              style={{background:"var(--surface)",border:`1px solid ${isSelected?color:"var(--border)"}`,borderRadius:12,padding:"12px 14px",cursor:"pointer",opacity:selectedPlayer&&!isSelected?0.35:1,transition:"opacity 0.15s,border-color 0.15s",position:"relative",overflow:"hidden",fontFamily:"inherit",textAlign:"left"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:color,borderRadius:"12px 12px 0 0"}}/>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,marginTop:4}}>
                 <span style={{fontSize:11,fontWeight:700,color:"var(--text-dim3)",minWidth:20}}>{medal||`#${rank}`}</span>
@@ -4441,7 +4517,7 @@ function TrendsTab({group,names,theme}) {
                   </div>
                 ))}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -4760,7 +4836,7 @@ function MembersTab({group,user,isAdmin,isCreator,names,updateNickname,theme,set
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontSize:15,color:isMe?"#8888cc":"var(--text-mid)"}}>{names[username]||username}{isMe&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:8}}>you</span>}</span>
-                      {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",padding:"0 2px",lineHeight:1,display:"flex",alignItems:"center"}}><EditLine size={13} color="currentColor"/></button>}
+                      {isAdmin&&<button onClick={()=>{setEditingNick(username);setNickDraft(names[username]||username);}} aria-label={`Edit nickname for ${names[username]||username}`} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim3)",padding:"0 2px",lineHeight:1,display:"flex",alignItems:"center"}}><EditLine size={13} color="currentColor"/></button>}
                     </div>
                   )}
                   <div style={{display:"flex",gap:6,marginTop:4}}>
@@ -4846,6 +4922,7 @@ function Accordion({ sections, openId, setOpenId }) {
       {sections.map(s => {
         if (s.hidden) return null;
         const isOpen = openId === s.id;
+        const panelId = `accordion-panel-${s.id}`;
         return (
           <div key={s.id} style={{
             background:"var(--card)",
@@ -4853,7 +4930,7 @@ function Accordion({ sections, openId, setOpenId }) {
             borderRadius:10,
             overflow:"hidden",
           }}>
-            <button onClick={()=>setOpenId(isOpen?null:s.id)} style={{
+            <button onClick={()=>setOpenId(isOpen?null:s.id)} aria-expanded={isOpen} aria-controls={panelId} style={{
               width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
               padding:"14px 18px",background:"none",border:"none",cursor:"pointer",
               fontFamily:"inherit",textAlign:"left",
@@ -4872,7 +4949,7 @@ function Accordion({ sections, openId, setOpenId }) {
               gridTemplateRows:isOpen?"1fr":"0fr",
               transition:"grid-template-rows 0.25s ease",
             }}>
-              <div style={{overflow:"hidden"}}>
+              <div id={panelId} style={{overflow:"hidden"}}>
                 <div style={{padding:"0 18px 18px"}}>{s.content}</div>
               </div>
             </div>
@@ -5452,7 +5529,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
 
       {skipModal&&createPortal(
         <div className="modal-overlay" style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div className="modal-panel" style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:28,maxWidth:400,width:"100%"}}>
+          <ModalPanel onClose={()=>{setSkipModal(null);setSkipConfirm(false);}} label="Skip dibs turn" style={{background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:14,padding:28,maxWidth:400,width:"100%"}}>
             {!skipConfirm ? (
               <>
                 <div style={{fontSize:15,color:"var(--text-bright)",marginBottom:10,fontWeight:700}}>
@@ -5478,13 +5555,13 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                 </div>
               </>
             )}
-          </div>
+          </ModalPanel>
         </div>,
         document.body
       )}
       {deleteModalOpen&&createPortal(
         <div className="modal-overlay" onClick={()=>setDeleteModalOpen(false)} style={{position:"fixed",inset:0,background:"#00000088",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-          <div className="modal-panel" onClick={e=>e.stopPropagation()} style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
+          <ModalPanel onClose={()=>setDeleteModalOpen(false)} label="Delete group" style={{background:"var(--card)",border:"1px solid #ef444440",borderRadius:14,padding:32,width:"100%",maxWidth:400,maxHeight:"85vh",overflowY:"auto"}}>
             <div style={{fontSize:10,color:"#ef4444",letterSpacing:3,marginBottom:12}}>DELETE GROUP</div>
             <div style={{fontSize:13,color:"var(--text)",marginBottom:6}}>This permanently deletes <strong>{group.name}</strong> and all its data.</div>
             <div style={{fontSize:12,color:"var(--text-dim)",marginBottom:20}}>Enter your password to confirm.</div>
@@ -5496,7 +5573,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
               </Btn>
               <Btn variant="ghost" onClick={()=>setDeleteModalOpen(false)} style={{flex:1,textAlign:"center"}}>Cancel</Btn>
             </div>
-          </div>
+          </ModalPanel>
         </div>,
         document.body
       )}
