@@ -611,6 +611,12 @@ const CSS = `
   .modal-panel{animation:modalIn 0.2s cubic-bezier(0.23,1,0.32,1) forwards;}
   .pab-btn:active:not([disabled]){transform:scale(0.97);}
   .pab-input{transition:border-color 0.15s,box-shadow 0.15s;}.pab-input:focus{border-color:var(--text-dim)!important;box-shadow:0 0 0 1px var(--text-dim)!important;outline:none;}
+  .title-tooltip{display:none;}
+  @media(hover:hover) and (pointer:fine){
+    .title-badge{cursor:help;}
+    .title-tooltip{display:block;position:absolute;top:calc(100% + 6px);left:0;width:max-content;max-width:230px;visibility:hidden;opacity:0;transform:translateY(-2px);transition:opacity .14s ease,transform .14s ease,visibility .14s ease;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;color:var(--text-mid);font-size:10px;font-weight:500;letter-spacing:.2px;line-height:1.35;text-transform:none;text-shadow:none;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.24);z-index:60;pointer-events:none;}
+    .title-badge:hover .title-tooltip{visibility:visible;opacity:1;transform:translateY(0);}
+  }
   @media(prefers-reduced-motion:reduce){.fade,.modal-overlay,.modal-panel{animation-duration:0.01ms!important;}.pab-btn:active:not([disabled]){transform:none;}}
   .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s,background 0.15s;}
   .nb:hover{color:var(--text-mid)!important;}
@@ -2155,13 +2161,23 @@ function getPointsLabelMeta(totalPoints, theme) {
 }
 
 const TITLE_STYLES = {
-  "Least Wrong": { text: "#f8e7a1", glow: "0 0 14px rgba(248,231,161,.28)" },
-  "Bullseye Bandit": { text: "#b8ffcf", glow: "0 0 14px rgba(34,197,94,.26)" },
+  "The Standard": { text: "#f8e7a1", glow: "0 0 14px rgba(248,231,161,.28)" },
+  Perfectionist: { text: "#b8ffcf", glow: "0 0 14px rgba(34,197,94,.26)" },
   "Draw Merchant": { text: "#ffd089", glow: "0 0 13px rgba(255,180,90,.24)" },
   "Chaos Goblin": { text: "#ffb1f2", glow: "0 0 16px rgba(217,70,239,.34)" },
   Metronome: { text: "#bfe8ff", glow: "0 0 13px rgba(56,189,248,.24)" },
   "Near Miss Specialist": { text: "#ddd6fe", glow: "0 0 13px rgba(139,92,246,.22)" },
-  "Public Menace": { text: "#ffb3a8", glow: "0 0 12px rgba(239,68,68,.24)" },
+  Liability: { text: "#ffb3a8", glow: "0 0 12px rgba(239,68,68,.24)" },
+};
+
+const TITLE_DESCRIPTIONS = {
+  "The Standard": "Lowest average points per scored pick.",
+  Perfectionist: "Most exact score predictions.",
+  "Draw Merchant": "Picks draws more than anyone else.",
+  "Chaos Goblin": "Predicts the highest-scoring games.",
+  Metronome: "Most consistent gameweek scores.",
+  "Near Miss Specialist": "Most picks off by exactly 1 total goal.",
+  Liability: "High variance and high damage.",
 };
 
 function getTitleStyle(title) {
@@ -2171,8 +2187,9 @@ function getTitleStyle(title) {
 function TitleBadge({ title }) {
   if (!title) return <div style={{height:14, marginTop:4}} />;
   const style = getTitleStyle(title);
+  const description = TITLE_DESCRIPTIONS[title];
   return (
-    <div style={{
+    <div className="title-badge" aria-label={description ? `${title}: ${description}` : title} style={{
       display:"inline-flex",
       alignItems:"center",
       minWidth:0,
@@ -2193,6 +2210,7 @@ function TitleBadge({ title }) {
       textOverflow:"clip"
     }}>
       {title}
+      {description&&<span className="title-tooltip" role="tooltip">{description}</span>}
     </div>
   );
 }
@@ -2225,7 +2243,7 @@ function computeGroupRelativeTitles(group, stats) {
         if (ph === pa) drawPickCount++;
         if (f.result) {
           const pts = calcPts(pred, f.result);
-          if (pts === 1 || pts === 2) nearMissCount++;
+          if (pts === 1) nearMissCount++;
           const [rh, ra] = f.result.split("-").map(Number);
           const predResult = ph > pa ? 1 : ph < pa ? -1 : 0;
           const realResult = rh > ra ? 1 : rh < ra ? -1 : 0;
@@ -2267,13 +2285,13 @@ function computeGroupRelativeTitles(group, stats) {
   const menaceVarianceNorm = scoreBy.max(candidates.map(p => p.gwVariance ?? 0));
 
   const leaders = {
-    "Least Wrong": [...candidates].sort((a,b)=>(Number(a.avg)||999)-(Number(b.avg)||999) || b.perfects-a.perfects || b.scored-a.scored)[0]?.username,
-    "Bullseye Bandit": [...candidates].sort((a,b)=>b.perfects-a.perfects || (b.scored?b.perfects/b.scored:0)-(a.scored?a.perfects/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
+    "The Standard": [...candidates].sort((a,b)=>(Number(a.avg)||999)-(Number(b.avg)||999) || b.perfects-a.perfects || b.scored-a.scored)[0]?.username,
+    Perfectionist: [...candidates].sort((a,b)=>b.perfects-a.perfects || (b.scored?b.perfects/b.scored:0)-(a.scored?a.perfects/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
     "Draw Merchant": [...candidates].sort((a,b)=>(b.drawPickRate??-1)-(a.drawPickRate??-1) || b.drawPickCount-a.drawPickCount || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
     "Chaos Goblin": [...candidates].sort((a,b)=>(b.predictedGoalsAvg??-1)-(a.predictedGoalsAvg??-1) || b.nearMissCount-a.nearMissCount || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
     Metronome: [...candidates].filter(p => p.gwVariance !== null).sort((a,b)=>(a.gwVariance??999)-(b.gwVariance??999) || (Number(a.avg)||999)-(Number(b.avg)||999) || b.scored-a.scored)[0]?.username,
     "Near Miss Specialist": [...candidates].sort((a,b)=>b.nearMissCount-a.nearMissCount || (b.scored?b.nearMissCount/b.scored:0)-(a.scored?a.nearMissCount/a.scored:0) || (Number(a.avg)||999)-(Number(b.avg)||999))[0]?.username,
-    "Public Menace": [...candidates].sort((a,b)=>{
+    Liability: [...candidates].sort((a,b)=>{
       const menaceA = menaceBoldNorm(a.predictedGoalsAvg ?? 0) * 0.4 + menaceBadNorm(Number(a.avg) || 0) * 0.35 + menaceVarianceNorm(a.gwVariance ?? 0) * 0.25;
       const menaceB = menaceBoldNorm(b.predictedGoalsAvg ?? 0) * 0.4 + menaceBadNorm(Number(b.avg) || 0) * 0.35 + menaceVarianceNorm(b.gwVariance ?? 0) * 0.25;
       return menaceB - menaceA;
@@ -2281,13 +2299,13 @@ function computeGroupRelativeTitles(group, stats) {
   };
 
   const priority = [
-    { title: "Least Wrong", user: leaders["Least Wrong"] },
-    { title: "Bullseye Bandit", user: leaders["Bullseye Bandit"] },
+    { title: "The Standard", user: leaders["The Standard"] },
+    { title: "Perfectionist", user: leaders.Perfectionist },
     { title: "Draw Merchant", user: leaders["Draw Merchant"] },
     { title: "Chaos Goblin", user: leaders["Chaos Goblin"] },
     { title: "Metronome", user: leaders.Metronome },
     { title: "Near Miss Specialist", user: leaders["Near Miss Specialist"] },
-    { title: "Public Menace", user: leaders["Public Menace"] },
+    { title: "Liability", user: leaders.Liability },
   ];
 
   const assigned = {};
@@ -5368,7 +5386,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
         <div style={{marginBottom:16}}>
           <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
             <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>&#127942; {names[seasonWinner.username]||seasonWinner.username}</div>
-            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>Least Wrong</span></div>
+            <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>The Standard</span></div>
             <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
             <div style={{color:"var(--text-dim)"}}>A completely meaningless honour. Naturally everyone will care a lot.</div>
           </div>
