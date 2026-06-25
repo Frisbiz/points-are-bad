@@ -201,6 +201,24 @@ function fixtureDataScore(f) {
     + (f.awayCrest ? 1 : 0);
 }
 
+function fixtureFreshnessTime(f) {
+  if (!f?.yahooLastUpdated) return 0;
+  const raw = String(f.yahooLastUpdated);
+  const normalized = raw.includes('T') ? raw : `${raw.replace(' ', 'T')}Z`;
+  const parsed = Date.parse(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function betterFixtureData(a, b) {
+  const aScore = fixtureDataScore(a);
+  const bScore = fixtureDataScore(b);
+  if (bScore !== aScore) return bScore > aScore ? b : a;
+  const aFresh = fixtureFreshnessTime(a);
+  const bFresh = fixtureFreshnessTime(b);
+  if (bFresh !== aFresh) return bFresh > aFresh ? b : a;
+  return b;
+}
+
 function hasOwn(obj, key) {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
 }
@@ -232,7 +250,8 @@ function shouldReplaceFixtureKeeper(current, candidate, predictions) {
 }
 
 function mergeFixtureData(keeper, duplicate) {
-  const best = fixtureDataScore(duplicate) > fixtureDataScore(keeper) ? duplicate : keeper;
+  const best = betterFixtureData(keeper, duplicate);
+  const liveStatus = best.status === 'IN_PLAY' || best.status === 'PAUSED';
   return {
     ...keeper,
     apiId: best.apiId || keeper.apiId || duplicate.apiId,
@@ -241,12 +260,12 @@ function mergeFixtureData(keeper, duplicate) {
     result: best.result ?? keeper.result ?? duplicate.result ?? null,
     status: best.status || keeper.status || duplicate.status,
     date: best.date || keeper.date || duplicate.date || null,
-    liveScore: best.liveScore || keeper.liveScore || duplicate.liveScore || null,
+    liveScore: liveStatus ? (best.liveScore || null) : null,
     yahooDate: best.yahooDate || keeper.yahooDate || duplicate.yahooDate || null,
     homeCrest: best.homeCrest || keeper.homeCrest || duplicate.homeCrest || null,
     awayCrest: best.awayCrest || keeper.awayCrest || duplicate.awayCrest || null,
     stage: best.stage || keeper.stage || duplicate.stage || null,
-    elapsed: best.elapsed || keeper.elapsed || duplicate.elapsed || null,
+    elapsed: liveStatus ? (best.elapsed || null) : null,
     yahooLastUpdated: best.yahooLastUpdated || keeper.yahooLastUpdated || duplicate.yahooLastUpdated || null,
   };
 }

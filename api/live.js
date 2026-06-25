@@ -1,6 +1,6 @@
 import { getValue } from "./_db.js";
 import { normName } from "./_fixtureSync.js";
-import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
+import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 
 function liveMatchesFromFixtures(fixtures = []) {
   return fixtures.map(f => {
@@ -18,7 +18,7 @@ function liveMatchesFromFixtures(fixtures = []) {
 }
 
 export default async function handler(req, res) {
-  const { week, competition = "PL", season } = req.query;
+  const { week, competition = "PL", season, dates = "" } = req.query;
   if (!week) return res.status(400).json({ error: "week parameter required" });
 
   const comp = competition === "WC" ? "WC" : competition === "PL" ? "PL" : null;
@@ -29,6 +29,15 @@ export default async function handler(req, res) {
 
   try {
     const seas = comp === "WC" ? 2026 : Number(season || 2025);
+    const dateList = String(dates || "").split(",").map(d => d.trim()).filter(Boolean);
+    try {
+      const matches = await fetchYahooLiveMatches(comp, Number(week), dateList);
+      res.setHeader("Cache-Control", "no-store, max-age=0");
+      return res.status(200).json({ matches, week: Number.parseInt(week, 10), competition: comp });
+    } catch (e) {
+      console.error("Live direct Yahoo fallback:", e.message);
+    }
+
     let globalDoc = null;
     try {
       const syncInfo = await refreshYahooFixtureCache({ competition: comp, season: seas, targetGW: Number(week) });
@@ -38,7 +47,7 @@ export default async function handler(req, res) {
       globalDoc = await getValue(fixtureGlobalKey(comp, seas));
     }
     const fixtures = (globalDoc?.gameweeks || []).find(gw => gw.gw === Number(week))?.fixtures || [];
-    res.setHeader("Cache-Control", "public, max-age=5, s-maxage=5");
+    res.setHeader("Cache-Control", "no-store, max-age=0");
     return res.status(200).json({ matches: liveMatchesFromFixtures(fixtures), week: Number.parseInt(week, 10), competition: comp });
   } catch (e) {
     console.error("Live cache read error:", e.message);
