@@ -614,10 +614,9 @@ const CSS = `
   .title-tooltip{display:none;}
   @media(hover:hover) and (pointer:fine){
     .title-badge{cursor:help;}
-    .title-tooltip{display:block;position:absolute;top:calc(100% + 6px);left:0;width:max-content;max-width:230px;visibility:hidden;opacity:0;transform:translateY(-2px);transition:opacity .14s ease,transform .14s ease,visibility .14s ease;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;color:var(--text-mid);font-size:10px;font-weight:500;letter-spacing:.2px;line-height:1.35;text-transform:none;text-shadow:none;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.24);z-index:60;pointer-events:none;}
-    .title-badge:hover .title-tooltip{visibility:visible;opacity:1;transform:translateY(0);}
+    .title-tooltip-floating{display:block;position:fixed;width:max-content;max-width:230px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;color:var(--text-mid);font-size:10px;font-weight:500;letter-spacing:.2px;line-height:1.35;text-transform:none;text-shadow:none;white-space:normal;box-shadow:0 10px 24px rgba(0,0,0,.24);z-index:9999;pointer-events:none;}
   }
-  @media(prefers-reduced-motion:reduce){.fade,.modal-overlay,.modal-panel{animation-duration:0.01ms!important;}.pab-btn:active:not([disabled]){transform:none;}}
+  @media(prefers-reduced-motion:reduce){.fade,.modal-overlay,.modal-panel{animation-duration:0.01ms!important;}.pab-btn:active:not([disabled]){transform:none;}.title-tooltip-floating{transition:none!important;}}
   .nb{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:color 0.15s,border-color 0.15s,background 0.15s;}
   .nb:hover{color:var(--text-mid)!important;}
   .nb.active{color:var(--text-bright)!important;border-bottom-color:var(--text)!important;}
@@ -2185,33 +2184,49 @@ function getTitleStyle(title) {
 }
 
 function TitleBadge({ title }) {
-  if (!title) return <div style={{height:14, marginTop:4}} />;
+  const badgeRef = useRef(null);
+  const [tooltipPos, setTooltipPos] = useState(null);
   const style = getTitleStyle(title);
   const description = TITLE_DESCRIPTIONS[title];
+  if (!title) return <div style={{height:14, marginTop:4}} />;
+  const showTooltip = () => {
+    if (!description || typeof window === "undefined" || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    const rect = badgeRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const maxWidth = 230;
+    const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - maxWidth - 8));
+    setTooltipPos({ top: rect.bottom + 6, left });
+  };
+  const hideTooltip = () => setTooltipPos(null);
   return (
-    <div className="title-badge" aria-label={description ? `${title}: ${description}` : title} style={{
-      display:"inline-flex",
-      alignItems:"center",
-      minWidth:0,
-      maxWidth:"100%",
-      marginTop:4,
-      paddingLeft:2,
-      paddingRight:2,
-      position:"relative",
-      zIndex:2,
-      fontSize:10,
-      fontWeight:700,
-      letterSpacing:1.1,
-      textTransform:"uppercase",
-      color:style.text,
-      textShadow:`-1px 0 rgba(0,0,0,.26), 1px 0 rgba(0,0,0,.26), 0 -1px rgba(0,0,0,.26), 0 1px rgba(0,0,0,.26), 0 0 6px rgba(255,255,255,.05), ${style.glow}`,
-      whiteSpace:"nowrap",
-      overflow:"visible",
-      textOverflow:"clip"
-    }}>
-      {title}
-      {description&&<span className="title-tooltip" role="tooltip">{description}</span>}
-    </div>
+    <>
+      <div ref={badgeRef} className="title-badge" aria-label={description ? `${title}: ${description}` : title} onMouseEnter={showTooltip} onMouseLeave={hideTooltip} style={{
+        display:"inline-flex",
+        alignItems:"center",
+        minWidth:0,
+        maxWidth:"100%",
+        marginTop:4,
+        paddingLeft:2,
+        paddingRight:2,
+        position:"relative",
+        zIndex:2,
+        fontSize:10,
+        fontWeight:700,
+        letterSpacing:1.1,
+        textTransform:"uppercase",
+        color:style.text,
+        textShadow:`-1px 0 rgba(0,0,0,.26), 1px 0 rgba(0,0,0,.26), 0 -1px rgba(0,0,0,.26), 0 1px rgba(0,0,0,.26), 0 0 6px rgba(255,255,255,.05), ${style.glow}`,
+        whiteSpace:"nowrap",
+        overflow:"visible",
+        textOverflow:"clip"
+      }}>
+        {title}
+      </div>
+      {description&&tooltipPos&&typeof document!=="undefined"&&createPortal(
+        <span className="title-tooltip title-tooltip-floating" role="tooltip" style={{top:tooltipPos.top,left:tooltipPos.left}}>{description}</span>,
+        document.body
+      )}
+    </>
   );
 }
 
