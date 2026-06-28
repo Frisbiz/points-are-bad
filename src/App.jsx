@@ -452,19 +452,26 @@ const BadgeScore = ({ score, missed=false }) => {
   const c = missed?"#6b7280":score===0?"#22c55e":score<=2?"#f59e0b":"#ef4444";
   const perfect = !missed && score === 0;
   return <span style={{
+    display:"inline-flex",
+    alignItems:"center",
+    justifyContent:"center",
     background: perfect ? "linear-gradient(135deg, #22c55e24, #a3e63518)" : c+"20",
     color:c,
     border:`1px solid ${c}40`,
     borderRadius:6,
-    padding:"2px 9px",
+    height:22,
+    minWidth:28,
+    padding:"0 8px",
     fontSize:12,
+    lineHeight:1,
     fontWeight:700,
     fontFamily:"'DM Mono',monospace",
+    fontVariantNumeric:"tabular-nums",
     fontStyle:missed?"italic":"normal",
     boxShadow: perfect ? "0 0 0 1px #22c55e20 inset, 0 0 12px #22c55e22" : "none",
     position:"relative",
     overflow:"hidden"
-  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative"}}>{score}</span></span>;
+  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative",lineHeight:1}}>{score}</span></span>;
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {

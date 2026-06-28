@@ -49,3 +49,16 @@ test("All picks table header stays in normal table flow", () => {
   assert.doesNotMatch(tableBlock, /position:"sticky",top:picksHeaderStickyTop/);
   assert.match(tableBlock, /<thead><tr style=\{\{borderBottom:"1px solid var\(--border\)",background:theme==="excel"\?"#1a1a1a":undefined\}\}>/);
 });
+
+test("score badge numbers are optically centered in a fixed-height pill", () => {
+  const scoreBadgeBlock = appSource.slice(
+    appSource.indexOf("const BadgeScore"),
+    appSource.indexOf("const Btn")
+  );
+
+  assert.match(scoreBadgeBlock, /display:"inline-flex"/);
+  assert.match(scoreBadgeBlock, /alignItems:"center"/);
+  assert.match(scoreBadgeBlock, /justifyContent:"center"/);
+  assert.match(scoreBadgeBlock, /height:22/);
+  assert.match(scoreBadgeBlock, /lineHeight:1/);
+});
