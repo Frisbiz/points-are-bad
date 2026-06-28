@@ -68,7 +68,7 @@ const YAHOO_GAME_PLACEHOLDER_LABELS = {
   13532392: ["W101", "W102"],
 };
 
-const WORLD_CUP_BRACKET_TEAM_NAME_LIMIT = 11;
+const WORLD_CUP_BRACKET_TEAM_NAME_LIMIT = 12;
 
 function displayTeamName(team) {
   return TEAM_DISPLAY_MAP[team] || team;

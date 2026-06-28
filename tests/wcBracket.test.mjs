@@ -267,9 +267,9 @@ test("detects only empty/TBD World Cup team slots as unresolved", () => {
   assert.equal(isUnresolvedWorldCupTeamSlot("W74"), false);
 });
 
-test("formats World Cup bracket team names to 11 characters plus ellipsis", () => {
-  assert.equal(formatWorldCupBracketTeamName("Bosnia-Herzegovina"), "Bosnia-Herz...");
-  assert.equal(formatWorldCupBracketTeamName("South Africa"), "South Afric...");
+test("formats World Cup bracket team names to 12 characters plus ellipsis", () => {
+  assert.equal(formatWorldCupBracketTeamName("Bosnia-Herzegovina"), "Bosnia-Herze...");
+  assert.equal(formatWorldCupBracketTeamName("South Africa"), "South Africa");
   assert.equal(formatWorldCupBracketTeamName("Portugal"), "Portugal");
 });
 
