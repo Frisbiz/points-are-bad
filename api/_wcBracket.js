@@ -68,6 +68,8 @@ const YAHOO_GAME_PLACEHOLDER_LABELS = {
   13532392: ["W101", "W102"],
 };
 
+const WORLD_CUP_BRACKET_TEAM_NAME_LIMIT = 11;
+
 function displayTeamName(team) {
   return TEAM_DISPLAY_MAP[team] || team;
 }
@@ -85,6 +87,30 @@ function yahooGameIdKey(fixture) {
 export function isUnresolvedWorldCupTeamSlot(value) {
   const normalized = String(value ?? "").trim().toUpperCase();
   return !normalized || normalized === "TBD";
+}
+
+export function formatWorldCupBracketTeamName(name, max = WORLD_CUP_BRACKET_TEAM_NAME_LIMIT) {
+  const text = String(name || "");
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+export function formatWorldCupBracketKickoff(value, options = {}) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const { locale = "en-US", timeZone } = options;
+  const dateOptions = { month: "numeric", day: "numeric" };
+  const timeOptions = { hour: "numeric", minute: "2-digit", hour12: true };
+  if (timeZone) {
+    dateOptions.timeZone = timeZone;
+    timeOptions.timeZone = timeZone;
+  }
+
+  return {
+    date: new Intl.DateTimeFormat(locale, dateOptions).format(date),
+    time: new Intl.DateTimeFormat(locale, timeOptions).format(date),
+  };
 }
 
 export function getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, stage = null, fixture = null) {

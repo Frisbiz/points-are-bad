@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   fixtureHasWorldCupSeedPlaceholder,
+  formatWorldCupBracketKickoff,
+  formatWorldCupBracketTeamName,
   formatWorldCupFixtureSeedPlaceholders,
   formatWorldCupGlobalDocSeedPlaceholders,
   getWorldCupKnockoutPlaceholderLabel,
@@ -263,4 +265,18 @@ test("detects only empty/TBD World Cup team slots as unresolved", () => {
   assert.equal(isUnresolvedWorldCupTeamSlot("TBD"), true);
   assert.equal(isUnresolvedWorldCupTeamSlot("South Africa"), false);
   assert.equal(isUnresolvedWorldCupTeamSlot("W74"), false);
+});
+
+test("formats World Cup bracket team names to 11 characters plus ellipsis", () => {
+  assert.equal(formatWorldCupBracketTeamName("Bosnia-Herzegovina"), "Bosnia-Herz...");
+  assert.equal(formatWorldCupBracketTeamName("South Africa"), "South Afric...");
+  assert.equal(formatWorldCupBracketTeamName("Portugal"), "Portugal");
+});
+
+test("formats World Cup bracket kickoff date and time like Yahoo", () => {
+  const kickoff = formatWorldCupBracketKickoff("2026-06-29T17:30:00.000Z", { timeZone: "UTC" });
+
+  assert.deepEqual(kickoff, { date: "6/29", time: "5:30 PM" });
+  assert.equal(formatWorldCupBracketKickoff(null), null);
+  assert.equal(formatWorldCupBracketKickoff("not a date"), null);
 });

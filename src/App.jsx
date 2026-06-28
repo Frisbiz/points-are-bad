@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } fr
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
-import { getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot } from "../api/_wcBracket.js";
+import { formatWorldCupBracketKickoff, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot } from "../api/_wcBracket.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -3135,7 +3135,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const mob = useMobile();
   const SLOT_H = mob ? 36 : 56;
   const CARD_H = mob ? 28 : 46;
-  const COL_W  = mob ? 108 : 152;
+  const COL_W  = mob ? 150 : 196;
   const CONN_W = mob ? 12 : 22;
   const TOTAL_H = 16 * SLOT_H;
 
@@ -3154,6 +3154,8 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
 
   const MatchCard = ({ f, blockH, gw, matchIndex }) => {
     const winner = winnerSide(f);
+    const kickoff = formatWorldCupBracketKickoff(f?.date);
+    const dateW = mob ? 44 : 58;
     return (
       <div style={{
         position:"absolute",
@@ -3164,30 +3166,39 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
         border:"1px solid var(--border)",
         borderRadius:6,
         overflow:"hidden",
-        display:"flex",
-        flexDirection:"column",
+        display:"grid",
+        gridTemplateColumns:kickoff?`minmax(0,1fr) ${dateW}px`:"1fr",
       }}>
-        {["home","away"].map(side => {
-          const rawTeam = f?.[side] || null;
-          const unresolved = isUnresolvedWorldCupTeamSlot(rawTeam);
-          const team = unresolved ? getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, f?.stage, f) : rawTeam;
-          const crest = unresolved ? null : (f?.[`${side}Crest`] || null);
-          const score = f?.result ? f.result.split("-")[side==="home"?0:1] : null;
-          const wins = winner === side;
-          const loses = winner && winner !== side;
-          return (
-            <div key={side} style={{
-              flex:1,display:"flex",alignItems:"center",gap:mob?3:5,padding:mob?"0 4px":"0 7px",
-              borderBottom:side==="home"?"1px solid var(--border3)":"none",
-              opacity:loses?0.38:1,
-              background:wins?"var(--card-hi)":"transparent",
-            }}>
-              <TeamBadge team={team||"?"} crest={crest} size={mob?11:16} />
-              <span title={team||"TBD"} style={{fontSize:mob?9:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team ? (mob?shortTeamName(team):team) : "TBD"}</span>
-              {score!=null&&<span style={{fontSize:mob?9:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:mob?10:14,textAlign:"right"}}>{score}</span>}
-            </div>
-          );
-        })}
+        <div style={{display:"flex",flexDirection:"column",minWidth:0}}>
+          {["home","away"].map(side => {
+            const rawTeam = f?.[side] || null;
+            const unresolved = isUnresolvedWorldCupTeamSlot(rawTeam);
+            const team = unresolved ? getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, f?.stage, f) : rawTeam;
+            const crest = unresolved ? null : (f?.[`${side}Crest`] || null);
+            const score = f?.result ? f.result.split("-")[side==="home"?0:1] : null;
+            const wins = winner === side;
+            const loses = winner && winner !== side;
+            return (
+              <div key={side} style={{
+                flex:1,display:"flex",alignItems:"center",gap:mob?3:5,padding:mob?"0 4px":"0 7px",
+                borderBottom:side==="home"?"1px solid var(--border3)":"none",
+                opacity:loses?0.38:1,
+                background:wins?"var(--card-hi)":"transparent",
+                minWidth:0,
+              }}>
+                <TeamBadge team={team||"?"} crest={crest} size={mob?11:16} />
+                <span title={team||"TBD"} style={{fontSize:mob?9:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team ? formatWorldCupBracketTeamName(team) : "TBD"}</span>
+                {score!=null&&<span style={{fontSize:mob?9:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace",minWidth:mob?10:14,textAlign:"right"}}>{score}</span>}
+              </div>
+            );
+          })}
+        </div>
+        {kickoff&&(
+          <div style={{borderLeft:"1px solid var(--border3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"center",paddingLeft:mob?6:9,color:"var(--text-bright)",lineHeight:1.15,minWidth:0}}>
+            <span style={{fontSize:mob?9:11,fontWeight:700,whiteSpace:"nowrap"}}>{kickoff.date}</span>
+            <span style={{fontSize:mob?8:10,fontWeight:600,color:"var(--text-mid)",whiteSpace:"nowrap"}}>{kickoff.time}</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -3256,24 +3267,8 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
       {thirdMatch && (
         <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid var(--border3)"}}>
           <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:8}}>3RD PLACE PLAYOFF</div>
-          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",display:"flex",flexDirection:"column",maxWidth:COL_W,height:CARD_H}}>
-            {["home","away"].map(side=>{
-              const rawTeam = thirdMatch[side]||null;
-              const unresolved = isUnresolvedWorldCupTeamSlot(rawTeam);
-              const team = unresolved ? getWorldCupKnockoutPlaceholderLabel(8, 0, side, "THIRD_PLACE", thirdMatch) : rawTeam;
-              const crest = unresolved ? null : (thirdMatch[`${side}Crest`]||null);
-              const score = thirdMatch.result ? thirdMatch.result.split("-")[side==="home"?0:1] : null;
-              const winner = winnerSide(thirdMatch);
-              const wins = winner===side;
-              const loses = winner && winner!==side;
-              return (
-                <div key={side} style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderBottom:side==="home"?"1px solid var(--border3)":"none",opacity:loses?0.38:1,background:wins?"var(--card-hi)":"transparent"}}>
-                  <TeamBadge team={team||"?"} crest={crest} size={16}/>
-                  <span title={team||"TBD"} style={{fontSize:11,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:wins?"var(--text-bright)":"var(--text-mid)",fontWeight:wins?700:400}}>{team?shortTeamName(team):"TBD"}</span>
-                  {score!=null&&<span style={{fontSize:11,fontWeight:700,color:"var(--text-bright)",fontFamily:"'DM Mono',monospace"}}>{score}</span>}
-                </div>
-              );
-            })}
+          <div style={{position:"relative",width:COL_W,height:CARD_H}}>
+            <MatchCard f={thirdMatch} blockH={CARD_H} gw={8} matchIndex={0}/>
           </div>
         </div>
       )}
