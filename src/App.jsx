@@ -178,6 +178,30 @@ function effectiveFixtureResult(fixture, liveScores) {
   return null;
 }
 
+function applyFinishedLiveScoresToGroup(group, liveScores = {}) {
+  if (!group || !liveScores || Object.keys(liveScores).length === 0) return group;
+  let changed = false;
+  const gameweeks = (group.gameweeks || []).map(gwObj => {
+    let gwChanged = false;
+    const fixtures = (gwObj.fixtures || []).map(fixture => {
+      if (fixture.result) return fixture;
+      const lm = liveScores[`${fixture.home}|${fixture.away}`];
+      if (!lm || lm.status !== "finished" || lm.homeScore == null || lm.awayScore == null) return fixture;
+      changed = true;
+      gwChanged = true;
+      return {
+        ...fixture,
+        result: String(lm.homeScore) + "-" + String(lm.awayScore),
+        status: "FINISHED",
+        liveScore: null,
+        elapsed: lm.elapsed || fixture.elapsed || null,
+      };
+    });
+    return gwChanged ? { ...gwObj, fixtures } : gwObj;
+  });
+  return changed ? { ...group, gameweeks } : group;
+}
+
 function getFixtureSeasonIndex(group, fixtureId) {
   const gws = (group.gameweeks || [])
     .slice()
@@ -363,7 +387,7 @@ function autoSyncTargetGW(group) {
     .filter(gw => (gw.season || seas) === seas)
     .forEach(gw => {
       (gw.fixtures || []).forEach(f => {
-        if (f.result || f.status === "FINISHED" || f.status === "POSTPONED") return;
+        if (f.result || f.status === "POSTPONED") return;
         incomplete.push(gw.gw);
         if (!f.date) return;
         const kickoff = new Date(f.date).getTime();
@@ -541,7 +565,8 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025) {
       if (!ff?.length) return false;
       const now = Date.now();
       return ff.some(f => {
-        if (f.result || f.status === "FINISHED" || f.status === "POSTPONED") return false;
+        if (f.result || f.status === "POSTPONED") return false;
+        if (f.status === "FINISHED") return true;
         if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
         if (f.date) {
           const kickoff = new Date(f.date).getTime();
@@ -2794,10 +2819,16 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
-  const stats = useMemo(()=>computeStats(group),[group]);
-  const myRank = stats.findIndex(s => s.username === user.username) + 1;
   const activeSeason = group.season || 2025;
-  const completedGWs = (group.gameweeks || [])
+  const liveScoreGW = autoSyncTargetGW(group);
+  const liveScoreFixtures = useMemo(() => {
+    return ((group.gameweeks || []).find(g => g.gw === liveScoreGW && (g.season || activeSeason) === activeSeason)?.fixtures || []);
+  }, [group.gameweeks, liveScoreGW, activeSeason]);
+  const standingsLiveScores = useLiveScores(liveScoreGW, liveScoreFixtures, group.competition || "PL", activeSeason);
+  const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, standingsLiveScores),[group, standingsLiveScores]);
+  const stats = useMemo(()=>computeStats(scoringGroup),[scoringGroup]);
+  const myRank = stats.findIndex(s => s.username === user.username) + 1;
+  const completedGWs = (scoringGroup.gameweeks || [])
     .filter(g => (g.season || activeSeason) === activeSeason && (g.fixtures || []).length > 0 && (g.fixtures || []).every(f => f.result || f.status === "POSTPONED"));
   const recapGW = completedGWs.length > 0 ? completedGWs.reduce((a, b) => a.gw > b.gw ? a : b) : null;
   const recapKey = recapGW ? `recap:${group.id}:${user.username}:gw${recapGW.gw}` : null;
@@ -2953,10 +2984,10 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           </div>
         )}
         <TabErrorBoundary key={tab} tabName={tab}>
-          {tab==="League"&&<LeagueTab group={group} user={user} names={names} theme={theme}/>}
+          {tab==="League"&&<LeagueTab group={scoringGroup} user={user} names={names} theme={theme}/>}
           {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup}/>}
           {tab==="Standings"&&<WCStandingsTab group={group} theme={theme}/>}
-          {tab==="Trends"&&<TrendsTab group={group} names={names} theme={theme}/>}
+          {tab==="Trends"&&<TrendsTab group={scoringGroup} names={names} theme={theme}/>}
           {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
           {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} setTheme={setTheme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
         </TabErrorBoundary>
