@@ -2,8 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
+function loadAppSource() {
+  return fs.readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+}
+
 function loadAppFunction(name) {
-  const source = fs.readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+  const source = loadAppSource();
   const start = source.indexOf(`function ${name}(`);
   assert.notEqual(start, -1, `${name} should exist in App.jsx`);
   const signatureEnd = source.indexOf(") {", start);
@@ -122,4 +126,33 @@ test("auto sync still targets finished fixtures missing saved results", () => {
   };
 
   assert.equal(autoSyncTargetGW(group), 4);
+});
+
+test("fixtures tab is seeded with live scores already loaded by the game shell", () => {
+  const source = loadAppSource();
+
+  assert.match(
+    source,
+    /function FixturesTab\(\{[^}]*initialLiveScores=\{\}/s,
+    "FixturesTab should accept initial live scores"
+  );
+  assert.match(
+    source,
+    /useLiveScores\(currentGW, gwFixtures, group\.competition \|\| "PL", activeSeason, initialLiveScores\)/,
+    "FixturesTab should seed its live-score hook from initial live scores"
+  );
+  assert.match(
+    source,
+    /<FixturesTab[^>]*initialLiveScores=\{standingsLiveScores\}/s,
+    "GameUI should pass preloaded shell live scores into FixturesTab"
+  );
+});
+
+test("live score hook keeps a shared cache for first render", () => {
+  const source = loadAppSource();
+
+  assert.match(source, /const LIVE_SCORE_CACHE = new Map\(\);/);
+  assert.match(source, /const EMPTY_LIVE_SCORES = \{\};/);
+  assert.match(source, /LIVE_SCORE_CACHE\.get\(cacheKey\)/);
+  assert.match(source, /LIVE_SCORE_CACHE\.set\(cacheKey, map\)/);
 });

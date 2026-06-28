@@ -546,11 +546,31 @@ function useHorizontalScroll() {
   }, []);
 }
 
+const LIVE_SCORE_CACHE = new Map();
+const EMPTY_LIVE_SCORES = {};
+
+function liveScoreCacheKey(gw, fixtures = [], competition = "PL", season = 2025) {
+  const dateKey = competition === "WC"
+    ? [...new Set((fixtures || []).map(f => String(f.date || "").slice(0, 10)).filter(Boolean))].sort().join(",")
+    : "";
+  return `${competition}:${season}:${gw}:${dateKey}`;
+}
+
+function mergeLiveScoreMaps(...maps) {
+  return Object.assign({}, ...maps.filter(Boolean));
+}
+
 // Poll Yahoo Sports API for live scores during active match windows
-function useLiveScores(gw, fixtures, competition = "PL", season = 2025) {
-  const [liveData, setLiveData] = useState({});
+function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialLiveScores = EMPTY_LIVE_SCORES) {
+  const cacheKey = liveScoreCacheKey(gw, fixtures, competition, season);
+  const [liveData, setLiveData] = useState(() => mergeLiveScoreMaps(LIVE_SCORE_CACHE.get(cacheKey), initialLiveScores));
   const fixturesRef = useRef(fixtures);
   fixturesRef.current = fixtures;
+
+  useEffect(() => {
+    const seeded = mergeLiveScoreMaps(LIVE_SCORE_CACHE.get(cacheKey), initialLiveScores);
+    if (Object.keys(seeded).length) setLiveData(prev => mergeLiveScoreMaps(seeded, prev));
+  }, [cacheKey, initialLiveScores]);
 
   useEffect(() => {
     if (!gw || (competition !== "PL" && competition !== "WC")) {
@@ -598,6 +618,7 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025) {
         (data.matches || []).forEach(m => {
           map[`${m.home}|${m.away}`] = m;
         });
+        LIVE_SCORE_CACHE.set(cacheKey, map);
         setLiveData(map);
       } catch (_) {}
       if (!cancelled) timer = setTimeout(poll, 5000);
@@ -605,7 +626,7 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025) {
 
     poll();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
-  }, [gw, competition, season]);
+  }, [gw, competition, season, cacheKey]);
 
   return liveData;
 }
@@ -2985,7 +3006,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
         )}
         <TabErrorBoundary key={tab} tabName={tab}>
           {tab==="League"&&<LeagueTab group={scoringGroup} user={user} names={names} theme={theme}/>}
-          {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup}/>}
+          {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup} initialLiveScores={standingsLiveScores}/>}
           {tab==="Standings"&&<WCStandingsTab group={group} theme={theme}/>}
           {tab==="Trends"&&<TrendsTab group={scoringGroup} names={names} theme={theme}/>}
           {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} updateNickname={updateNickname} theme={theme} setGroup={setGroup} setNames={setNames}/>}
@@ -3501,13 +3522,14 @@ function computeGWStatus(gwObj, hiddenGWs = [], isAdmin = false) {
   if (locked) return "locked";
   const fixtures = (gwObj.fixtures || []).filter(f => f.status !== "POSTPONED");
   if (fixtures.length === 0) return "empty";
-  const withResult = fixtures.filter(f => f.result || f.status === "FINISHED");
+  if (fixtures.some(f => f.status === "FINISHED" && !f.result)) return "active";
+  const withResult = fixtures.filter(f => f.result);
   if (withResult.length === fixtures.length) return "complete";
   if (withResult.length > 0) return "active";
   return "future";
 }
 
-function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
+function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores={}}) {
   const mob = useMobile();
   const isIndex = theme === "index";
   const gwStripRef = useRef(null);
@@ -3527,7 +3549,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
     // Find lowest GW with at least one non-postponed fixture missing a result
     const activeGW = seasonGWs.find(gwObj =>
-      (gwObj.fixtures||[]).some(f => !f.result && f.status !== "FINISHED" && f.status !== "POSTPONED")
+      (gwObj.fixtures||[]).some(f => !f.result && f.status !== "POSTPONED")
     );
     if (activeGW) return activeGW.gw;
     // All complete: show last GW with results
@@ -3540,7 +3562,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     const seas = group.season || 2025;
     const seasonGWs = (group.gameweeks || []).filter(g => (g.season || seas) === seas).sort((a, b) => a.gw - b.gw);
     const found = seasonGWs.find(gwObj =>
-      (gwObj.fixtures || []).some(f => !f.result && f.status !== "FINISHED" && f.status !== "POSTPONED")
+      (gwObj.fixtures || []).some(f => !f.result && f.status !== "POSTPONED")
     );
     return found?.gw || null;
   }, [group.gameweeks, group.season]);
@@ -3549,7 +3571,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
-  const liveScores = useLiveScores(currentGW, gwFixtures, group.competition || "PL", activeSeason);
+  const liveScores = useLiveScores(currentGW, gwFixtures, group.competition || "PL", activeSeason, initialLiveScores);
   const gwObj = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
   const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
   const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
