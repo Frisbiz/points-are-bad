@@ -39,13 +39,13 @@ test("World Cup bracket columns fit desktop while reserving more room for kickof
   assert.ok(totalDesktopBracketW <= 1050);
 });
 
-test("All picks table keeps the fixture/result/name header sticky while scrolling", () => {
+test("All picks table header stays in normal table flow", () => {
   const tableBlock = appSource.slice(
     appSource.indexOf("function AllPicksTable"),
     appSource.indexOf("function TrendsTab")
   );
 
-  assert.match(tableBlock, /const picksHeaderStickyTop = theme==="index" \? 64 : 60;/);
-  assert.match(tableBlock, /<thead style=\{\{position:"sticky",top:picksHeaderStickyTop,zIndex:20\}\}>/);
-  assert.match(tableBlock, /background:theme==="excel"\?"#1a1a1a":"var\(--bg\)"/);
+  assert.doesNotMatch(tableBlock, /picksHeaderStickyTop/);
+  assert.doesNotMatch(tableBlock, /position:"sticky",top:picksHeaderStickyTop/);
+  assert.match(tableBlock, /<thead><tr style=\{\{borderBottom:"1px solid var\(--border\)",background:theme==="excel"\?"#1a1a1a":undefined\}\}>/);
 });
