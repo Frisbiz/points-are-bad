@@ -125,7 +125,64 @@ test("auto sync still targets finished fixtures missing saved results", () => {
     ],
   };
 
-  assert.equal(autoSyncTargetGW(group), 4);
+  assert.equal(autoSyncTargetGW(group, new Date("2026-06-29T03:00:00.000Z").getTime()), 4);
+});
+
+test("auto sync prioritizes past scheduled fixtures missing results over future fixtures", () => {
+  const autoSyncTargetGW = loadAppFunction("autoSyncTargetGW");
+  const group = {
+    season: 2026,
+    currentGW: 5,
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw4-fsoccer-g-13532361",
+            home: "South Africa",
+            away: "Canada",
+            result: null,
+            status: "SCHEDULED",
+            date: "2026-06-28T19:00:00.000Z",
+          },
+        ],
+      },
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-f1",
+            home: "W73",
+            away: "W75",
+            result: null,
+            status: "SCHEDULED",
+            date: "2026-07-04T19:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  assert.equal(autoSyncTargetGW(group, new Date("2026-06-29T03:00:00.000Z").getTime()), 4);
+});
+
+test("live score fetch retries stale scheduled fixtures that still miss results", () => {
+  const shouldFetchLiveScores = loadAppFunction("shouldFetchLiveScores");
+  const now = new Date("2026-06-29T03:00:00.000Z").getTime();
+  const fixtures = [
+    {
+      id: "wc-gw4-fsoccer-g-13532361",
+      home: "South Africa",
+      away: "Canada",
+      result: null,
+      status: "SCHEDULED",
+      date: "2026-06-28T19:00:00.000Z",
+    },
+  ];
+
+  assert.equal(shouldFetchLiveScores(fixtures, now), true);
 });
 
 test("fixtures tab is seeded with live scores already loaded by the game shell", () => {
@@ -155,4 +212,15 @@ test("live score hook keeps a shared cache for first render", () => {
   assert.match(source, /const EMPTY_LIVE_SCORES = \{\};/);
   assert.match(source, /LIVE_SCORE_CACHE\.get\(cacheKey\)/);
   assert.match(source, /LIVE_SCORE_CACHE\.set\(cacheKey, map\)/);
+});
+
+test("fixtures show syncing instead of TBD while a missing result is recoverable", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(fixturesBlock, /const pendingScoreSync = !scoreParts && shouldFetchLiveScores\(\[f\]\);/);
+  assert.match(fixturesBlock, />SYNCING</);
 });

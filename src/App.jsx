@@ -377,10 +377,9 @@ function gwLabel(group, gwNum) {
   return stageLabel(stage, gwNum);
 }
 
-function autoSyncTargetGW(group) {
+function autoSyncTargetGW(group, now = Date.now()) {
   if (!group) return null;
   const seas = group.season || 2025;
-  const now = Date.now();
   const candidates = [];
   const incomplete = [];
   (group.gameweeks || [])
@@ -393,8 +392,9 @@ function autoSyncTargetGW(group) {
         const kickoff = new Date(f.date).getTime();
         if (!Number.isFinite(kickoff)) return;
         const inLiveWindow = kickoff <= now + 30 * 60000 && kickoff >= now - 4 * 3600000;
+        const recentMissingResult = kickoff <= now && kickoff >= now - 72 * 3600000;
         const nearUpcoming = kickoff <= now + 24 * 3600000 && kickoff >= now;
-        candidates.push({ gw: gw.gw, kickoff, score: inLiveWindow ? 0 : nearUpcoming ? 1 : kickoff > now ? 2 : 3 });
+        candidates.push({ gw: gw.gw, kickoff, score: inLiveWindow ? 0 : recentMissingResult ? 1 : nearUpcoming ? 2 : kickoff > now ? 3 : 4 });
       });
     });
   if (candidates.length) {
@@ -567,6 +567,19 @@ function mergeLiveScoreMaps(...maps) {
   return Object.assign({}, ...maps.filter(Boolean));
 }
 
+function shouldFetchLiveScores(fixtures = [], now = Date.now()) {
+  if (!fixtures?.length) return false;
+  return fixtures.some(f => {
+    if (f.result || f.status === "POSTPONED") return false;
+    if (f.status === "FINISHED") return true;
+    if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
+    if (!f.date) return false;
+    const kickoff = new Date(f.date).getTime();
+    if (!Number.isFinite(kickoff)) return false;
+    return kickoff <= now + 5 * 60000 && kickoff >= now - 72 * 3600000;
+  });
+}
+
 // Poll Yahoo Sports API for live scores during active match windows
 function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialLiveScores = EMPTY_LIVE_SCORES) {
   const cacheKey = liveScoreCacheKey(gw, fixtures, competition, season);
@@ -587,26 +600,9 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
     let cancelled = false;
     let timer = null;
 
-    const shouldFetch = () => {
-      const ff = fixturesRef.current;
-      if (!ff?.length) return false;
-      const now = Date.now();
-      return ff.some(f => {
-        if (f.result || f.status === "POSTPONED") return false;
-        if (f.status === "FINISHED") return true;
-        if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
-        if (f.date) {
-          const kickoff = new Date(f.date).getTime();
-          // Poll if kickoff was within last 4h or is within next 5min
-          return kickoff <= now + 5 * 60000 && kickoff >= now - 4 * 3600000;
-        }
-        return false;
-      });
-    };
-
     const poll = async () => {
       if (cancelled) return;
-      if (!shouldFetch()) {
+      if (!shouldFetchLiveScores(fixturesRef.current)) {
         // No live window: check again in 60s in case a match is about to start
         timer = setTimeout(poll, 60000);
         return;
@@ -3871,6 +3867,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const scoreStr = effResult;
         const elapsed = yahooScored ? liveMatch.elapsed : (isLive ? f.elapsed : null);
         const scoreParts = scoreStr ? scoreStr.split("-") : null;
+        const pendingScoreSync = !scoreParts && shouldFetchLiveScores([f]);
         const resultBlock = scoreParts?(
           <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
             <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"right",letterSpacing:0}}>{scoreParts[0]}</span>
@@ -3882,11 +3879,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
             </span>
           </div>
         ):f.status==="POSTPONED"?(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
-            <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
-            {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
-          </div>
-        ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+              <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
+              {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
+              </div>
+            ):pendingScoreSync?(
+              <span style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1}}>SYNCING</span>
+            ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
         const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
         const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = picksLocked && !hardLocked ? (

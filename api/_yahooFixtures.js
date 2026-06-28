@@ -405,7 +405,7 @@ function hasRecentOrTodayWindow(fixtures = []) {
   return fixtures.some(f => {
     if (!f.date || f.result || f.status === "FINISHED" || f.status === "POSTPONED") return false;
     const kickoff = new Date(f.date).getTime();
-    return kickoff <= now + 24 * 60 * 60_000 && kickoff >= now - 8 * 60 * 60_000;
+    return kickoff <= now + 24 * 60 * 60_000 && kickoff >= now - 72 * 60 * 60_000;
   });
 }
 
@@ -437,7 +437,7 @@ function refreshDatesForFixtures(fixtures = []) {
     if (!f.date || f.result || f.status === "FINISHED" || f.status === "POSTPONED") return false;
     if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
     const kickoff = new Date(f.date).getTime();
-    return kickoff <= now + 24 * 60 * 60_000 && kickoff >= now - 8 * 60 * 60_000;
+    return kickoff <= now + 24 * 60 * 60_000 && kickoff >= now - 72 * 60 * 60_000;
   }).flatMap(datesForFixture))];
   return focused.length ? focused : allDates;
 }
