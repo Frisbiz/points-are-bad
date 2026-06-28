@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } fr
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
+import { getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot } from "../api/_wcBracket.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -3151,7 +3152,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const finalMatch = gw8.find(f => f.stage === "FINAL") || gw8[0] || null;
   const thirdMatch = gw8.find(f => f.stage === "THIRD_PLACE") || (gw8.length > 1 ? gw8[1] : null);
 
-  const MatchCard = ({ f, blockH }) => {
+  const MatchCard = ({ f, blockH, gw, matchIndex }) => {
     const winner = winnerSide(f);
     return (
       <div style={{
@@ -3167,8 +3168,10 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
         flexDirection:"column",
       }}>
         {["home","away"].map(side => {
-          const team = f?.[side] || null;
-          const crest = f?.[`${side}Crest`] || null;
+          const rawTeam = f?.[side] || null;
+          const unresolved = isUnresolvedWorldCupTeamSlot(rawTeam);
+          const team = unresolved ? getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, f?.stage, f) : rawTeam;
+          const crest = unresolved ? null : (f?.[`${side}Crest`] || null);
           const score = f?.result ? f.result.split("-")[side==="home"?0:1] : null;
           const wins = winner === side;
           const loses = winner && winner !== side;
@@ -3240,7 +3243,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
                 <div style={{height:TOTAL_H,position:"relative"}}>
                   {Array.from({length:count},(_,i)=>(
                     <div key={i} style={{position:"absolute",top:i*blockH,left:0,right:0,height:blockH}}>
-                      <MatchCard f={displayFixtures[i]||null} blockH={blockH}/>
+                      <MatchCard f={displayFixtures[i]||null} blockH={blockH} gw={gw} matchIndex={i}/>
                     </div>
                   ))}
                 </div>
@@ -3255,8 +3258,10 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
           <div style={{fontSize:9,color:"var(--text-dim)",letterSpacing:2,marginBottom:8}}>3RD PLACE PLAYOFF</div>
           <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",display:"flex",flexDirection:"column",maxWidth:COL_W,height:CARD_H}}>
             {["home","away"].map(side=>{
-              const team = thirdMatch[side]||null;
-              const crest = thirdMatch[`${side}Crest`]||null;
+              const rawTeam = thirdMatch[side]||null;
+              const unresolved = isUnresolvedWorldCupTeamSlot(rawTeam);
+              const team = unresolved ? getWorldCupKnockoutPlaceholderLabel(8, 0, side, "THIRD_PLACE", thirdMatch) : rawTeam;
+              const crest = unresolved ? null : (thirdMatch[`${side}Crest`]||null);
               const score = thirdMatch.result ? thirdMatch.result.split("-")[side==="home"?0:1] : null;
               const winner = winnerSide(thirdMatch);
               const wins = winner===side;

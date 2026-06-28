@@ -5,6 +5,8 @@ import {
   fixtureHasWorldCupSeedPlaceholder,
   formatWorldCupFixtureSeedPlaceholders,
   formatWorldCupGlobalDocSeedPlaceholders,
+  getWorldCupKnockoutPlaceholderLabel,
+  isUnresolvedWorldCupTeamSlot,
   resolveWorldCupGlobalDocSeeds,
   resolveWorldCupKnockoutSeeds,
 } from "../api/_wcBracket.js";
@@ -222,4 +224,43 @@ test("formats seed placeholders already stored in the WC global fixture cache be
   assert.equal(fixture.homeOriginalSeed, "1B");
   assert.equal(fixture.away, "3RD P");
   assert.equal(fixture.awayOriginalSeed, "3E/3F/3G/3I/3J");
+});
+
+test("labels unresolved World Cup knockout bracket slots like Yahoo", () => {
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(5, 0, "home"), "W74");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(5, 0, "away"), "W77");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(5, 7, "home"), "W85");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(5, 7, "away"), "W87");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(6, 0, "home"), "W89");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(7, 1, "away"), "W100");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(8, 0, "away"), "W102");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(8, 0, "home", "THIRD_PLACE"), "L101");
+  assert.equal(getWorldCupKnockoutPlaceholderLabel(8, 0, "away", "THIRD_PLACE"), "L102");
+});
+
+test("uses Yahoo game ids for unresolved World Cup knockout labels when available", () => {
+  assert.equal(
+    getWorldCupKnockoutPlaceholderLabel(5, 0, "home", "ROUND_OF_16", { apiId: "soccer.g.13532378" }),
+    "W73"
+  );
+  assert.equal(
+    getWorldCupKnockoutPlaceholderLabel(5, 0, "away", "ROUND_OF_16", { apiId: "soccer.g.13532378" }),
+    "W75"
+  );
+  assert.equal(
+    getWorldCupKnockoutPlaceholderLabel(6, 1, "home", "QUARTER_FINAL", { id: "wc-gw6-fsoccer-g-13532386" }),
+    "W93"
+  );
+  assert.equal(
+    getWorldCupKnockoutPlaceholderLabel(8, 0, "away", "THIRD_PLACE", { apiId: "soccer.g.13532391" }),
+    "L102"
+  );
+});
+
+test("detects only empty/TBD World Cup team slots as unresolved", () => {
+  assert.equal(isUnresolvedWorldCupTeamSlot(""), true);
+  assert.equal(isUnresolvedWorldCupTeamSlot(null), true);
+  assert.equal(isUnresolvedWorldCupTeamSlot("TBD"), true);
+  assert.equal(isUnresolvedWorldCupTeamSlot("South Africa"), false);
+  assert.equal(isUnresolvedWorldCupTeamSlot("W74"), false);
 });

@@ -23,8 +23,81 @@ const THIRD_PLACE_ASSIGNMENTS = {
   ABDEFGIL: ["3E", "3G", "3B", "3D", "3A", "3F", "3L", "3I"],
 };
 
+const KNOCKOUT_PLACEHOLDER_LABELS_BY_GW = {
+  5: [
+    ["W74", "W77"],
+    ["W76", "W78"],
+    ["W73", "W75"],
+    ["W79", "W80"],
+    ["W83", "W84"],
+    ["W86", "W88"],
+    ["W81", "W82"],
+    ["W85", "W87"],
+  ],
+  6: [
+    ["W89", "W90"],
+    ["W91", "W92"],
+    ["W93", "W94"],
+    ["W95", "W96"],
+  ],
+  7: [
+    ["W97", "W98"],
+    ["W99", "W100"],
+  ],
+  8: [["W101", "W102"]],
+};
+
+const THIRD_PLACE_PLACEHOLDER_LABELS = ["L101", "L102"];
+
+const YAHOO_GAME_PLACEHOLDER_LABELS = {
+  13532377: ["W74", "W77"],
+  13532378: ["W73", "W75"],
+  13532379: ["W76", "W78"],
+  13532380: ["W79", "W80"],
+  13532381: ["W83", "W84"],
+  13532382: ["W81", "W82"],
+  13532383: ["W86", "W88"],
+  13532384: ["W85", "W87"],
+  13532385: ["W89", "W90"],
+  13532386: ["W93", "W94"],
+  13532387: ["W91", "W92"],
+  13532388: ["W95", "W96"],
+  13532389: ["W97", "W98"],
+  13532390: ["W99", "W100"],
+  13532391: ["L101", "L102"],
+  13532392: ["W101", "W102"],
+};
+
 function displayTeamName(team) {
   return TEAM_DISPLAY_MAP[team] || team;
+}
+
+function sideIndex(side) {
+  return side === "away" || side === 1 ? 1 : 0;
+}
+
+function yahooGameIdKey(fixture) {
+  const source = [fixture?.apiId, fixture?.gameid, fixture?.id].filter(Boolean).join(" ");
+  const match = source.match(/135323(?:7[7-9]|8[0-9]|9[0-2])/);
+  return match ? match[0] : null;
+}
+
+export function isUnresolvedWorldCupTeamSlot(value) {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  return !normalized || normalized === "TBD";
+}
+
+export function getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, stage = null, fixture = null) {
+  const index = sideIndex(side);
+  const yahooLabels = YAHOO_GAME_PLACEHOLDER_LABELS[yahooGameIdKey(fixture)];
+  if (yahooLabels?.[index]) return yahooLabels[index];
+
+  if (String(stage || "").toUpperCase() === "THIRD_PLACE") {
+    return THIRD_PLACE_PLACEHOLDER_LABELS[index] || "TBD";
+  }
+
+  const roundLabels = KNOCKOUT_PLACEHOLDER_LABELS_BY_GW[Number(gw)];
+  return roundLabels?.[Number(matchIndex)]?.[index] || "TBD";
 }
 
 function teamKey(value) {
