@@ -300,14 +300,14 @@ const TEAM_BADGES = {
 function TeamBadge({ team, crest, size = 22, style = {} }) {
   const countryCode = COUNTRY_CODES[team];
   if (countryCode) {
-    return <img src={`https://flagcdn.com/w40/${countryCode}.png`} alt={team} style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:"50%",flexShrink:0,...style}} />;
+    return <img src={`https://flagcdn.com/w40/${countryCode}.png`} alt="" aria-hidden="true" style={{width:size,height:size,objectFit:"cover",objectPosition:"center",borderRadius:"50%",flexShrink:0,...style}} />;
   }
   const src = crest || TEAM_BADGES[team];
   if (!src) {
     const fallbackColor = CLUB_COLORS[team] || "var(--text-dim)";
     return <div style={{width:size,height:size,borderRadius:"50%",background:fallbackColor,flexShrink:0,...style}} />;
   }
-  return <img src={src} alt={team} style={{width:size,height:size,objectFit:"contain",flexShrink:0,...style}} />;
+  return <img src={src} alt="" aria-hidden="true" style={{width:size,height:size,objectFit:"contain",flexShrink:0,...style}} />;
 }
 
 const PL_CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];

@@ -1,7 +1,10 @@
 import { db, docKey, getValue, setValue } from "./_db.js";
 import { dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
+import { parseYahooWorldCupStandings } from "./wc-standings.js";
+import { hasWorldCupSeedPlaceholder, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
+const YAHOO_WC_TEAMS_URL = "https://api-secure.sports.yahoo.com/v1/editorial/league/soccer.l.fbwcup/teams";
 const REQUEST_HEADERS = { "User-Agent": "Mozilla/5.0" };
 const LIVE_REFRESH_MS = 20_000;
 const SYNC_LOCK_VERSION = "v3";
@@ -92,6 +95,7 @@ function resolveTeam(scoreboard, teamId) {
   const team = scoreboard?.teams?.[teamId] || {};
   const raw = team.first_name || team.display_name || team.full_name || team.abbr || "TBD";
   return {
+    id: teamId || null,
     name: normName(NAME_MAP[raw] || raw),
     crest: resolveIsland(scoreboard, team.logo) || resolveIsland(scoreboard, team.sportacularLogo) || null,
   };
@@ -161,6 +165,8 @@ function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = n
       status,
       date: dateIso ? date.toISOString() : null,
       yahooDate: scheduleDate || dateIso || null,
+      homeTeamId: home.id,
+      awayTeamId: away.id,
       liveScore: (status === "IN_PLAY" || status === "PAUSED") ? scoreline : null,
       yahooLastUpdated: game.last_updated || null,
     };
@@ -216,6 +222,56 @@ async function fetchYahooWCDayGroups(date) {
   return scoreboards.flatMap(scoreboard => normalizeGames(scoreboard, "WC", null, date));
 }
 
+async function fetchYahooWCStandings() {
+  const response = await fetch(YAHOO_WC_TEAMS_URL, {
+    headers: {
+      ...REQUEST_HEADERS,
+      Accept: "application/xml,text/xml,*/*",
+    },
+  });
+  if (!response.ok) {
+    const err = new Error(`Yahoo standings API error ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+  return parseYahooWorldCupStandings(await response.text());
+}
+
+function wcGroupStageComplete(standings) {
+  const groups = standings?.groups || [];
+  return groups.length >= 12 && groups.every(group =>
+    (group.rows || []).length >= 4 && group.rows.every(row => Number(row.p) >= 3)
+  );
+}
+
+async function resolveWCSeedPlaceholders(fixtures) {
+  if (!fixtures.some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away))) return fixtures;
+  try {
+    const standings = await fetchYahooWCStandings();
+    if (!wcGroupStageComplete(standings)) return fixtures;
+    return resolveWorldCupKnockoutSeeds(fixtures, standings);
+  } catch (e) {
+    console.warn("WC seed resolution skipped:", e.message);
+    return fixtures;
+  }
+}
+
+async function resolveCachedWCGlobalDocSeeds(globalDoc) {
+  const hasCachedSeeds = (globalDoc?.gameweeks || []).some(gwObj =>
+    (gwObj.fixtures || []).some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away))
+  );
+  if (!hasCachedSeeds) return { globalDoc, changed: false };
+
+  try {
+    const standings = await fetchYahooWCStandings();
+    if (!wcGroupStageComplete(standings)) return { globalDoc, changed: false };
+    return resolveWorldCupGlobalDocSeeds(globalDoc, standings);
+  } catch (e) {
+    console.warn("WC cached seed resolution skipped:", e.message);
+    return { globalDoc, changed: false };
+  }
+}
+
 function addDays(isoDate, days) {
   const date = new Date(`${isoDate}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -262,7 +318,8 @@ async function fetchYahooWCRoundByDates(dates, targetGW) {
     .flat()
     .filter(gwObj => gwObj.gw === Number(targetGW))
     .flatMap(gwObj => gwObj.fixtures);
-  return dedupeFixtures(fixtures).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
+  return (await resolveWCSeedPlaceholders(dedupeFixtures(fixtures)))
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
 }
 
 export async function fetchYahooLiveMatches(competition, week, dates = []) {
@@ -304,12 +361,21 @@ async function fetchYahooSeason(competition) {
       if (!byGW[gwObj.gw]) byGW[gwObj.gw] = [];
       byGW[gwObj.gw].push(...gwObj.fixtures);
     });
+    const needsSeedResolution = Object.values(byGW)
+      .flat()
+      .some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away));
+    const standings = needsSeedResolution ? await fetchYahooWCStandings().catch(e => {
+      console.warn("WC seed resolution skipped:", e.message);
+      return null;
+    }) : null;
+    const completedStandings = standings && wcGroupStageComplete(standings) ? standings : null;
     return Object.entries(byGW).map(([gw, fixtures]) => {
       const unique = dedupeFixtures(fixtures);
       return {
         gw: Number(gw),
         season: 2026,
-        fixtures: unique.sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))),
+        fixtures: (completedStandings ? resolveWorldCupKnockoutSeeds(unique, completedStandings) : unique)
+          .sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))),
       };
     }).sort((a, b) => a.gw - b.gw);
   }
@@ -429,6 +495,13 @@ export async function refreshYahooFixtureCache({ competition = "PL", season = nu
   const seas = comp === "WC" ? 2026 : (season || COMP_CONFIG.PL.season);
   const globalKey = fixtureGlobalKey(comp, seas);
   let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [], source: "yahoo" };
+  if (comp === "WC") {
+    const resolvedCache = await resolveCachedWCGlobalDocSeeds(globalDoc);
+    if (resolvedCache.changed) {
+      globalDoc = { ...resolvedCache.globalDoc, season: seas, source: "yahoo", updatedAt: Date.now() };
+      await setValue(globalKey, globalDoc);
+    }
+  }
   const interval = refreshIntervalMs(globalDoc, targetGW);
   const seasonSync = full || needsSeasonSync(globalDoc, comp, targetGW);
   const minInterval = seasonSync ? (comp === "WC" ? 5 * 60_000 : 12 * 60 * 60_000) : interval;
