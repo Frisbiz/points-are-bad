@@ -3135,8 +3135,8 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const mob = useMobile();
   const SLOT_H = mob ? 36 : 56;
   const CARD_H = mob ? 28 : 46;
-  const COL_W  = mob ? 170 : 224;
-  const CONN_W = mob ? 12 : 22;
+  const COL_W  = mob ? 150 : 196;
+  const CONN_W = mob ? 12 : 16;
   const TOTAL_H = 16 * SLOT_H;
 
   const getGWFixtures = (gwNum) =>
@@ -3155,7 +3155,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const MatchCard = ({ f, blockH, gw, matchIndex }) => {
     const winner = winnerSide(f);
     const kickoff = formatWorldCupBracketKickoff(f?.date);
-    const dateW = mob ? 44 : 58;
+    const dateW = mob ? 52 : 68;
     return (
       <div style={{
         position:"absolute",

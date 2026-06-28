@@ -15,11 +15,26 @@ test("TeamBadge images are decorative so visible team names are not duplicated i
   assert.doesNotMatch(teamBadgeBlock, /alt=\{team\}/);
 });
 
-test("World Cup bracket columns are wide enough for team names and kickoff times", () => {
+test("World Cup bracket columns fit desktop while reserving more room for kickoff times", () => {
   const bracketBlock = appSource.slice(
     appSource.indexOf("function WCKnockoutStage"),
     appSource.indexOf("function LeagueTab")
   );
+  const colMatch = bracketBlock.match(/const COL_W\s+= mob \? (\d+) : (\d+);/);
+  const connMatch = bracketBlock.match(/const CONN_W\s+= mob \? (\d+) : (\d+);/);
+  const dateMatch = bracketBlock.match(/const dateW = mob \? (\d+) : (\d+);/);
 
-  assert.match(bracketBlock, /const COL_W\s+= mob \? 170 : 224;/);
+  assert.ok(colMatch);
+  assert.ok(connMatch);
+  assert.ok(dateMatch);
+
+  const desktopColW = Number(colMatch[2]);
+  const desktopConnW = Number(connMatch[2]);
+  const desktopDateW = Number(dateMatch[2]);
+  const totalDesktopBracketW = (desktopColW * 5) + (desktopConnW * 4);
+
+  assert.equal(desktopColW, 196);
+  assert.equal(desktopConnW, 16);
+  assert.equal(desktopDateW, 68);
+  assert.ok(totalDesktopBracketW <= 1050);
 });
