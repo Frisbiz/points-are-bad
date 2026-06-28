@@ -171,7 +171,7 @@ function shortTeamName(name, max = TEAM_DISPLAY_LIMIT) {
 function effectiveFixtureResult(fixture, liveScores) {
   if (fixture.result) return fixture.result;
   const lm = liveScores?.[`${fixture.home}|${fixture.away}`];
-  if (lm && (lm.status === "in_progress" || lm.status === "halftime") && lm.homeScore != null && lm.awayScore != null) {
+  if (lm && (lm.status === "in_progress" || lm.status === "halftime" || lm.status === "finished") && lm.homeScore != null && lm.awayScore != null) {
     return `${lm.homeScore}-${lm.awayScore}`;
   }
   if (fixture.liveScore) return fixture.liveScore;
@@ -3804,10 +3804,12 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const liveMatch = liveScores[`${f.home}|${f.away}`];
-        const yahooLive = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime");
-        const isLive = f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooLive;
-        const scoreStr = f.result || (yahooLive ? `${liveMatch.homeScore}-${liveMatch.awayScore}` : f.liveScore || null);
-        const elapsed = yahooLive ? liveMatch.elapsed : (isLive ? f.elapsed : null);
+        const yahooScored = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime"||liveMatch.status==="finished") && liveMatch.homeScore != null && liveMatch.awayScore != null;
+        const yahooFinal = yahooScored && liveMatch.status==="finished";
+        const storedFinal = !!f.result || f.status==="FINISHED";
+        const isLive = (f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooScored) && !yahooFinal && !storedFinal;
+        const scoreStr = effResult;
+        const elapsed = yahooScored ? liveMatch.elapsed : (isLive ? f.elapsed : null);
         const scoreParts = scoreStr ? scoreStr.split("-") : null;
         const resultBlock = scoreParts?(
           <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
@@ -3815,7 +3817,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",padding:"0 3px"}}>{"–"}</span>
             <span style={{display:"flex",alignItems:"center",gap:4}}>
               <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0}}>{scoreParts[1]}</span>
-              {f.status==="FINISHED"&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
+              {(storedFinal||yahooFinal)&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
               {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>{elapsed||"LIVE"}</span>}
             </span>
           </div>
@@ -3839,7 +3841,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup}) {
             {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
             {myPreds[f.id]
               ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
-              : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
+              : (effResult||f.status==="IN_PLAY"||f.status==="PAUSED")
                 ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                 : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
           </span>
@@ -4081,10 +4083,11 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                 </td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{(()=>{
                   const lm = liveScores[`${f.home}|${f.away}`];
-                  const yLive = !f.result && lm && (lm.status==="in_progress"||lm.status==="halftime");
-                  const liveStr = yLive ? `${lm.homeScore}-${lm.awayScore}` : f.liveScore || null;
+                  const yScored = !f.result && lm && (lm.status==="in_progress"||lm.status==="halftime"||lm.status==="finished") && lm.homeScore != null && lm.awayScore != null;
+                  const liveStr = yScored ? `${lm.homeScore}-${lm.awayScore}` : f.liveScore || null;
+                  const finalish = yScored && lm.status==="finished";
                   if (f.result) return f.result;
-                  if (liveStr) return <span style={{color:"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:"pulse 1.5s infinite"}}>{lm?.elapsed||"LIVE"}</span></span>;
+                  if (liveStr) return <span style={{color:finalish?"var(--text-bright)":"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:finalish?undefined:"pulse 1.5s infinite",color:finalish?"#22c55e":undefined}}>{finalish?"FT":lm?.elapsed||"LIVE"}</span></span>;
                   if (f.status==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
                   return null;
                 })()}</td>
@@ -4109,7 +4112,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                         ):(
                           pred
                             ? <span style={{fontSize:13,fontWeight:600,color:"#222"}}>{pred}</span>
-                            : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
+                            : (effRes||f.status==="IN_PLAY"||f.status==="PAUSED")
                               ? <span style={{fontSize:18,fontWeight:700,color:"#ef4444"}}>×</span>
                               : <span style={{fontSize:13,fontWeight:600,color:"#999"}}>–</span>
                         )}
@@ -4141,7 +4144,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
                           {pred
                             ? <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred}</span>
-                            : (f.result||f.status==="IN_PLAY"||f.status==="PAUSED")
+                            : (effRes||f.status==="IN_PLAY"||f.status==="PAUSED")
                               ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                               : <span style={{color:"var(--text-dim3)",fontSize:11}}>–</span>}
                           <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
