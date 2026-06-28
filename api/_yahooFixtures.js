@@ -1,7 +1,7 @@
 import { db, docKey, getValue, setValue } from "./_db.js";
 import { dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 import { parseYahooWorldCupStandings } from "./wc-standings.js";
-import { hasWorldCupSeedPlaceholder, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
+import { fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const YAHOO_WC_TEAMS_URL = "https://api-secure.sports.yahoo.com/v1/editorial/league/soccer.l.fbwcup/teams";
@@ -245,30 +245,36 @@ function wcGroupStageComplete(standings) {
 }
 
 async function resolveWCSeedPlaceholders(fixtures) {
-  if (!fixtures.some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away))) return fixtures;
+  const formatted = formatWorldCupFixtureSeedPlaceholders(fixtures);
+  if (!formatted.some(fixtureHasWorldCupSeedPlaceholder)) return formatted;
   try {
     const standings = await fetchYahooWCStandings();
-    if (!wcGroupStageComplete(standings)) return fixtures;
-    return resolveWorldCupKnockoutSeeds(fixtures, standings);
+    if (!wcGroupStageComplete(standings)) return formatted;
+    return resolveWorldCupKnockoutSeeds(formatted, standings);
   } catch (e) {
     console.warn("WC seed resolution skipped:", e.message);
-    return fixtures;
+    return formatted;
   }
 }
 
 async function resolveCachedWCGlobalDocSeeds(globalDoc) {
-  const hasCachedSeeds = (globalDoc?.gameweeks || []).some(gwObj =>
-    (gwObj.fixtures || []).some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away))
+  const formattedCache = formatWorldCupGlobalDocSeedPlaceholders(globalDoc);
+  const hasCachedSeeds = (formattedCache.globalDoc?.gameweeks || []).some(gwObj =>
+    (gwObj.fixtures || []).some(fixtureHasWorldCupSeedPlaceholder)
   );
-  if (!hasCachedSeeds) return { globalDoc, changed: false };
+  if (!hasCachedSeeds) return formattedCache;
 
   try {
     const standings = await fetchYahooWCStandings();
-    if (!wcGroupStageComplete(standings)) return { globalDoc, changed: false };
-    return resolveWorldCupGlobalDocSeeds(globalDoc, standings);
+    if (!wcGroupStageComplete(standings)) return formattedCache;
+    const resolved = resolveWorldCupGlobalDocSeeds(formattedCache.globalDoc, standings);
+    return {
+      changed: formattedCache.changed || resolved.changed,
+      globalDoc: resolved.globalDoc,
+    };
   } catch (e) {
     console.warn("WC cached seed resolution skipped:", e.message);
-    return { globalDoc, changed: false };
+    return formattedCache;
   }
 }
 
@@ -363,14 +369,14 @@ async function fetchYahooSeason(competition) {
     });
     const needsSeedResolution = Object.values(byGW)
       .flat()
-      .some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away));
+      .some(fixtureHasWorldCupSeedPlaceholder);
     const standings = needsSeedResolution ? await fetchYahooWCStandings().catch(e => {
       console.warn("WC seed resolution skipped:", e.message);
       return null;
     }) : null;
     const completedStandings = standings && wcGroupStageComplete(standings) ? standings : null;
     return Object.entries(byGW).map(([gw, fixtures]) => {
-      const unique = dedupeFixtures(fixtures);
+      const unique = formatWorldCupFixtureSeedPlaceholders(dedupeFixtures(fixtures));
       return {
         gw: Number(gw),
         season: 2026,

@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "../api/_wcBracket.js";
+import {
+  fixtureHasWorldCupSeedPlaceholder,
+  formatWorldCupFixtureSeedPlaceholders,
+  formatWorldCupGlobalDocSeedPlaceholders,
+  resolveWorldCupGlobalDocSeeds,
+  resolveWorldCupKnockoutSeeds,
+} from "../api/_wcBracket.js";
 
 const standings = {
   groups: [
@@ -90,6 +96,31 @@ const standings = {
   ],
 };
 
+test("formats unresolved World Cup knockout placeholders like Yahoo", () => {
+  const fixtures = [
+    {
+      id: "wc-gw4-f13532373",
+      stage: "LAST_32",
+      home: "Spain",
+      away: "2J",
+    },
+    {
+      id: "wc-gw4-f13532371",
+      stage: "LAST_32",
+      home: "Switzerland",
+      away: "3E/3F/3G/3I/3J",
+    },
+  ];
+
+  const formatted = formatWorldCupFixtureSeedPlaceholders(fixtures);
+
+  assert.equal(formatted[0].away, "2J");
+  assert.equal(formatted[0].awayOriginalSeed, "2J");
+  assert.equal(formatted[1].away, "3RD P");
+  assert.equal(formatted[1].awayOriginalSeed, "3E/3F/3G/3I/3J");
+  assert.equal(fixtureHasWorldCupSeedPlaceholder(formatted[1]), true);
+});
+
 test("resolves direct and third-place World Cup knockout seed placeholders", () => {
   const fixtures = [
     {
@@ -161,4 +192,34 @@ test("resolves seed placeholders already stored in the WC global fixture cache",
   assert.equal(changed, true);
   assert.equal(fixtures[0].away, "Algeria");
   assert.equal(fixtures[1].away, "Austria");
+});
+
+test("formats seed placeholders already stored in the WC global fixture cache before they are resolvable", () => {
+  const globalDoc = {
+    season: 2030,
+    updatedAt: 1,
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2030,
+        fixtures: [
+          {
+            id: "wc-gw4-f1",
+            stage: "LAST_32",
+            home: "1B",
+            away: "3E/3F/3G/3I/3J",
+          },
+        ],
+      },
+    ],
+  };
+
+  const { globalDoc: formattedDoc, changed } = formatWorldCupGlobalDocSeedPlaceholders(globalDoc);
+  const fixture = formattedDoc.gameweeks[0].fixtures[0];
+
+  assert.equal(changed, true);
+  assert.equal(fixture.home, "1B");
+  assert.equal(fixture.homeOriginalSeed, "1B");
+  assert.equal(fixture.away, "3RD P");
+  assert.equal(fixture.awayOriginalSeed, "3E/3F/3G/3I/3J");
 });

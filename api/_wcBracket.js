@@ -58,8 +58,58 @@ function parseThirdSeedList(value) {
   return tokens.length > 1 && tokens.every(seed => seed.startsWith("3")) ? tokens : [];
 }
 
+function sideSeedSource(fixture, side) {
+  return fixture?.[`${side}OriginalSeed`] || fixture?.[side];
+}
+
 export function hasWorldCupSeedPlaceholder(value) {
   return Boolean(parseSeed(value) || parseThirdSeedList(value).length);
+}
+
+export function fixtureHasWorldCupSeedPlaceholder(fixture) {
+  return ["home", "away"].some(side => hasWorldCupSeedPlaceholder(sideSeedSource(fixture, side)));
+}
+
+function yahooStyleSeedName(value) {
+  const seed = parseSeed(value);
+  if (seed) return seed;
+  if (parseThirdSeedList(value).length) return "3RD P";
+  return null;
+}
+
+function formatFixtureSideSeedPlaceholder(fixture, side) {
+  const source = sideSeedSource(fixture, side);
+  const display = yahooStyleSeedName(source);
+  if (!display) return null;
+  return {
+    [side]: display,
+    [`${side}OriginalSeed`]: String(source || "").trim(),
+  };
+}
+
+export function formatWorldCupFixtureSeedPlaceholders(fixtures = []) {
+  return fixtures.map(fixture => {
+    const homePatch = formatFixtureSideSeedPlaceholder(fixture, "home");
+    const awayPatch = formatFixtureSideSeedPlaceholder(fixture, "away");
+    if (!homePatch && !awayPatch) return fixture;
+    return { ...fixture, ...homePatch, ...awayPatch };
+  });
+}
+
+export function formatWorldCupGlobalDocSeedPlaceholders(globalDoc = {}) {
+  let changed = false;
+  const gameweeks = (globalDoc.gameweeks || []).map(gwObj => {
+    const originalFixtures = gwObj.fixtures || [];
+    const fixtures = formatWorldCupFixtureSeedPlaceholders(originalFixtures);
+    if (!fixtures.some((fixture, index) => fixture !== originalFixtures[index])) return gwObj;
+    changed = true;
+    return { ...gwObj, fixtures };
+  });
+
+  return {
+    changed,
+    globalDoc: changed ? { ...globalDoc, gameweeks } : globalDoc,
+  };
 }
 
 function buildStandingsIndex(standings = {}) {
@@ -117,7 +167,7 @@ function rowPatchForSide(side, row, seed, originalSeed) {
 }
 
 function resolveSide(fixture, side, index) {
-  const originalSeed = String(fixture?.[side] || "").trim();
+  const originalSeed = String(sideSeedSource(fixture, side) || "").trim();
   const simpleSeed = parseSeed(originalSeed);
   if (simpleSeed) {
     const row = index.bySeed.get(simpleSeed);
@@ -140,7 +190,7 @@ export function resolveWorldCupKnockoutSeeds(fixtures = [], standings = {}) {
   const index = buildStandingsIndex(standings);
   if (!index.bySeed.size) return fixtures;
 
-  return fixtures.map(fixture => {
+  return formatWorldCupFixtureSeedPlaceholders(fixtures).map(fixture => {
     const homePatch = resolveSide(fixture, "home", index);
     const awayPatch = resolveSide(fixture, "away", index);
     if (!homePatch && !awayPatch) return fixture;
@@ -149,10 +199,11 @@ export function resolveWorldCupKnockoutSeeds(fixtures = [], standings = {}) {
 }
 
 export function resolveWorldCupGlobalDocSeeds(globalDoc = {}, standings = {}) {
-  let changed = false;
-  const gameweeks = (globalDoc.gameweeks || []).map(gwObj => {
+  const formatted = formatWorldCupGlobalDocSeedPlaceholders(globalDoc);
+  let changed = formatted.changed;
+  const gameweeks = (formatted.globalDoc.gameweeks || []).map(gwObj => {
     const fixtures = gwObj.fixtures || [];
-    if (!fixtures.some(f => hasWorldCupSeedPlaceholder(f.home) || hasWorldCupSeedPlaceholder(f.away))) {
+    if (!fixtures.some(fixtureHasWorldCupSeedPlaceholder)) {
       return gwObj;
     }
 
