@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import {
   fixtureHasWorldCupSeedPlaceholder,
   formatWorldCupBracketKickoff,
+  formatWorldCupBracketMatchMeta,
   formatWorldCupBracketTeamName,
   formatWorldCupFixtureSeedPlaceholders,
   formatWorldCupGlobalDocSeedPlaceholders,
@@ -442,6 +443,7 @@ test("knockout bracket renders with advanced winner placeholders resolved", () =
   assert.match(bracketBlock, /resolveWorldCupBracketAdvancement\(group\.gameweeks \|\| \[\]\)/);
   assert.match(bracketBlock, /bracketGameweeks\.find\(g => g\.gw === gwNum\)/);
   assert.match(bracketBlock, /winnerSideForWorldCupFixture\(f\)/);
+  assert.match(bracketBlock, /formatWorldCupBracketMatchMeta\(f/);
 });
 
 test("detects only empty/TBD World Cup team slots as unresolved", () => {
@@ -464,4 +466,32 @@ test("formats World Cup bracket kickoff date and time like Yahoo", () => {
   assert.deepEqual(kickoff, { date: "6/29", time: "5:30 PM" });
   assert.equal(formatWorldCupBracketKickoff(null), null);
   assert.equal(formatWorldCupBracketKickoff("not a date"), null);
+});
+
+test("formats World Cup bracket right strip for scheduled and finished matches", () => {
+  assert.deepEqual(
+    formatWorldCupBracketMatchMeta({ status: "SCHEDULED", date: "2026-06-29T17:30:00.000Z" }, { timeZone: "UTC" }),
+    { primary: "6/29", secondary: "5:30 PM" }
+  );
+
+  assert.deepEqual(
+    formatWorldCupBracketMatchMeta({ status: "FINISHED", result: "2-1", date: "2026-06-29T17:30:00.000Z" }, { timeZone: "UTC" }),
+    { primary: "FT", secondary: null }
+  );
+
+  assert.deepEqual(
+    formatWorldCupBracketMatchMeta({
+      status: "FINISHED",
+      result: "1-1",
+      homeTeamId: "soccer.t.379",
+      awayTeamId: "soccer.t.390",
+      winningTeamId: "soccer.t.390",
+      homeShootoutScore: 3,
+      awayShootoutScore: 4,
+      date: "2026-06-29T20:30:00.000Z",
+    }, { timeZone: "UTC" }),
+    { primary: "FT", secondary: "PEN: 4-3" }
+  );
+
+  assert.equal(formatWorldCupBracketMatchMeta({ status: "SCHEDULED" }), null);
 });

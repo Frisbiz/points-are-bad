@@ -164,6 +164,37 @@ export function winnerSideForWorldCupFixture(fixture) {
   return sideFromWinningTeamId(fixture) || sideFromShootout(fixture);
 }
 
+function isFinishedFixture(fixture) {
+  const status = String(fixture?.status || "").toUpperCase();
+  if (status === "FINISHED") return true;
+  if (!fixture?.result) return false;
+  return status !== "IN_PLAY" && status !== "PAUSED" && status !== "POSTPONED";
+}
+
+function shootoutLabel(fixture) {
+  const home = scoreNumber(fixture?.homeShootoutScore ?? fixture?.homePenaltyScore ?? fixture?.total_home_shootout_points);
+  const away = scoreNumber(fixture?.awayShootoutScore ?? fixture?.awayPenaltyScore ?? fixture?.total_away_shootout_points);
+  if (home === null || away === null) return null;
+
+  const winnerSide = winnerSideForWorldCupFixture(fixture) || sideFromShootout(fixture);
+  const first = winnerSide === "away" ? away : home;
+  const second = winnerSide === "away" ? home : away;
+  return `PEN: ${first}-${second}`;
+}
+
+export function formatWorldCupBracketMatchMeta(fixture, options = {}) {
+  if (!fixture) return null;
+  if (isFinishedFixture(fixture)) {
+    return {
+      primary: "FT",
+      secondary: shootoutLabel(fixture),
+    };
+  }
+
+  const kickoff = formatWorldCupBracketKickoff(fixture?.date, options);
+  return kickoff ? { primary: kickoff.date, secondary: kickoff.time } : null;
+}
+
 function advancedTeamPatch(sourceFixture, sourceSide, targetSide) {
   const patch = {
     [targetSide]: sourceFixture?.[sourceSide] || null,

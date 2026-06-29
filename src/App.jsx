@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } fr
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
-import { formatWorldCupBracketKickoff, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, resolveWorldCupBracketAdvancement, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
+import { formatWorldCupBracketMatchMeta, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, resolveWorldCupBracketAdvancement, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -3256,7 +3256,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
 
   const MatchCard = ({ f, blockH, gw, matchIndex }) => {
     const winner = winnerSideForWorldCupFixture(f);
-    const kickoff = formatWorldCupBracketKickoff(f?.date);
+    const matchMeta = formatWorldCupBracketMatchMeta(f);
     const dateW = mob ? 52 : 68;
     return (
       <div style={{
@@ -3269,7 +3269,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
         borderRadius:6,
         overflow:"hidden",
         display:"grid",
-        gridTemplateColumns:kickoff?`minmax(0,1fr) ${dateW}px`:"1fr",
+        gridTemplateColumns:matchMeta?`minmax(0,1fr) ${dateW}px`:"1fr",
       }}>
         <div style={{display:"flex",flexDirection:"column",minWidth:0}}>
           {["home","away"].map(side => {
@@ -3295,10 +3295,10 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
             );
           })}
         </div>
-        {kickoff&&(
+        {matchMeta&&(
           <div style={{borderLeft:"1px solid var(--border3)",display:"flex",flexDirection:"column",alignItems:"flex-start",justifyContent:"center",paddingLeft:mob?6:9,color:"var(--text-bright)",lineHeight:1.15,minWidth:0}}>
-            <span style={{fontSize:mob?9:11,fontWeight:700,whiteSpace:"nowrap"}}>{kickoff.date}</span>
-            <span style={{fontSize:mob?8:10,fontWeight:600,color:"var(--text-mid)",whiteSpace:"nowrap"}}>{kickoff.time}</span>
+            <span style={{fontSize:mob?9:11,fontWeight:700,whiteSpace:"nowrap"}}>{matchMeta.primary}</span>
+            {matchMeta.secondary&&<span style={{fontSize:mob?8:10,fontWeight:600,color:matchMeta.primary==="FT"?"#93c5fd":"var(--text-mid)",whiteSpace:"nowrap"}}>{matchMeta.secondary}</span>}
           </div>
         )}
       </div>
