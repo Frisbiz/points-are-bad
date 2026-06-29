@@ -149,13 +149,24 @@ function advancedTeamPatch(sourceFixture, sourceSide, targetSide) {
   return patch;
 }
 
-function resolveAdvancementPlaceholders(fixtures, advancementByLabel) {
+function sideAdvancementLabels(fixture, side, gw, matchIndex) {
+  const labels = [];
+  const raw = String(fixture?.[side] || "").trim().toUpperCase();
+  if (raw) labels.push(raw);
+  if (isUnresolvedWorldCupTeamSlot(fixture?.[side])) {
+    labels.push(getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, fixture?.stage, fixture));
+  }
+  return [...new Set(labels.filter(Boolean))];
+}
+
+function resolveAdvancementPlaceholders(fixtures, advancementByLabel, gw = null) {
   let changed = false;
-  const resolved = fixtures.map(fixture => {
+  const resolved = fixtures.map((fixture, matchIndex) => {
     let next = fixture;
     ["home", "away"].forEach(side => {
-      const label = String(next?.[side] || "").trim().toUpperCase();
-      const patch = advancementByLabel.get(label);
+      const patch = sideAdvancementLabels(next, side, gw, matchIndex)
+        .map(label => advancementByLabel.get(label))
+        .find(Boolean);
       if (!patch) return;
       next = { ...next, ...patch(side) };
       changed = true;
@@ -180,7 +191,7 @@ export function resolveWorldCupBracketAdvancement(gameweeks = []) {
     const gwObj = resolvedGameweeks.find(item => Number(item.gw) === gw);
     if (!gwObj) continue;
 
-    const current = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel);
+    const current = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel, gw);
     if (current.changed) resolvedGameweeks = setGWFixtures(resolvedGameweeks, gw, current.fixtures);
 
     const winnerLabels = knockoutFeederLabelsForGW(gw);
@@ -200,7 +211,7 @@ export function resolveWorldCupBracketAdvancement(gameweeks = []) {
   }
 
   return resolvedGameweeks.map(gwObj => {
-    const patched = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel);
+    const patched = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel, gwObj.gw);
     return patched.changed ? { ...gwObj, fixtures: patched.fixtures } : gwObj;
   });
 }

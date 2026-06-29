@@ -340,6 +340,47 @@ test("advances completed knockout winners into later bracket placeholders", () =
   assert.equal(complete[1].fixtures[0].away, "Brazil");
 });
 
+test("advances winners into generated placeholder labels for empty knockout slots", () => {
+  const resolved = resolveWorldCupBracketAdvancement([
+    {
+      gw: 4,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw4-fsoccer-g-13532361",
+          apiId: "13532361",
+          home: "South Africa",
+          away: "Canada",
+          result: "0-1",
+        },
+        {
+          id: "wc-gw4-fsoccer-g-13532362",
+          apiId: "13532362",
+          home: "Brazil",
+          away: "Japan",
+          result: "2-1",
+        },
+      ],
+    },
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-fsoccer-g-13532377",
+          apiId: "13532377",
+          home: "TBD",
+          away: null,
+          stage: "ROUND_OF_16",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(resolved[1].fixtures[0].home, "Canada");
+  assert.equal(resolved[1].fixtures[0].away, "Brazil");
+});
+
 test("knockout bracket renders with advanced winner placeholders resolved", () => {
   const bracketBlock = appSource.slice(
     appSource.indexOf("function WCKnockoutStage"),
