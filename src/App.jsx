@@ -604,8 +604,24 @@ function mergeLiveScoreMaps(...maps) {
 }
 
 function shouldFetchLiveScores(fixtures = [], now = Date.now()) {
+  const tiedKnockoutMissingWinner = (f) => {
+    if (!f?.result || f.status !== "FINISHED") return false;
+    const [home, away] = String(f.result).split("-").map(Number);
+    if (!Number.isFinite(home) || !Number.isFinite(away) || home !== away) return false;
+    const hasWinner = Boolean(f.winnerSide || f.winningTeamId || f.winnerTeamId)
+      || (f.homeShootoutScore !== null && f.homeShootoutScore !== undefined && f.awayShootoutScore !== null && f.awayShootoutScore !== undefined);
+    if (hasWinner) return false;
+    const stage = String(f.stage || "").toUpperCase();
+    const isKnockout = (stage && stage !== "GROUP_STAGE") || /^wc-gw[4-8]/i.test(String(f.id || ""));
+    if (!isKnockout) return false;
+    if (!f.date) return true;
+    const kickoff = new Date(f.date).getTime();
+    return Number.isFinite(kickoff) && kickoff <= now + 24 * 3600000 && kickoff >= now - 72 * 3600000;
+  };
+
   if (!fixtures?.length) return false;
   return fixtures.some(f => {
+    if (tiedKnockoutMissingWinner(f)) return true;
     if (f.result || f.status === "POSTPONED") return false;
     if (f.status === "FINISHED") return true;
     if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;

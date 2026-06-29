@@ -278,6 +278,44 @@ test("live score fetch retries stale scheduled fixtures that still miss results"
   assert.equal(shouldFetchLiveScores(fixtures, now), true);
 });
 
+test("live score fetch retries finished tied knockout fixtures missing winner metadata", () => {
+  const shouldFetchLiveScores = loadAppFunction("shouldFetchLiveScores");
+  const now = new Date("2026-06-30T02:00:00.000Z").getTime();
+  const fixtures = [
+    {
+      id: "wc-gw4-fsoccer-g-13532362",
+      home: "Germany",
+      away: "Paraguay",
+      result: "1-1",
+      status: "FINISHED",
+      stage: "LAST_32",
+      date: "2026-06-29T20:30:00.000Z",
+    },
+  ];
+
+  assert.equal(shouldFetchLiveScores(fixtures, now), true);
+});
+
+test("live score fetch skips finished tied knockout fixtures once winner metadata is saved", () => {
+  const shouldFetchLiveScores = loadAppFunction("shouldFetchLiveScores");
+  const now = new Date("2026-06-30T02:00:00.000Z").getTime();
+  const fixtures = [
+    {
+      id: "wc-gw4-fsoccer-g-13532362",
+      home: "Germany",
+      away: "Paraguay",
+      result: "1-1",
+      status: "FINISHED",
+      stage: "LAST_32",
+      winningTeamId: "soccer.t.390",
+      winnerSide: "away",
+      date: "2026-06-29T20:30:00.000Z",
+    },
+  ];
+
+  assert.equal(shouldFetchLiveScores(fixtures, now), false);
+});
+
 test("fixture kickoff labels use 12-hour am/pm time", () => {
   const formatFixtureDate = loadAppFunction("formatFixtureDate");
 
