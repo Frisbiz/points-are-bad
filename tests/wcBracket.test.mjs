@@ -272,7 +272,8 @@ test("advances completed knockout winners into later bracket placeholders", () =
       season: 2026,
       fixtures: [
         {
-          id: "wc-gw4-f13532374",
+          id: "wc-gw4-fsoccer-g-13532361",
+          apiId: "soccer.g.13532361",
           home: "South Africa",
           away: "Canada",
           homeCrest: "rsa.png",
@@ -280,7 +281,8 @@ test("advances completed knockout winners into later bracket placeholders", () =
           result: "0-1",
         },
         {
-          id: "wc-gw4-f13532377",
+          id: "wc-gw4-fsoccer-g-13532364",
+          apiId: "soccer.g.13532364",
           home: "Brazil",
           away: "Japan",
           homeCrest: "bra.png",
@@ -294,9 +296,16 @@ test("advances completed knockout winners into later bracket placeholders", () =
       season: 2026,
       fixtures: [
         {
-          id: "wc-gw5-f13532377",
-          home: "W74",
-          away: "W77",
+          id: "wc-gw5-fsoccer-g-13532378",
+          apiId: "soccer.g.13532378",
+          home: "W73",
+          away: "W75",
+        },
+        {
+          id: "wc-gw5-fsoccer-g-13532379",
+          apiId: "soccer.g.13532379",
+          home: "W76",
+          away: "W78",
         },
       ],
     },
@@ -304,7 +313,8 @@ test("advances completed knockout winners into later bracket placeholders", () =
 
   assert.equal(partial[1].fixtures[0].home, "Canada");
   assert.equal(partial[1].fixtures[0].homeCrest, "can.png");
-  assert.equal(partial[1].fixtures[0].away, "W77");
+  assert.equal(partial[1].fixtures[0].away, "W75");
+  assert.equal(partial[1].fixtures[1].home, "W76");
 
   const complete = resolveWorldCupBracketAdvancement([
     {
@@ -312,13 +322,15 @@ test("advances completed knockout winners into later bracket placeholders", () =
       season: 2026,
       fixtures: [
         {
-          id: "wc-gw4-f13532374",
+          id: "wc-gw4-fsoccer-g-13532361",
+          apiId: "soccer.g.13532361",
           home: "South Africa",
           away: "Canada",
           result: "0-1",
         },
         {
-          id: "wc-gw4-f13532377",
+          id: "wc-gw4-fsoccer-g-13532364",
+          apiId: "soccer.g.13532364",
           home: "Brazil",
           away: "Japan",
           result: "2-1",
@@ -330,16 +342,25 @@ test("advances completed knockout winners into later bracket placeholders", () =
       season: 2026,
       fixtures: [
         {
-          id: "wc-gw5-f13532377",
-          home: "W74",
-          away: "W77",
+          id: "wc-gw5-fsoccer-g-13532378",
+          apiId: "soccer.g.13532378",
+          home: "W73",
+          away: "W75",
+        },
+        {
+          id: "wc-gw5-fsoccer-g-13532379",
+          apiId: "soccer.g.13532379",
+          home: "W76",
+          away: "W78",
         },
       ],
     },
   ]);
 
   assert.equal(complete[1].fixtures[0].home, "Canada");
-  assert.equal(complete[1].fixtures[0].away, "Brazil");
+  assert.equal(complete[1].fixtures[0].away, "W75");
+  assert.equal(complete[1].fixtures[1].home, "Brazil");
+  assert.equal(complete[1].fixtures[1].away, "W78");
 });
 
 test("advances winners into generated placeholder labels for empty knockout slots", () => {
@@ -356,8 +377,8 @@ test("advances winners into generated placeholder labels for empty knockout slot
           result: "0-1",
         },
         {
-          id: "wc-gw4-fsoccer-g-13532362",
-          apiId: "13532362",
+          id: "wc-gw4-fsoccer-g-13532364",
+          apiId: "13532364",
           home: "Brazil",
           away: "Japan",
           result: "2-1",
@@ -369,8 +390,15 @@ test("advances winners into generated placeholder labels for empty knockout slot
       season: 2026,
       fixtures: [
         {
-          id: "wc-gw5-fsoccer-g-13532377",
-          apiId: "13532377",
+          id: "wc-gw5-fsoccer-g-13532378",
+          apiId: "13532378",
+          home: "TBD",
+          away: null,
+          stage: "ROUND_OF_16",
+        },
+        {
+          id: "wc-gw5-fsoccer-g-13532379",
+          apiId: "13532379",
           home: "TBD",
           away: null,
           stage: "ROUND_OF_16",
@@ -380,7 +408,9 @@ test("advances winners into generated placeholder labels for empty knockout slot
   ]);
 
   assert.equal(resolved[1].fixtures[0].home, "Canada");
-  assert.equal(resolved[1].fixtures[0].away, "Brazil");
+  assert.equal(resolved[1].fixtures[0].away, null);
+  assert.equal(resolved[1].fixtures[1].home, "Brazil");
+  assert.equal(resolved[1].fixtures[1].away, null);
 });
 
 test("advances tied knockout winners using Yahoo winner metadata", () => {
@@ -407,8 +437,8 @@ test("advances tied knockout winners using Yahoo winner metadata", () => {
       gw: 4,
       season: 2026,
       fixtures: [
-        { id: "wc-gw4-f1", home: "South Africa", away: "Canada", result: "0-1" },
-        { id: "wc-gw4-f2", home: "Brazil", away: "Japan", result: "2-1" },
+        { id: "wc-gw4-fsoccer-g-13532361", apiId: "soccer.g.13532361", home: "South Africa", away: "Canada", result: "0-1" },
+        { id: "wc-gw4-fsoccer-g-13532364", apiId: "soccer.g.13532364", home: "Brazil", away: "Japan", result: "2-1" },
         germanyParaguay,
       ],
     },
@@ -417,10 +447,10 @@ test("advances tied knockout winners using Yahoo winner metadata", () => {
       season: 2026,
       fixtures: [
         {
-          id: "wc-gw5-fsoccer-g-13532379",
-          apiId: "soccer.g.13532379",
-          home: "W76",
-          away: "W78",
+          id: "wc-gw5-fsoccer-g-13532377",
+          apiId: "soccer.g.13532377",
+          home: "W74",
+          away: "W77",
           stage: "ROUND_OF_16",
         },
       ],
@@ -431,7 +461,49 @@ test("advances tied knockout winners using Yahoo winner metadata", () => {
   assert.equal(fixture.home, "Paraguay");
   assert.equal(fixture.homeTeamId, "soccer.t.390");
   assert.equal(fixture.homeCrest, "par.png");
-  assert.equal(fixture.away, "W78");
+  assert.equal(fixture.away, "W77");
+});
+
+test("advances later knockout winners by Yahoo game id instead of fetched order", () => {
+  const resolved = resolveWorldCupBracketAdvancement([
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-fsoccer-g-13532378",
+          apiId: "soccer.g.13532378",
+          home: "Canada",
+          away: "Morocco",
+          result: "1-0",
+        },
+        {
+          id: "wc-gw5-fsoccer-g-13532377",
+          apiId: "soccer.g.13532377",
+          home: "Paraguay",
+          away: "France",
+          result: "2-1",
+        },
+      ],
+    },
+    {
+      gw: 6,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw6-fsoccer-g-13532385",
+          apiId: "soccer.g.13532385",
+          home: "W89",
+          away: "W90",
+          stage: "QUARTER_FINAL",
+        },
+      ],
+    },
+  ]);
+
+  const fixture = resolved[1].fixtures[0];
+  assert.equal(fixture.home, "Paraguay");
+  assert.equal(fixture.away, "Canada");
 });
 
 test("knockout bracket renders with advanced winner placeholders resolved", () => {

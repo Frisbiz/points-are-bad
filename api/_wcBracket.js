@@ -68,6 +68,44 @@ const YAHOO_GAME_PLACEHOLDER_LABELS = {
   13532392: ["W101", "W102"],
 };
 
+const YAHOO_GAME_WINNER_LABELS = {
+  13532361: "W73",
+  13532362: "W74",
+  13532363: "W75",
+  13532364: "W76",
+  13532365: "W77",
+  13532366: "W78",
+  13532367: "W79",
+  13532370: "W80",
+  13532368: "W81",
+  13532369: "W82",
+  13532372: "W83",
+  13532373: "W84",
+  13532371: "W85",
+  13532376: "W86",
+  13532375: "W87",
+  13532374: "W88",
+  13532377: "W89",
+  13532378: "W90",
+  13532379: "W91",
+  13532380: "W92",
+  13532381: "W93",
+  13532382: "W94",
+  13532383: "W95",
+  13532384: "W96",
+  13532385: "W97",
+  13532386: "W98",
+  13532387: "W99",
+  13532388: "W100",
+  13532389: "W101",
+  13532390: "W102",
+};
+
+const YAHOO_GAME_LOSER_LABELS = {
+  13532389: "L101",
+  13532390: "L102",
+};
+
 const WORLD_CUP_BRACKET_TEAM_NAME_LIMIT = 12;
 
 function displayTeamName(team) {
@@ -80,7 +118,7 @@ function sideIndex(side) {
 
 function yahooGameIdKey(fixture) {
   const source = [fixture?.apiId, fixture?.gameid, fixture?.id].filter(Boolean).join(" ");
-  const match = source.match(/135323(?:7[7-9]|8[0-9]|9[0-2])/);
+  const match = source.match(/135323(?:6[1-9]|7[0-9]|8[0-9]|9[0-2])/);
   return match ? match[0] : null;
 }
 
@@ -128,6 +166,18 @@ export function getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, stage 
 
 function knockoutFeederLabelsForGW(gw) {
   return (KNOCKOUT_PLACEHOLDER_LABELS_BY_GW[Number(gw) + 1] || []).flat();
+}
+
+function winnerAdvancementLabel(fixture, gw, index) {
+  const yahooLabel = YAHOO_GAME_WINNER_LABELS[yahooGameIdKey(fixture)];
+  if (yahooLabel) return yahooLabel;
+  return knockoutFeederLabelsForGW(gw)[index] || null;
+}
+
+function loserAdvancementLabel(fixture, index) {
+  const yahooLabel = YAHOO_GAME_LOSER_LABELS[yahooGameIdKey(fixture)];
+  if (yahooLabel) return yahooLabel;
+  return THIRD_PLACE_PLACEHOLDER_LABELS[index] || null;
 }
 
 function scoreNumber(value) {
@@ -250,18 +300,18 @@ export function resolveWorldCupBracketAdvancement(gameweeks = []) {
     const current = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel, gw);
     if (current.changed) resolvedGameweeks = setGWFixtures(resolvedGameweeks, gw, current.fixtures);
 
-    const winnerLabels = knockoutFeederLabelsForGW(gw);
     current.fixtures.forEach((fixture, index) => {
       const winnerSide = winnerSideForWorldCupFixture(fixture);
       if (!winnerSide) return;
 
       const loserSide = winnerSide === "home" ? "away" : "home";
-      const winnerLabel = winnerLabels[index];
+      const winnerLabel = winnerAdvancementLabel(fixture, gw, index);
       if (winnerLabel) {
         advancementByLabel.set(winnerLabel, targetSide => advancedTeamPatch(fixture, winnerSide, targetSide));
       }
-      if (gw === 7 && THIRD_PLACE_PLACEHOLDER_LABELS[index]) {
-        advancementByLabel.set(THIRD_PLACE_PLACEHOLDER_LABELS[index], targetSide => advancedTeamPatch(fixture, loserSide, targetSide));
+      const loserLabel = gw === 7 ? loserAdvancementLabel(fixture, index) : null;
+      if (loserLabel) {
+        advancementByLabel.set(loserLabel, targetSide => advancedTeamPatch(fixture, loserSide, targetSide));
       }
     });
   }
