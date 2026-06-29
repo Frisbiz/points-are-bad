@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } fr
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
-import { formatWorldCupBracketKickoff, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot } from "../api/_wcBracket.js";
+import { formatWorldCupBracketKickoff, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, resolveWorldCupBracketAdvancement } from "../api/_wcBracket.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -3193,9 +3193,10 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const COL_W  = mob ? 150 : 196;
   const CONN_W = mob ? 12 : 16;
   const TOTAL_H = 16 * SLOT_H;
+  const bracketGameweeks = useMemo(() => resolveWorldCupBracketAdvancement(group.gameweeks || []), [group.gameweeks]);
 
   const getGWFixtures = (gwNum) =>
-    (group.gameweeks || []).find(g => g.gw === gwNum)?.fixtures || [];
+    bracketGameweeks.find(g => g.gw === gwNum)?.fixtures || [];
 
   const winnerSide = (f) => {
     if (!f?.result) return null;

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   fixtureHasWorldCupSeedPlaceholder,
@@ -9,9 +10,12 @@ import {
   formatWorldCupGlobalDocSeedPlaceholders,
   getWorldCupKnockoutPlaceholderLabel,
   isUnresolvedWorldCupTeamSlot,
+  resolveWorldCupBracketAdvancement,
   resolveWorldCupGlobalDocSeeds,
   resolveWorldCupKnockoutSeeds,
 } from "../api/_wcBracket.js";
+
+const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 
 const standings = {
   groups: [
@@ -257,6 +261,93 @@ test("uses Yahoo game ids for unresolved World Cup knockout labels when availabl
     getWorldCupKnockoutPlaceholderLabel(8, 0, "away", "THIRD_PLACE", { apiId: "soccer.g.13532391" }),
     "L102"
   );
+});
+
+test("advances completed knockout winners into later bracket placeholders", () => {
+  const partial = resolveWorldCupBracketAdvancement([
+    {
+      gw: 4,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw4-f13532374",
+          home: "South Africa",
+          away: "Canada",
+          homeCrest: "rsa.png",
+          awayCrest: "can.png",
+          result: "0-1",
+        },
+        {
+          id: "wc-gw4-f13532377",
+          home: "Brazil",
+          away: "Japan",
+          homeCrest: "bra.png",
+          awayCrest: "jpn.png",
+          result: null,
+        },
+      ],
+    },
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-f13532377",
+          home: "W74",
+          away: "W77",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(partial[1].fixtures[0].home, "Canada");
+  assert.equal(partial[1].fixtures[0].homeCrest, "can.png");
+  assert.equal(partial[1].fixtures[0].away, "W77");
+
+  const complete = resolveWorldCupBracketAdvancement([
+    {
+      gw: 4,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw4-f13532374",
+          home: "South Africa",
+          away: "Canada",
+          result: "0-1",
+        },
+        {
+          id: "wc-gw4-f13532377",
+          home: "Brazil",
+          away: "Japan",
+          result: "2-1",
+        },
+      ],
+    },
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-f13532377",
+          home: "W74",
+          away: "W77",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(complete[1].fixtures[0].home, "Canada");
+  assert.equal(complete[1].fixtures[0].away, "Brazil");
+});
+
+test("knockout bracket renders with advanced winner placeholders resolved", () => {
+  const bracketBlock = appSource.slice(
+    appSource.indexOf("function WCKnockoutStage"),
+    appSource.indexOf("function LeagueTab")
+  );
+
+  assert.match(bracketBlock, /resolveWorldCupBracketAdvancement\(group\.gameweeks \|\| \[\]\)/);
+  assert.match(bracketBlock, /bracketGameweeks\.find\(g => g\.gw === gwNum\)/);
 });
 
 test("detects only empty/TBD World Cup team slots as unresolved", () => {

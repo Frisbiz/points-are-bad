@@ -126,6 +126,85 @@ export function getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, stage 
   return roundLabels?.[Number(matchIndex)]?.[index] || "TBD";
 }
 
+function knockoutFeederLabelsForGW(gw) {
+  return (KNOCKOUT_PLACEHOLDER_LABELS_BY_GW[Number(gw) + 1] || []).flat();
+}
+
+function winnerSideForFixture(fixture) {
+  if (!fixture?.result) return null;
+  const [home, away] = String(fixture.result).split("-").map(Number);
+  if (!Number.isFinite(home) || !Number.isFinite(away)) return null;
+  if (home > away) return "home";
+  if (away > home) return "away";
+  return null;
+}
+
+function advancedTeamPatch(sourceFixture, sourceSide, targetSide) {
+  const patch = {
+    [targetSide]: sourceFixture?.[sourceSide] || null,
+    [`${targetSide}Crest`]: sourceFixture?.[`${sourceSide}Crest`] || null,
+    [`${targetSide}TeamId`]: sourceFixture?.[`${sourceSide}TeamId`] || null,
+  };
+  if (sourceFixture?.[`${sourceSide}Seed`]) patch[`${targetSide}Seed`] = sourceFixture[`${sourceSide}Seed`];
+  return patch;
+}
+
+function resolveAdvancementPlaceholders(fixtures, advancementByLabel) {
+  let changed = false;
+  const resolved = fixtures.map(fixture => {
+    let next = fixture;
+    ["home", "away"].forEach(side => {
+      const label = String(next?.[side] || "").trim().toUpperCase();
+      const patch = advancementByLabel.get(label);
+      if (!patch) return;
+      next = { ...next, ...patch(side) };
+      changed = true;
+    });
+    return next;
+  });
+  return { fixtures: resolved, changed };
+}
+
+function setGWFixtures(gameweeks, gw, fixtures) {
+  return gameweeks.map(gwObj => Number(gwObj.gw) === Number(gw) ? { ...gwObj, fixtures } : gwObj);
+}
+
+export function resolveWorldCupBracketAdvancement(gameweeks = []) {
+  let resolvedGameweeks = gameweeks.map(gwObj => ({
+    ...gwObj,
+    fixtures: (gwObj.fixtures || []).map(fixture => ({ ...fixture })),
+  }));
+  const advancementByLabel = new Map();
+
+  for (const gw of [4, 5, 6, 7]) {
+    const gwObj = resolvedGameweeks.find(item => Number(item.gw) === gw);
+    if (!gwObj) continue;
+
+    const current = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel);
+    if (current.changed) resolvedGameweeks = setGWFixtures(resolvedGameweeks, gw, current.fixtures);
+
+    const winnerLabels = knockoutFeederLabelsForGW(gw);
+    current.fixtures.forEach((fixture, index) => {
+      const winnerSide = winnerSideForFixture(fixture);
+      if (!winnerSide) return;
+
+      const loserSide = winnerSide === "home" ? "away" : "home";
+      const winnerLabel = winnerLabels[index];
+      if (winnerLabel) {
+        advancementByLabel.set(winnerLabel, targetSide => advancedTeamPatch(fixture, winnerSide, targetSide));
+      }
+      if (gw === 7 && THIRD_PLACE_PLACEHOLDER_LABELS[index]) {
+        advancementByLabel.set(THIRD_PLACE_PLACEHOLDER_LABELS[index], targetSide => advancedTeamPatch(fixture, loserSide, targetSide));
+      }
+    });
+  }
+
+  return resolvedGameweeks.map(gwObj => {
+    const patched = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel);
+    return patched.changed ? { ...gwObj, fixtures: patched.fixtures } : gwObj;
+  });
+}
+
 function teamKey(value) {
   return displayTeamName(String(value || ""))
     .normalize("NFKD")
