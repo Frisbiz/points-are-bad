@@ -195,6 +195,9 @@ function fixtureDataScore(f) {
   return fixtureStatusRank(f.status) * 10
     + (f.result ? 6 : 0)
     + (f.liveScore ? 4 : 0)
+    + (f.winningTeamId || f.winnerSide ? 1 : 0)
+    + (f.homeShootoutScore !== null && f.homeShootoutScore !== undefined ? 1 : 0)
+    + (f.awayShootoutScore !== null && f.awayShootoutScore !== undefined ? 1 : 0)
     + (f.date ? 2 : 0)
     + (f.apiId ? 1 : 0)
     + (f.homeCrest ? 1 : 0)
@@ -264,6 +267,10 @@ function mergeFixtureData(keeper, duplicate) {
     yahooDate: best.yahooDate || keeper.yahooDate || duplicate.yahooDate || null,
     homeTeamId: best.homeTeamId || keeper.homeTeamId || duplicate.homeTeamId || null,
     awayTeamId: best.awayTeamId || keeper.awayTeamId || duplicate.awayTeamId || null,
+    winningTeamId: best.winningTeamId || keeper.winningTeamId || duplicate.winningTeamId || null,
+    winnerSide: best.winnerSide || keeper.winnerSide || duplicate.winnerSide || null,
+    homeShootoutScore: best.homeShootoutScore ?? keeper.homeShootoutScore ?? duplicate.homeShootoutScore ?? null,
+    awayShootoutScore: best.awayShootoutScore ?? keeper.awayShootoutScore ?? duplicate.awayShootoutScore ?? null,
     homeSeed: best.homeSeed || keeper.homeSeed || duplicate.homeSeed || null,
     awaySeed: best.awaySeed || keeper.awaySeed || duplicate.awaySeed || null,
     homeOriginalSeed: best.homeOriginalSeed || keeper.homeOriginalSeed || duplicate.homeOriginalSeed || null,
@@ -321,6 +328,47 @@ function liveMatchScoreline(match) {
   return `${home}-${away}`;
 }
 
+function optionalNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function sideFromWinningTeamId(winningTeamId, fixture) {
+  const winnerId = String(winningTeamId || '').trim();
+  if (!winnerId) return null;
+  if (String(fixture?.homeTeamId || '') === winnerId) return 'home';
+  if (String(fixture?.awayTeamId || '') === winnerId) return 'away';
+  return null;
+}
+
+function knockoutWinnerPatch(match, fixture) {
+  const patch = {};
+  const winningTeamId = match?.winningTeamId || match?.winnerTeamId || null;
+  const explicitSide = String(match?.winnerSide || match?.winningSide || '').trim().toLowerCase();
+  const homeShootoutScore = optionalNumber(match?.homeShootoutScore ?? match?.homePenaltyScore);
+  const awayShootoutScore = optionalNumber(match?.awayShootoutScore ?? match?.awayPenaltyScore);
+
+  if (winningTeamId) patch.winningTeamId = winningTeamId;
+  if (homeShootoutScore !== null) patch.homeShootoutScore = homeShootoutScore;
+  if (awayShootoutScore !== null) patch.awayShootoutScore = awayShootoutScore;
+  if (explicitSide === 'home' || explicitSide === 'away') {
+    patch.winnerSide = explicitSide;
+  } else {
+    const metadataSide = sideFromWinningTeamId(winningTeamId, fixture);
+    if (metadataSide) patch.winnerSide = metadataSide;
+    else if (homeShootoutScore !== null && awayShootoutScore !== null && homeShootoutScore !== awayShootoutScore) {
+      patch.winnerSide = homeShootoutScore > awayShootoutScore ? 'home' : 'away';
+    }
+  }
+
+  return patch;
+}
+
+function patchChangesFixture(fixture, patch) {
+  return Object.entries(patch).some(([key, value]) => fixture?.[key] !== value);
+}
+
 function fixtureDateOnly(value) {
   if (!value) return '';
   const time = new Date(value).getTime();
@@ -352,16 +400,25 @@ export function applyFinishedLiveMatchesToGlobalDoc(globalDoc = {}, targetGW, ma
     if (Number(gwObj.gw) !== target) return gwObj;
     let gwChanged = false;
     const fixtures = (gwObj.fixtures || []).map(fixture => {
-      if (fixture.result) return fixture;
       const candidates = finishedByPair.get(fixturePairKey(fixture)) || [];
       const match = candidates.find(m => liveMatchFitsFixture(fixture, m));
       if (!match) return fixture;
-      const next = {
-        ...fixture,
-        result: match.result,
+      const finishedPatch = {
         status: 'FINISHED',
         liveScore: null,
         elapsed: match.elapsed || fixture.elapsed || null,
+        ...knockoutWinnerPatch(match, fixture),
+      };
+      if (fixture.result) {
+        if (!patchChangesFixture(fixture, finishedPatch)) return fixture;
+        gwChanged = true;
+        changed = true;
+        return { ...fixture, ...finishedPatch };
+      }
+      const next = {
+        ...fixture,
+        result: match.result,
+        ...finishedPatch,
       };
       gwChanged = true;
       changed = true;

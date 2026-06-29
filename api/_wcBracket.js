@@ -130,13 +130,38 @@ function knockoutFeederLabelsForGW(gw) {
   return (KNOCKOUT_PLACEHOLDER_LABELS_BY_GW[Number(gw) + 1] || []).flat();
 }
 
-function winnerSideForFixture(fixture) {
+function scoreNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function sideFromWinningTeamId(fixture) {
+  const winningTeamId = String(fixture?.winningTeamId || fixture?.winnerTeamId || fixture?.winning_team_id || "").trim();
+  if (!winningTeamId) return null;
+  if (String(fixture?.homeTeamId || "") === winningTeamId) return "home";
+  if (String(fixture?.awayTeamId || "") === winningTeamId) return "away";
+  return null;
+}
+
+function sideFromShootout(fixture) {
+  const home = scoreNumber(fixture?.homeShootoutScore ?? fixture?.homePenaltyScore ?? fixture?.total_home_shootout_points);
+  const away = scoreNumber(fixture?.awayShootoutScore ?? fixture?.awayPenaltyScore ?? fixture?.total_away_shootout_points);
+  if (home === null || away === null || home === away) return null;
+  return home > away ? "home" : "away";
+}
+
+export function winnerSideForWorldCupFixture(fixture) {
   if (!fixture?.result) return null;
   const [home, away] = String(fixture.result).split("-").map(Number);
   if (!Number.isFinite(home) || !Number.isFinite(away)) return null;
   if (home > away) return "home";
   if (away > home) return "away";
-  return null;
+
+  const explicitSide = String(fixture?.winnerSide || fixture?.winningSide || "").trim().toLowerCase();
+  if (explicitSide === "home" || explicitSide === "away") return explicitSide;
+
+  return sideFromWinningTeamId(fixture) || sideFromShootout(fixture);
 }
 
 function advancedTeamPatch(sourceFixture, sourceSide, targetSide) {
@@ -196,7 +221,7 @@ export function resolveWorldCupBracketAdvancement(gameweeks = []) {
 
     const winnerLabels = knockoutFeederLabelsForGW(gw);
     current.fixtures.forEach((fixture, index) => {
-      const winnerSide = winnerSideForFixture(fixture);
+      const winnerSide = winnerSideForWorldCupFixture(fixture);
       if (!winnerSide) return;
 
       const loserSide = winnerSide === "home" ? "away" : "home";

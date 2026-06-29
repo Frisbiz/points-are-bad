@@ -2,17 +2,29 @@ import { getValue } from "./_db.js";
 import { normName } from "./_fixtureSync.js";
 import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache, saveFinishedLiveMatchesToCache } from "./_yahooFixtures.js";
 
+function knockoutWinnerPatch(f = {}) {
+  const patch = {};
+  if (f.winningTeamId) patch.winningTeamId = f.winningTeamId;
+  if (f.winnerSide) patch.winnerSide = f.winnerSide;
+  if (f.homeShootoutScore !== null && f.homeShootoutScore !== undefined) patch.homeShootoutScore = f.homeShootoutScore;
+  if (f.awayShootoutScore !== null && f.awayShootoutScore !== undefined) patch.awayShootoutScore = f.awayShootoutScore;
+  return patch;
+}
+
 function liveMatchesFromFixtures(fixtures = []) {
   return fixtures.map(f => {
     const [homeScore, awayScore] = String(f.liveScore || f.result || "0-0").split("-").map(n => Number.parseInt(n, 10));
     return {
       home: normName(f.home),
       away: normName(f.away),
+      homeTeamId: f.homeTeamId || null,
+      awayTeamId: f.awayTeamId || null,
       homeScore: Number.isFinite(homeScore) ? homeScore : 0,
       awayScore: Number.isFinite(awayScore) ? awayScore : 0,
       elapsed: f.elapsed || null,
       status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : "scheduled",
       startTime: f.date || null,
+      ...knockoutWinnerPatch(f),
     };
   });
 }

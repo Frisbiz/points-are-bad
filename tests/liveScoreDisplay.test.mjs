@@ -88,6 +88,99 @@ test("finished Yahoo scores are applied before computing standings totals", () =
   assert.equal(group.gameweeks[0].fixtures[0].result, null);
 });
 
+test("finished Yahoo scores preserve knockout winner metadata for bracket projection", () => {
+  const applyFinishedLiveScoresToGroup = loadAppFunction("applyFinishedLiveScoresToGroup");
+  const group = {
+    id: "g1",
+    season: 2026,
+    competition: "WC",
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw4-fsoccer-g-13532362",
+            home: "Germany",
+            away: "Paraguay",
+            homeTeamId: "soccer.t.379",
+            awayTeamId: "soccer.t.390",
+            result: null,
+            status: "SCHEDULED",
+          },
+        ],
+      },
+    ],
+  };
+  const liveScores = {
+    "Germany|Paraguay": {
+      status: "finished",
+      homeScore: 1,
+      awayScore: 1,
+      winningTeamId: "soccer.t.390",
+      winnerSide: "away",
+      homeShootoutScore: 3,
+      awayShootoutScore: 4,
+    },
+  };
+
+  const projected = applyFinishedLiveScoresToGroup(group, liveScores);
+  const fixture = projected.gameweeks[0].fixtures[0];
+
+  assert.equal(fixture.result, "1-1");
+  assert.equal(fixture.winningTeamId, "soccer.t.390");
+  assert.equal(fixture.winnerSide, "away");
+  assert.equal(fixture.homeShootoutScore, 3);
+  assert.equal(fixture.awayShootoutScore, 4);
+});
+
+test("finished Yahoo scores patch winner metadata onto already saved tied results", () => {
+  const applyFinishedLiveScoresToGroup = loadAppFunction("applyFinishedLiveScoresToGroup");
+  const group = {
+    id: "g1",
+    season: 2026,
+    competition: "WC",
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw4-fsoccer-g-13532362",
+            home: "Germany",
+            away: "Paraguay",
+            homeTeamId: "soccer.t.379",
+            awayTeamId: "soccer.t.390",
+            result: "1-1",
+            status: "FINISHED",
+          },
+        ],
+      },
+    ],
+  };
+  const liveScores = {
+    "Germany|Paraguay": {
+      status: "finished",
+      homeScore: 1,
+      awayScore: 1,
+      winningTeamId: "soccer.t.390",
+      winnerSide: "away",
+      homeShootoutScore: 3,
+      awayShootoutScore: 4,
+    },
+  };
+
+  const projected = applyFinishedLiveScoresToGroup(group, liveScores);
+  const fixture = projected.gameweeks[0].fixtures[0];
+
+  assert.equal(fixture.result, "1-1");
+  assert.equal(fixture.winningTeamId, "soccer.t.390");
+  assert.equal(fixture.winnerSide, "away");
+  assert.equal(fixture.homeShootoutScore, 3);
+  assert.equal(fixture.awayShootoutScore, 4);
+  assert.equal(group.gameweeks[0].fixtures[0].winningTeamId, undefined);
+});
+
 test("auto sync still targets finished fixtures missing saved results", () => {
   const autoSyncTargetGW = loadAppFunction("autoSyncTargetGW");
   const group = {

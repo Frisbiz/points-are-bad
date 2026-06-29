@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } fr
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
-import { formatWorldCupBracketKickoff, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, resolveWorldCupBracketAdvancement } from "../api/_wcBracket.js";
+import { formatWorldCupBracketKickoff, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, resolveWorldCupBracketAdvancement, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -188,22 +188,49 @@ function effectiveFixtureResult(fixture, liveScores) {
 }
 
 function applyFinishedLiveScoresToGroup(group, liveScores = {}) {
+  const optionalLiveNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+  const finishedLiveWinnerPatch = (lm) => {
+    const patch = {};
+    const homeShootoutScore = optionalLiveNumber(lm?.homeShootoutScore ?? lm?.homePenaltyScore);
+    const awayShootoutScore = optionalLiveNumber(lm?.awayShootoutScore ?? lm?.awayPenaltyScore);
+    if (lm?.winningTeamId) patch.winningTeamId = lm.winningTeamId;
+    if (lm?.winnerSide) patch.winnerSide = lm.winnerSide;
+    if (homeShootoutScore !== null) patch.homeShootoutScore = homeShootoutScore;
+    if (awayShootoutScore !== null) patch.awayShootoutScore = awayShootoutScore;
+    return patch;
+  };
+  const patchChangesFixture = (fixture, patch) =>
+    Object.entries(patch).some(([key, value]) => fixture?.[key] !== value);
+
   if (!group || !liveScores || Object.keys(liveScores).length === 0) return group;
   let changed = false;
   const gameweeks = (group.gameweeks || []).map(gwObj => {
     let gwChanged = false;
     const fixtures = (gwObj.fixtures || []).map(fixture => {
-      if (fixture.result) return fixture;
       const lm = liveScores[`${fixture.home}|${fixture.away}`];
       if (!lm || lm.status !== "finished" || lm.homeScore == null || lm.awayScore == null) return fixture;
+      const finishedPatch = {
+        status: "FINISHED",
+        liveScore: null,
+        elapsed: lm.elapsed || fixture.elapsed || null,
+        ...finishedLiveWinnerPatch(lm),
+      };
+      if (fixture.result) {
+        if (!patchChangesFixture(fixture, finishedPatch)) return fixture;
+        changed = true;
+        gwChanged = true;
+        return { ...fixture, ...finishedPatch };
+      }
       changed = true;
       gwChanged = true;
       return {
         ...fixture,
         result: String(lm.homeScore) + "-" + String(lm.awayScore),
-        status: "FINISHED",
-        liveScore: null,
-        elapsed: lm.elapsed || fixture.elapsed || null,
+        ...finishedPatch,
       };
     });
     return gwChanged ? { ...gwObj, fixtures } : gwObj;
@@ -3207,18 +3234,12 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
   const getGWFixtures = (gwNum) =>
     bracketGameweeks.find(g => g.gw === gwNum)?.fixtures || [];
 
-  const winnerSide = (f) => {
-    if (!f?.result) return null;
-    const [h, a] = f.result.split("-").map(Number);
-    return h > a ? "home" : a > h ? "away" : null;
-  };
-
   const gw8 = getGWFixtures(8);
   const finalMatch = gw8.find(f => f.stage === "FINAL") || gw8[0] || null;
   const thirdMatch = gw8.find(f => f.stage === "THIRD_PLACE") || (gw8.length > 1 ? gw8[1] : null);
 
   const MatchCard = ({ f, blockH, gw, matchIndex }) => {
-    const winner = winnerSide(f);
+    const winner = winnerSideForWorldCupFixture(f);
     const kickoff = formatWorldCupBracketKickoff(f?.date);
     const dateW = mob ? 52 : 68;
     return (

@@ -13,6 +13,7 @@ import {
   resolveWorldCupBracketAdvancement,
   resolveWorldCupGlobalDocSeeds,
   resolveWorldCupKnockoutSeeds,
+  winnerSideForWorldCupFixture,
 } from "../api/_wcBracket.js";
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
@@ -381,6 +382,57 @@ test("advances winners into generated placeholder labels for empty knockout slot
   assert.equal(resolved[1].fixtures[0].away, "Brazil");
 });
 
+test("advances tied knockout winners using Yahoo winner metadata", () => {
+  const germanyParaguay = {
+    id: "wc-gw4-fsoccer-g-13532362",
+    apiId: "soccer.g.13532362",
+    home: "Germany",
+    away: "Paraguay",
+    homeTeamId: "soccer.t.379",
+    awayTeamId: "soccer.t.390",
+    homeCrest: "ger.png",
+    awayCrest: "par.png",
+    result: "1-1",
+    status: "FINISHED",
+    winningTeamId: "soccer.t.390",
+    homeShootoutScore: 3,
+    awayShootoutScore: 4,
+  };
+
+  assert.equal(winnerSideForWorldCupFixture(germanyParaguay), "away");
+
+  const resolved = resolveWorldCupBracketAdvancement([
+    {
+      gw: 4,
+      season: 2026,
+      fixtures: [
+        { id: "wc-gw4-f1", home: "South Africa", away: "Canada", result: "0-1" },
+        { id: "wc-gw4-f2", home: "Brazil", away: "Japan", result: "2-1" },
+        germanyParaguay,
+      ],
+    },
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-fsoccer-g-13532379",
+          apiId: "soccer.g.13532379",
+          home: "W76",
+          away: "W78",
+          stage: "ROUND_OF_16",
+        },
+      ],
+    },
+  ]);
+
+  const fixture = resolved[1].fixtures[0];
+  assert.equal(fixture.home, "Paraguay");
+  assert.equal(fixture.homeTeamId, "soccer.t.390");
+  assert.equal(fixture.homeCrest, "par.png");
+  assert.equal(fixture.away, "W78");
+});
+
 test("knockout bracket renders with advanced winner placeholders resolved", () => {
   const bracketBlock = appSource.slice(
     appSource.indexOf("function WCKnockoutStage"),
@@ -389,6 +441,7 @@ test("knockout bracket renders with advanced winner placeholders resolved", () =
 
   assert.match(bracketBlock, /resolveWorldCupBracketAdvancement\(group\.gameweeks \|\| \[\]\)/);
   assert.match(bracketBlock, /bracketGameweeks\.find\(g => g\.gw === gwNum\)/);
+  assert.match(bracketBlock, /winnerSideForWorldCupFixture\(f\)/);
 });
 
 test("detects only empty/TBD World Cup team slots as unresolved", () => {

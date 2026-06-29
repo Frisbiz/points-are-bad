@@ -82,6 +82,25 @@ function toInt(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function winnerSideFromGame({ winningTeamId, homeTeamId, awayTeamId, homeShootoutScore = null, awayShootoutScore = null } = {}) {
+  const winnerId = String(winningTeamId || "").trim();
+  if (winnerId && String(homeTeamId || "") === winnerId) return "home";
+  if (winnerId && String(awayTeamId || "") === winnerId) return "away";
+  if (homeShootoutScore !== null && awayShootoutScore !== null && homeShootoutScore !== awayShootoutScore) {
+    return homeShootoutScore > awayShootoutScore ? "home" : "away";
+  }
+  return null;
+}
+
+function knockoutWinnerPatch(source = {}) {
+  const patch = {};
+  if (source.winningTeamId) patch.winningTeamId = source.winningTeamId;
+  if (source.winnerSide) patch.winnerSide = source.winnerSide;
+  if (source.homeShootoutScore !== null && source.homeShootoutScore !== undefined) patch.homeShootoutScore = source.homeShootoutScore;
+  if (source.awayShootoutScore !== null && source.awayShootoutScore !== undefined) patch.awayShootoutScore = source.awayShootoutScore;
+  return patch;
+}
+
 function boolish(value) {
   return value === true || String(value).toLowerCase() === "true";
 }
@@ -138,7 +157,7 @@ function stableId(value) {
   return String(value || Date.now()).replace(/[^a-zA-Z0-9_-]+/g, "-");
 }
 
-function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = null) {
+export function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = null) {
   const isWC = competition === "WC";
   const byRound = {};
   for (const game of Object.values(scoreboard?.games || {})) {
@@ -153,6 +172,16 @@ function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = n
     const status = parseStatus(game);
     const homeScore = toInt(game.total_home_points);
     const awayScore = toInt(game.total_away_points);
+    const homeShootoutScore = toInt(game.total_home_shootout_points);
+    const awayShootoutScore = toInt(game.total_away_shootout_points);
+    const winningTeamId = game.winning_team_id || null;
+    const winnerSide = winnerSideFromGame({
+      winningTeamId,
+      homeTeamId: home.id,
+      awayTeamId: away.id,
+      homeShootoutScore,
+      awayShootoutScore,
+    });
     const scoreline = homeScore !== null && awayScore !== null ? `${homeScore}-${awayScore}` : null;
     const stage = parseStage(game);
     const idPrefix = isWC ? `wc-gw${gw}` : `gw${gw}`;
@@ -174,6 +203,7 @@ function normalizeGames(scoreboard, competition, gwHint = null, scheduleDate = n
     if (away.crest) fixture.awayCrest = away.crest;
     if (stage) fixture.stage = stage;
     if (game.game_time_elapsed_display) fixture.elapsed = game.game_time_elapsed_display;
+    Object.assign(fixture, knockoutWinnerPatch({ winningTeamId, winnerSide, homeShootoutScore, awayShootoutScore }));
     if (!byRound[gw]) byRound[gw] = [];
     byRound[gw].push(fixture);
   }
@@ -337,11 +367,14 @@ export async function fetchYahooLiveMatches(competition, week, dates = []) {
     return {
       home: f.home,
       away: f.away,
+      homeTeamId: f.homeTeamId || null,
+      awayTeamId: f.awayTeamId || null,
       homeScore: Number.isFinite(homeScore) ? homeScore : 0,
       awayScore: Number.isFinite(awayScore) ? awayScore : 0,
       elapsed: f.elapsed || null,
       status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : "scheduled",
       startTime: f.date || null,
+      ...knockoutWinnerPatch(f),
     };
   });
 }
