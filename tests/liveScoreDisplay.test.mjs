@@ -185,6 +185,17 @@ test("live score fetch retries stale scheduled fixtures that still miss results"
   assert.equal(shouldFetchLiveScores(fixtures, now), true);
 });
 
+test("fixture kickoff labels use 12-hour am/pm time", () => {
+  const formatFixtureDate = loadAppFunction("formatFixtureDate");
+
+  assert.equal(
+    formatFixtureDate("2026-06-29T17:30:00.000Z", { timeZone: "UTC" }),
+    "Mon 29 Jun, 5:30 pm"
+  );
+  assert.equal(formatFixtureDate(null), null);
+  assert.equal(formatFixtureDate("not a date"), null);
+});
+
 test("fixtures tab is seeded with live scores already loaded by the game shell", () => {
   const source = loadAppSource();
 

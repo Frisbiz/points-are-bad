@@ -163,6 +163,15 @@ function shortTeamName(name, max = TEAM_DISPLAY_LIMIT) {
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 
+function formatFixtureDate(value, options = {}) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const formatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true };
+  if (options.timeZone) formatOptions.timeZone = options.timeZone;
+  return new Intl.DateTimeFormat("en-GB", formatOptions).format(date);
+}
+
 // Best-available scoreline for RENDERING/DISPLAY purposes only.
 // Prefers the final result, then a cached live score, then the Yahoo live feed.
 // DO NOT use this in computeStats or any Trends/standings aggregation — those
@@ -3735,7 +3744,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
                 <span title={wizardFixture.away} style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:22,color:"var(--text-bright)",letterSpacing:-0.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mob?shortTeamName(wizardFixture.away):wizardFixture.away}</span>
               </div>
             </div>
-            {wizardFixture.date&&<div style={{fontSize:13,color:"var(--text-dim)",marginBottom:20}}>{new Date(wizardFixture.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>}
+            {wizardFixture.date&&<div style={{fontSize:13,color:"var(--text-dim)",marginBottom:20}}>{formatFixtureDate(wizardFixture.date)}</div>}
             <Input key={wizardStep} value={wizardPred} onChange={setWizardPred} placeholder="e.g. 2-1" autoFocus
               onKeyDown={e=>e.key==="Enter"&&wizardPred&&/^\d+-\d+$/.test(wizardPred)&&handleWizardSubmit()}
               style={{textAlign:"center",fontSize:22,marginBottom:18,letterSpacing:6}}/>
@@ -3857,7 +3866,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const locked = hardLocked || picksLocked;
         const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
-        const dateStr = f.date?new Date(f.date).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):null;
+        const dateStr = formatFixtureDate(f.date);
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (group.hiddenFixtures||[]).includes(f.id);
         const liveMatch = liveScores[`${f.home}|${f.away}`];
