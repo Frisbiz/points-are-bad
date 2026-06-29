@@ -4182,6 +4182,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                     ];
                   }
                   const isCellAwaiting = dibsTurnFor[f.id] === u && !/^\d+-\d+$/.test(preds[u]?.[f.id] || "");
+                  const pickLineStyle={height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1};
                   return (
                     <td key={u} style={{
                       padding:"10px 12px",
@@ -4201,11 +4202,13 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                           style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,cursor:isAdmin?"pointer":"default",borderRadius:6,padding:"2px 4px",transition:"background 0.15s"}}
                           onMouseEnter={e=>{if(isAdmin)e.currentTarget.style.background="var(--border3)";}}
                           onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
-                          {pred
-                            ? <span style={{color:"var(--text-dim3)",fontSize:11}}>{pred}</span>
-                            : (effRes||f.status==="IN_PLAY"||f.status==="PAUSED")
-                              ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
-                              : <span style={{color:"var(--text-dim3)",fontSize:11}}>–</span>}
+                          <span style={pickLineStyle}>
+                            {pred
+                              ? <span style={{color:"var(--text-dim3)",fontSize:11,lineHeight:1}}>{pred}</span>
+                              : (effRes||f.status==="IN_PLAY"||f.status==="PAUSED")
+                                ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18,lineHeight:1}}>×</span>
+                                : <span style={{color:"var(--text-dim3)",fontSize:11,lineHeight:1}}>–</span>}
+                          </span>
                           <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
                         </div>
                       )}

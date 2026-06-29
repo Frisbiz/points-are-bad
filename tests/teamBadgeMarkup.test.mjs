@@ -73,3 +73,14 @@ test("missed score badges keep normal numeral alignment", () => {
   assert.match(scoreBadgeBlock, /fontStyle:"normal"/);
   assert.match(scoreBadgeBlock, /height:"100%"/);
 });
+
+test("all picks prediction markers use a fixed-height slot above score badges", () => {
+  const tableBlock = appSource.slice(
+    appSource.indexOf("function AllPicksTable"),
+    appSource.indexOf("function TrendsTab")
+  );
+
+  assert.match(tableBlock, /const pickLineStyle=\{height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1\};/);
+  assert.match(tableBlock, /<span style=\{pickLineStyle\}>/);
+  assert.match(tableBlock, /fontSize:18,lineHeight:1/);
+});
