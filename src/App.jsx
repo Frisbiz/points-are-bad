@@ -169,7 +169,7 @@ function formatFixtureDate(value, options = {}) {
   if (Number.isNaN(date.getTime())) return null;
   const formatOptions = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true };
   if (options.timeZone) formatOptions.timeZone = options.timeZone;
-  return new Intl.DateTimeFormat("en-GB", formatOptions).format(date);
+  return new Intl.DateTimeFormat("en-GB", formatOptions).format(date).replace(", ", " ");
 }
 
 // Best-available scoreline for RENDERING/DISPLAY purposes only.

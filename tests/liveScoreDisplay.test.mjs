@@ -190,7 +190,7 @@ test("fixture kickoff labels use 12-hour am/pm time", () => {
 
   assert.equal(
     formatFixtureDate("2026-06-29T17:30:00.000Z", { timeZone: "UTC" }),
-    "Mon 29 Jun, 5:30 pm"
+    "Mon 29 Jun 5:30 pm"
   );
   assert.equal(formatFixtureDate(null), null);
   assert.equal(formatFixtureDate("not a date"), null);
