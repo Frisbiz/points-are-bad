@@ -1,6 +1,6 @@
 import { getValue } from "./_db.js";
 import { normName } from "./_fixtureSync.js";
-import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
+import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache, saveFinishedLiveMatchesToCache } from "./_yahooFixtures.js";
 
 function liveMatchesFromFixtures(fixtures = []) {
   return fixtures.map(f => {
@@ -32,6 +32,11 @@ export default async function handler(req, res) {
     const dateList = String(dates || "").split(",").map(d => d.trim()).filter(Boolean);
     try {
       const matches = await fetchYahooLiveMatches(comp, Number(week), dateList);
+      try {
+        await saveFinishedLiveMatchesToCache({ competition: comp, season: seas, targetGW: Number(week), matches });
+      } catch (e) {
+        console.error("Live final score cache promotion:", e.message);
+      }
       res.setHeader("Cache-Control", "no-store, max-age=0");
       return res.status(200).json({ matches, week: Number.parseInt(week, 10), competition: comp });
     } catch (e) {

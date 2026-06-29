@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { mergeGlobalIntoGroup } from "../api/_fixtureSync.js";
+import { applyFinishedLiveMatchesToGlobalDoc, mergeGlobalIntoGroup } from "../api/_fixtureSync.js";
 
 test("mergeGlobalIntoGroup updates resolved WC seed fields while preserving picks", () => {
   const group = {
@@ -61,4 +61,51 @@ test("mergeGlobalIntoGroup updates resolved WC seed fields while preserving pick
   assert.equal(fixture.awayOriginalSeed, "3E/3F/3G/3I/3J");
   assert.equal(fixture.awayCrest, "alg.png");
   assert.equal(merged.predictions.faris["wc-gw4-f13532371"], "1-1");
+});
+
+test("finished live matches are promoted into cached fixture results", () => {
+  const globalDoc = {
+    season: 2026,
+    updatedAt: 1,
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw4-fsoccer-g-13532361",
+            apiId: "13532361",
+            home: "South Africa",
+            away: "Canada",
+            result: null,
+            status: "SCHEDULED",
+            date: "2026-06-28T19:00:00.000Z",
+            liveScore: null,
+          },
+        ],
+      },
+    ],
+  };
+
+  const promoted = applyFinishedLiveMatchesToGlobalDoc(globalDoc, 4, [
+    {
+      home: "South Africa",
+      away: "Canada",
+      status: "finished",
+      homeScore: 0,
+      awayScore: 1,
+      elapsed: "FT",
+      startTime: "2026-06-28T19:00:00.000Z",
+    },
+  ], 123);
+
+  const fixture = promoted.globalDoc.gameweeks[0].fixtures[0];
+
+  assert.equal(promoted.changed, true);
+  assert.equal(fixture.result, "0-1");
+  assert.equal(fixture.status, "FINISHED");
+  assert.equal(fixture.liveScore, null);
+  assert.equal(fixture.elapsed, "FT");
+  assert.equal(promoted.globalDoc.updatedAt, 123);
+  assert.equal(globalDoc.gameweeks[0].fixtures[0].result, null);
 });

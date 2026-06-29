@@ -1,5 +1,5 @@
 import { db, docKey, getValue, setValue } from "./_db.js";
-import { dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
+import { applyFinishedLiveMatchesToGlobalDoc, dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 import { parseYahooWorldCupStandings } from "./wc-standings.js";
 import { fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
 
@@ -344,6 +344,22 @@ export async function fetchYahooLiveMatches(competition, week, dates = []) {
       startTime: f.date || null,
     };
   });
+}
+
+export async function saveFinishedLiveMatchesToCache({ competition = "PL", season = null, targetGW = 1, matches = [] } = {}) {
+  if (!matches.some(match => match?.status === "finished" && match.homeScore != null && match.awayScore != null)) {
+    return { changed: false };
+  }
+  const comp = competition === "WC" ? "WC" : "PL";
+  const seas = comp === "WC" ? 2026 : (season || COMP_CONFIG.PL.season);
+  const globalKey = fixtureGlobalKey(comp, seas);
+  const globalDoc = await getValue(globalKey);
+  if (!globalDoc?.gameweeks?.length) return { changed: false };
+  const promoted = applyFinishedLiveMatchesToGlobalDoc(globalDoc, targetGW, matches);
+  if (!promoted.changed) return promoted;
+  const next = { ...promoted.globalDoc, season: seas, source: promoted.globalDoc.source || "yahoo" };
+  await setValue(globalKey, next);
+  return { ...promoted, globalDoc: next };
 }
 
 async function fetchYahooSeason(competition) {

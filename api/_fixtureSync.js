@@ -313,6 +313,68 @@ export function dedupeFixtures(fixtures = []) {
   return dedupeFixtureList(fixtures).fixtures;
 }
 
+function liveMatchScoreline(match) {
+  if (match?.status !== 'finished') return null;
+  const home = Number(match.homeScore);
+  const away = Number(match.awayScore);
+  if (!Number.isFinite(home) || !Number.isFinite(away)) return null;
+  return `${home}-${away}`;
+}
+
+function fixtureDateOnly(value) {
+  if (!value) return '';
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return '';
+  return new Date(time).toISOString().slice(0, 10);
+}
+
+function liveMatchFitsFixture(fixture, match) {
+  const fixtureDate = fixtureDateOnly(fixture.date || fixture.yahooDate);
+  const matchDate = fixtureDateOnly(match.startTime);
+  return !fixtureDate || !matchDate || fixtureDate === matchDate;
+}
+
+export function applyFinishedLiveMatchesToGlobalDoc(globalDoc = {}, targetGW, matches = [], now = Date.now()) {
+  const target = Number(targetGW || 1);
+  const finishedByPair = new Map();
+  matches.forEach(match => {
+    const result = liveMatchScoreline(match);
+    if (!result) return;
+    const pair = fixturePairKey(match);
+    if (!pair || pair === '|') return;
+    if (!finishedByPair.has(pair)) finishedByPair.set(pair, []);
+    finishedByPair.get(pair).push({ ...match, result });
+  });
+  if (!finishedByPair.size) return { globalDoc, changed: false };
+
+  let changed = false;
+  const gameweeks = (globalDoc.gameweeks || []).map(gwObj => {
+    if (Number(gwObj.gw) !== target) return gwObj;
+    let gwChanged = false;
+    const fixtures = (gwObj.fixtures || []).map(fixture => {
+      if (fixture.result) return fixture;
+      const candidates = finishedByPair.get(fixturePairKey(fixture)) || [];
+      const match = candidates.find(m => liveMatchFitsFixture(fixture, m));
+      if (!match) return fixture;
+      const next = {
+        ...fixture,
+        result: match.result,
+        status: 'FINISHED',
+        liveScore: null,
+        elapsed: match.elapsed || fixture.elapsed || null,
+      };
+      gwChanged = true;
+      changed = true;
+      return next;
+    });
+    return gwChanged ? { ...gwObj, fixtures } : gwObj;
+  });
+
+  return changed
+    ? { globalDoc: { ...globalDoc, updatedAt: now, gameweeks }, changed: true }
+    : { globalDoc, changed: false };
+}
+
 function applyFixtureIdRemaps(group, remaps = []) {
   if (!remaps.length) return group;
   const alias = new Map(remaps);
