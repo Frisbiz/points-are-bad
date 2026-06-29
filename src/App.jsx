@@ -467,11 +467,11 @@ const BadgeScore = ({ score, missed=false }) => {
     fontWeight:700,
     fontFamily:"'DM Mono',monospace",
     fontVariantNumeric:"tabular-nums",
-    fontStyle:missed?"italic":"normal",
+    fontStyle:"normal",
     boxShadow: perfect ? "0 0 0 1px #22c55e20 inset, 0 0 12px #22c55e22" : "none",
     position:"relative",
     overflow:"hidden"
-  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative",lineHeight:1}}>{score}</span></span>;
+  }}>{perfect && <span style={{position:"absolute",inset:0,background:"linear-gradient(110deg, transparent 15%, rgba(255,255,255,0.45) 48%, transparent 78%)",transform:"translateX(-120%)",animation:"perfectShimmer 2.6s ease-in-out infinite"}}/>}<span style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center",height:"100%",lineHeight:1}}>{score}</span></span>;
 };
 
 const Btn = ({children,onClick,variant="default",disabled,small,style:extra={}}) => {

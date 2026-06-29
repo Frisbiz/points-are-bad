@@ -62,3 +62,14 @@ test("score badge numbers are optically centered in a fixed-height pill", () => 
   assert.match(scoreBadgeBlock, /height:22/);
   assert.match(scoreBadgeBlock, /lineHeight:1/);
 });
+
+test("missed score badges keep normal numeral alignment", () => {
+  const scoreBadgeBlock = appSource.slice(
+    appSource.indexOf("const BadgeScore"),
+    appSource.indexOf("const Btn")
+  );
+
+  assert.doesNotMatch(scoreBadgeBlock, /fontStyle:missed\?"italic":"normal"/);
+  assert.match(scoreBadgeBlock, /fontStyle:"normal"/);
+  assert.match(scoreBadgeBlock, /height:"100%"/);
+});
