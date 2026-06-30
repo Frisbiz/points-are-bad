@@ -3944,9 +3944,9 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
 
       {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px minmax(0,1fr) 54px minmax(0,1fr) 105px 70px",gap:10,padding:"6px 14px",fontSize:11,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
-        <div style={{textAlign:"right"}}>Home</div>
+        <div style={{textAlign:"right",paddingRight:46}}>Home</div>
         <div></div>
-        <div>Away</div>
+        <div style={{paddingLeft:46}}>Away</div>
         <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
       </div>}
@@ -3992,6 +3992,9 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
             {resultDisplay.awayShootoutScore!==null&&<span style={shootoutNumberStyle}>({resultDisplay.awayShootoutScore})</span>}
           </span>
         ):null;
+        const emptyScoreBlock = <span aria-hidden="true" style={{display:"inline-flex",minWidth:scoreSlotWidth,flexShrink:0}}/>;
+        const homeScoreSlot = homeScoreBlock || emptyScoreBlock;
+        const awayScoreSlot = awayScoreBlock || emptyScoreBlock;
         const resultStatusBlock = scoreParts?(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",minWidth:54}}>
             {resultDisplay.statusLabel&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.65,textAlign:"center"}}>{resultDisplay.statusLabel}</span>}
@@ -4096,11 +4099,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,opacity:homeSideOpacity}}>
                 <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:completedWinnerSide==="home"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="home"?700:400,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.home)}</a>
-                {homeScoreBlock&&<span style={{flexShrink:0,marginLeft:2}}>{homeScoreBlock}</span>}
+                <span style={{flexShrink:0,marginLeft:2}}>{homeScoreSlot}</span>
               </div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",flexShrink:0,minWidth:54}}>{resultStatusBlock}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end",opacity:awaySideOpacity}}>
-                {awayScoreBlock&&<span style={{flexShrink:0,marginRight:2}}>{awayScoreBlock}</span>}
+                <span style={{flexShrink:0,marginRight:2}}>{awayScoreSlot}</span>
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:completedWinnerSide==="away"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="away"?700:400,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.away)}</a>
                 <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               </div>
@@ -4122,11 +4125,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
             <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10,opacity:homeSideOpacity}}>
               <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:completedWinnerSide==="home"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="home"?700:400,textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color=completedWinnerSide==="home"?"var(--text-bright)":"var(--text-mid)"}>{f.home}</a>
               <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
-              {homeScoreBlock&&<span style={{display:"flex",alignItems:"center",marginLeft:4,flexShrink:0}}>{homeScoreBlock}</span>}
+              <span style={{display:"flex",alignItems:"center",marginLeft:4,flexShrink:0}}>{homeScoreSlot}</span>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center"}}>{resultStatusBlock}</div>
             <div style={{display:"flex",alignItems:"center",gap:10,opacity:awaySideOpacity}}>
-              {awayScoreBlock&&<span style={{display:"flex",alignItems:"center",marginRight:4,flexShrink:0}}>{awayScoreBlock}</span>}
+              <span style={{display:"flex",alignItems:"center",marginRight:4,flexShrink:0}}>{awayScoreSlot}</span>
               <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:completedWinnerSide==="away"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="away"?700:400,textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color=completedWinnerSide==="away"?"var(--text-bright)":"var(--text-mid)"}>{f.away}</a>
             </div>

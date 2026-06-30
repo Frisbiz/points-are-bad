@@ -514,3 +514,28 @@ test("fixture score slots reserve penalty width so normal rows align with shooto
   assert.match(fixturesBlock, /justifyContent:"flex-start"/);
   assert.match(fixturesBlock, /justifyContent:"flex-end"/);
 });
+
+test("pending fixture rows keep empty score slots so team columns align with played rows", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(fixturesBlock, /const emptyScoreBlock = /);
+  assert.match(fixturesBlock, /const homeScoreSlot = homeScoreBlock \|\| emptyScoreBlock;/);
+  assert.match(fixturesBlock, /const awayScoreSlot = awayScoreBlock \|\| emptyScoreBlock;/);
+  assert.match(fixturesBlock, /\{homeScoreSlot\}/);
+  assert.match(fixturesBlock, /\{awayScoreSlot\}/);
+});
+
+test("fixture table home and away headers sit away from the centered status lane", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(fixturesBlock, /<div style=\{\{textAlign:"right",paddingRight:46\}\}>Home<\/div>/);
+  assert.match(fixturesBlock, /<div style=\{\{paddingLeft:46\}\}>Away<\/div>/);
+});
