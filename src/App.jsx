@@ -187,6 +187,35 @@ function effectiveFixtureResult(fixture, liveScores) {
   return null;
 }
 
+function fixtureResultDisplayParts(fixture, liveMatch, scoreStr) {
+  const score = String(scoreStr || "").trim();
+  const match = score.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (!match) return null;
+
+  const optionalScore = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? String(n) : null;
+  };
+  const isFinal = !!fixture?.result || fixture?.status === "FINISHED" || liveMatch?.status === "finished";
+  const homeShootoutScore = optionalScore(
+    fixture?.homeShootoutScore ?? fixture?.homePenaltyScore ?? liveMatch?.homeShootoutScore ?? liveMatch?.homePenaltyScore
+  );
+  const awayShootoutScore = optionalScore(
+    fixture?.awayShootoutScore ?? fixture?.awayPenaltyScore ?? liveMatch?.awayShootoutScore ?? liveMatch?.awayPenaltyScore
+  );
+  const isShootout = isFinal && homeShootoutScore !== null && awayShootoutScore !== null;
+
+  return {
+    homeScore: match[1],
+    awayScore: match[2],
+    homeShootoutScore: isShootout ? homeShootoutScore : null,
+    awayShootoutScore: isShootout ? awayShootoutScore : null,
+    isShootout,
+    statusLabel: isFinal ? (isShootout ? "PEN" : "FT") : null,
+  };
+}
+
 function applyFinishedLiveScoresToGroup(group, liveScores = {}) {
   const optionalLiveNumber = (value) => {
     if (value === null || value === undefined || value === "") return null;
@@ -3913,15 +3942,24 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const isLive = (f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooScored) && !yahooFinal && !storedFinal;
         const scoreStr = effResult;
         const elapsed = yahooScored ? liveMatch.elapsed : (isLive ? f.elapsed : null);
-        const scoreParts = scoreStr ? scoreStr.split("-") : null;
+        const resultDisplay = fixtureResultDisplayParts(f, liveMatch, scoreStr);
+        const scoreParts = resultDisplay ? [resultDisplay.homeScore, resultDisplay.awayScore] : null;
         const pendingScoreSync = !scoreParts && shouldFetchLiveScores([f]);
         const resultBlock = scoreParts?(
           <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
-            <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"right",letterSpacing:0}}>{scoreParts[0]}</span>
+            <span style={{display:"flex",alignItems:"center",justifyContent:"flex-end",minWidth:0}}>
+              <span style={{display:"flex",alignItems:"flex-start",gap:1}}>
+                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"right",letterSpacing:0,lineHeight:1}}>{resultDisplay.homeScore}</span>
+                {resultDisplay.homeShootoutScore!==null&&<span style={{fontSize:9,fontWeight:700,color:"var(--text-bright)",opacity:0.9,lineHeight:1,alignSelf:"flex-start",marginTop:-2}}>({resultDisplay.homeShootoutScore})</span>}
+              </span>
+            </span>
             <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",padding:"0 3px"}}>{"–"}</span>
-            <span style={{display:"flex",alignItems:"center",gap:4}}>
-              <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0}}>{scoreParts[1]}</span>
-              {(storedFinal||yahooFinal)&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6}}>FT</span>}
+            <span style={{display:"flex",alignItems:"center",gap:3,minWidth:0}}>
+              <span style={{display:"flex",alignItems:"flex-start",gap:1}}>
+                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0,lineHeight:1}}>{resultDisplay.awayScore}</span>
+                {resultDisplay.awayShootoutScore!==null&&<span style={{fontSize:9,fontWeight:700,color:"var(--text-bright)",opacity:0.9,lineHeight:1,alignSelf:"flex-start",marginTop:-2}}>({resultDisplay.awayShootoutScore})</span>}
+              </span>
+              {resultDisplay.statusLabel&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6,marginLeft:2}}>{resultDisplay.statusLabel}</span>}
               {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>{elapsed||"LIVE"}</span>}
             </span>
           </div>

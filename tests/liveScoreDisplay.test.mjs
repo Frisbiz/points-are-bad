@@ -181,6 +181,75 @@ test("finished Yahoo scores patch winner metadata onto already saved tied result
   assert.equal(group.gameweeks[0].fixtures[0].winningTeamId, undefined);
 });
 
+test("fixture result display marks penalty shootout finals with compact PEN status", () => {
+  const fixtureResultDisplayParts = loadAppFunction("fixtureResultDisplayParts");
+  const fixture = {
+    id: "wc-gw4-fsoccer-g-13532362",
+    home: "Germany",
+    away: "Paraguay",
+    result: "1-1",
+    status: "FINISHED",
+    homeShootoutScore: 3,
+    awayShootoutScore: 4,
+  };
+
+  assert.deepEqual(fixtureResultDisplayParts(fixture, null, "1-1"), {
+    homeScore: "1",
+    awayScore: "1",
+    homeShootoutScore: "3",
+    awayShootoutScore: "4",
+    isShootout: true,
+    statusLabel: "PEN",
+  });
+});
+
+test("fixture result display can use live shootout metadata before the fixture is saved", () => {
+  const fixtureResultDisplayParts = loadAppFunction("fixtureResultDisplayParts");
+  const fixture = {
+    id: "wc-gw4-fsoccer-g-13532362",
+    home: "Germany",
+    away: "Paraguay",
+    result: null,
+    status: "SCHEDULED",
+  };
+  const liveMatch = {
+    status: "finished",
+    homeScore: 1,
+    awayScore: 1,
+    homeShootoutScore: 3,
+    awayShootoutScore: 4,
+  };
+
+  assert.deepEqual(fixtureResultDisplayParts(fixture, liveMatch, "1-1"), {
+    homeScore: "1",
+    awayScore: "1",
+    homeShootoutScore: "3",
+    awayShootoutScore: "4",
+    isShootout: true,
+    statusLabel: "PEN",
+  });
+});
+
+test("fixture result display keeps normal completed results as FT", () => {
+  const fixtureResultDisplayParts = loadAppFunction("fixtureResultDisplayParts");
+  const fixture = {
+    id: "wc-gw4-fsoccer-g-13532361",
+    home: "South Africa",
+    away: "Canada",
+    result: "0-1",
+    status: "FINISHED",
+  };
+
+  assert.deepEqual(fixtureResultDisplayParts(fixture, null, "0-1"), {
+    homeScore: "0",
+    awayScore: "1",
+    homeShootoutScore: null,
+    awayShootoutScore: null,
+    isShootout: false,
+    statusLabel: "FT",
+  });
+});
+
 test("auto sync still targets finished fixtures missing saved results", () => {
   const autoSyncTargetGW = loadAppFunction("autoSyncTargetGW");
   const group = {
@@ -365,4 +434,16 @@ test("fixtures show syncing instead of TBD while a missing result is recoverable
 
   assert.match(fixturesBlock, /const pendingScoreSync = !scoreParts && shouldFetchLiveScores\(\[f\]\);/);
   assert.match(fixturesBlock, />SYNCING</);
+});
+
+test("fixture shootout scores render like small top-right score exponents", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(fixturesBlock, /fontSize:9,fontWeight:700/);
+  assert.match(fixturesBlock, /alignSelf:"flex-start"/);
+  assert.match(fixturesBlock, /marginTop:-2/);
 });
