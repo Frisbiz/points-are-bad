@@ -216,6 +216,34 @@ function fixtureResultDisplayParts(fixture, liveMatch, scoreStr) {
   };
 }
 
+function fixtureWinnerSide(fixture, liveMatch, resultDisplay) {
+  const cleanSide = (value) => (value === "home" || value === "away" ? value : null);
+  const metadataSide = cleanSide(fixture?.winnerSide) || cleanSide(liveMatch?.winnerSide);
+  if (metadataSide) return metadataSide;
+
+  const winningTeamId = fixture?.winningTeamId ?? fixture?.winnerTeamId ?? liveMatch?.winningTeamId ?? liveMatch?.winnerTeamId;
+  if (winningTeamId && fixture?.homeTeamId && winningTeamId === fixture.homeTeamId) return "home";
+  if (winningTeamId && fixture?.awayTeamId && winningTeamId === fixture.awayTeamId) return "away";
+
+  const optionalNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
+  const homeScore = optionalNumber(resultDisplay?.homeScore);
+  const awayScore = optionalNumber(resultDisplay?.awayScore);
+  if (homeScore === null || awayScore === null) return null;
+  if (homeScore > awayScore) return "home";
+  if (awayScore > homeScore) return "away";
+
+  const homeShootoutScore = optionalNumber(resultDisplay?.homeShootoutScore);
+  const awayShootoutScore = optionalNumber(resultDisplay?.awayShootoutScore);
+  if (homeShootoutScore === null || awayShootoutScore === null) return null;
+  if (homeShootoutScore > awayShootoutScore) return "home";
+  if (awayShootoutScore > homeShootoutScore) return "away";
+  return null;
+}
+
 function applyFinishedLiveScoresToGroup(group, liveScores = {}) {
   const optionalLiveNumber = (value) => {
     if (value === null || value === undefined || value === "") return null;
@@ -3914,10 +3942,10 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         </div>
       )}
 
-      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"6px 14px",fontSize:11,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
+      {!mob&&<div style={{display:"grid",gridTemplateColumns:"72px minmax(0,1fr) 54px minmax(0,1fr) 105px 70px",gap:10,padding:"6px 14px",fontSize:11,color:"var(--text-dim)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>
         <div></div>
         <div style={{textAlign:"right"}}>Home</div>
-        <div style={{textAlign:"center"}}>Result</div>
+        <div></div>
         <div>Away</div>
         <div style={{textAlign:"center"}}>Your Pick</div>
         <div style={{textAlign:"center"}}>Pts</div>
@@ -3945,23 +3973,28 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const resultDisplay = fixtureResultDisplayParts(f, liveMatch, scoreStr);
         const scoreParts = resultDisplay ? [resultDisplay.homeScore, resultDisplay.awayScore] : null;
         const pendingScoreSync = !scoreParts && shouldFetchLiveScores([f]);
-        const resultBlock = scoreParts?(
-          <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",width:"100%"}}>
-            <span style={{display:"flex",alignItems:"center",justifyContent:"flex-end",minWidth:0}}>
-              <span style={{display:"flex",alignItems:"flex-start",gap:1}}>
-                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",textAlign:"right",letterSpacing:0,lineHeight:1}}>{resultDisplay.homeScore}</span>
-                {resultDisplay.homeShootoutScore!==null&&<span style={{fontSize:9,fontWeight:700,color:"var(--text-bright)",opacity:0.9,lineHeight:1,alignSelf:"flex-start",marginTop:-2}}>({resultDisplay.homeShootoutScore})</span>}
-              </span>
-            </span>
-            <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",padding:"0 3px"}}>{"–"}</span>
-            <span style={{display:"flex",alignItems:"center",gap:3,minWidth:0}}>
-              <span style={{display:"flex",alignItems:"flex-start",gap:1}}>
-                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0,lineHeight:1}}>{resultDisplay.awayScore}</span>
-                {resultDisplay.awayShootoutScore!==null&&<span style={{fontSize:9,fontWeight:700,color:"var(--text-bright)",opacity:0.9,lineHeight:1,alignSelf:"flex-start",marginTop:-2}}>({resultDisplay.awayShootoutScore})</span>}
-              </span>
-              {resultDisplay.statusLabel&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.6,marginLeft:2}}>{resultDisplay.statusLabel}</span>}
-              {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite"}}>{elapsed||"LIVE"}</span>}
-            </span>
+        const completedWinnerSide = (storedFinal || yahooFinal) ? fixtureWinnerSide(f, liveMatch, resultDisplay) : null;
+        const mutedOpacity = hardLocked ? 0.55 : 1;
+        const homeSideOpacity = hardLocked && completedWinnerSide !== "home" ? 0.55 : 1;
+        const awaySideOpacity = hardLocked && completedWinnerSide !== "away" ? 0.55 : 1;
+        const scoreNumberStyle = {fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0,lineHeight:1};
+        const shootoutNumberStyle = {fontSize:9,fontWeight:700,color:"var(--text-bright)",opacity:0.9,lineHeight:1,alignSelf:"flex-start",marginTop:-2};
+        const homeScoreBlock = scoreParts?(
+          <span style={{display:"inline-flex",alignItems:"flex-start",gap:1}}>
+            <span style={{...scoreNumberStyle,textAlign:"right"}}>{resultDisplay.homeScore}</span>
+            {resultDisplay.homeShootoutScore!==null&&<span style={shootoutNumberStyle}>({resultDisplay.homeShootoutScore})</span>}
+          </span>
+        ):null;
+        const awayScoreBlock = scoreParts?(
+          <span style={{display:"inline-flex",alignItems:"flex-start",gap:1}}>
+            <span style={scoreNumberStyle}>{resultDisplay.awayScore}</span>
+            {resultDisplay.awayShootoutScore!==null&&<span style={shootoutNumberStyle}>({resultDisplay.awayShootoutScore})</span>}
+          </span>
+        ):null;
+        const resultStatusBlock = scoreParts?(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",minWidth:54}}>
+            {resultDisplay.statusLabel&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.65,textAlign:"center"}}>{resultDisplay.statusLabel}</span>}
+            {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite",textAlign:"center"}}>{elapsed||"LIVE"}</span>}
           </div>
         ):f.status==="POSTPONED"?(
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
@@ -4056,44 +4089,48 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
           </div>
         );
         if (mob) return (
-          <div key={f.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
-            {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3}}>{dateStr}</div>}
+          <div key={f.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,transition:"opacity 0.2s"}}>
+            {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3,opacity:mutedOpacity}}>{dateStr}</div>}
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,opacity:homeSideOpacity}}>
                 <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.home)}</a>
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:completedWinnerSide==="home"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="home"?700:400,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.home)}</a>
+                {homeScoreBlock&&<span style={{flexShrink:0,marginLeft:2}}>{homeScoreBlock}</span>}
               </div>
-              <div style={{textAlign:"center",flexShrink:0,minWidth:60}}>{resultBlock}</div>
-              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end"}}>
-                <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.away)}</a>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",flexShrink:0,minWidth:54}}>{resultStatusBlock}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,justifyContent:"flex-end",opacity:awaySideOpacity}}>
+                {awayScoreBlock&&<span style={{flexShrink:0,marginRight:2}}>{awayScoreBlock}</span>}
+                <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:completedWinnerSide==="away"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="away"?700:400,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.away)}</a>
                 <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
               </div>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,opacity:mutedOpacity}}>
                 <span style={{fontSize:10,color:"var(--text-dim)",letterSpacing:1,flexShrink:0}}>PICK</span>
                 <div style={{minWidth:0}}>
                   {pickBlock}
                 </div>
               </div>
-              <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
+              <span style={{opacity:mutedOpacity}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></span>
             </div>
           </div>
         );
         return (
-          <div key={f.id} className={`frow${isIndex?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,padding:"13px 14px",background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,opacity:hardLocked?0.55:1,transition:"opacity 0.2s"}}>
-            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4}}>{dateStr||""}</div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10}}>
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.home}</a>
+          <div key={f.id} className={`frow${isIndex?" liquid-card":""}`} style={{display:"grid",gridTemplateColumns:"72px minmax(0,1fr) 54px minmax(0,1fr) 105px 70px",gap:10,padding:"13px 14px",background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",alignItems:"center",marginBottom:6,transition:"opacity 0.2s"}}>
+            <div style={{fontSize:10,color:"var(--text-dim)",letterSpacing:0.3,lineHeight:1.4,opacity:mutedOpacity}}>{dateStr||""}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10,opacity:homeSideOpacity}}>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:completedWinnerSide==="home"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="home"?700:400,textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color=completedWinnerSide==="home"?"var(--text-bright)":"var(--text-mid)"}>{f.home}</a>
               <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
+              {homeScoreBlock&&<span style={{display:"flex",alignItems:"center",marginLeft:4,flexShrink:0}}>{homeScoreBlock}</span>}
             </div>
-            <div style={{textAlign:"center"}}>{resultBlock}</div>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center"}}>{resultStatusBlock}</div>
+            <div style={{display:"flex",alignItems:"center",gap:10,opacity:awaySideOpacity}}>
+              {awayScoreBlock&&<span style={{display:"flex",alignItems:"center",marginRight:4,flexShrink:0}}>{awayScoreBlock}</span>}
               <TeamBadge team={f.away} crest={f.awayCrest} size={22} />
-              <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:"var(--text-mid)",textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text-mid)"}>{f.away}</a>
+              <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:completedWinnerSide==="away"?"var(--text-bright)":"var(--text-mid)",fontWeight:completedWinnerSide==="away"?700:400,textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color=completedWinnerSide==="away"?"var(--text-bright)":"var(--text-mid)"}>{f.away}</a>
             </div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>{pickBlock}</div>
-            <div style={{textAlign:"center"}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,opacity:mutedOpacity}}>{pickBlock}</div>
+            <div style={{textAlign:"center",opacity:mutedOpacity}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
           </div>
         );
       })}

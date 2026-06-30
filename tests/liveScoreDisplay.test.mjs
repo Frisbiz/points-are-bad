@@ -250,6 +250,45 @@ test("fixture result display keeps normal completed results as FT", () => {
   });
 });
 
+test("fixture winner side resolves from a normal finished score", () => {
+  const fixtureWinnerSide = loadAppFunction("fixtureWinnerSide");
+
+  assert.equal(
+    fixtureWinnerSide(
+      { home: "South Africa", away: "Canada", result: "0-1", status: "FINISHED" },
+      null,
+      { homeScore: "0", awayScore: "1", homeShootoutScore: null, awayShootoutScore: null }
+    ),
+    "away"
+  );
+});
+
+test("fixture winner side resolves from penalty shootout scores when regular score is tied", () => {
+  const fixtureWinnerSide = loadAppFunction("fixtureWinnerSide");
+
+  assert.equal(
+    fixtureWinnerSide(
+      { home: "Germany", away: "Paraguay", result: "1-1", status: "FINISHED" },
+      null,
+      { homeScore: "1", awayScore: "1", homeShootoutScore: "3", awayShootoutScore: "4" }
+    ),
+    "away"
+  );
+});
+
+test("fixture winner side stays empty for draws without shootout metadata", () => {
+  const fixtureWinnerSide = loadAppFunction("fixtureWinnerSide");
+
+  assert.equal(
+    fixtureWinnerSide(
+      { home: "Netherlands", away: "Morocco", result: "1-1", status: "FINISHED" },
+      null,
+      { homeScore: "1", awayScore: "1", homeShootoutScore: null, awayShootoutScore: null }
+    ),
+    null
+  );
+});
+
 test("auto sync still targets finished fixtures missing saved results", () => {
   const autoSyncTargetGW = loadAppFunction("autoSyncTargetGW");
   const group = {
@@ -446,4 +485,19 @@ test("fixture shootout scores render like small top-right score exponents", () =
   assert.match(fixturesBlock, /fontSize:9,fontWeight:700/);
   assert.match(fixturesBlock, /alignSelf:"flex-start"/);
   assert.match(fixturesBlock, /marginTop:-2/);
+});
+
+test("fixture rows use centered status lane with team-attached scores", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.doesNotMatch(fixturesBlock, />Result</);
+  assert.match(fixturesBlock, /gridTemplateColumns:"72px minmax\(0,1fr\) 54px minmax\(0,1fr\) 105px 70px"/);
+  assert.match(fixturesBlock, /const homeScoreBlock = scoreParts\?/);
+  assert.match(fixturesBlock, /const awayScoreBlock = scoreParts\?/);
+  assert.match(fixturesBlock, /const resultStatusBlock = scoreParts\?/);
+  assert.match(fixturesBlock, /justifyContent:"center"/);
 });
