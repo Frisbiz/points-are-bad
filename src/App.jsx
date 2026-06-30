@@ -3977,16 +3977,17 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const mutedOpacity = hardLocked ? 0.55 : 1;
         const homeSideOpacity = hardLocked && completedWinnerSide !== "home" ? 0.55 : 1;
         const awaySideOpacity = hardLocked && completedWinnerSide !== "away" ? 0.55 : 1;
+        const scoreSlotWidth = 32;
         const scoreNumberStyle = {fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:17,fontWeight:700,color:"var(--text-bright)",letterSpacing:0,lineHeight:1};
         const shootoutNumberStyle = {fontSize:9,fontWeight:700,color:"var(--text-bright)",opacity:0.9,lineHeight:1,alignSelf:"flex-start",marginTop:-2};
         const homeScoreBlock = scoreParts?(
-          <span style={{display:"inline-flex",alignItems:"flex-start",gap:1}}>
+          <span style={{display:"inline-flex",alignItems:"flex-start",justifyContent:"flex-start",gap:1,minWidth:scoreSlotWidth,flexShrink:0}}>
             <span style={{...scoreNumberStyle,textAlign:"right"}}>{resultDisplay.homeScore}</span>
             {resultDisplay.homeShootoutScore!==null&&<span style={shootoutNumberStyle}>({resultDisplay.homeShootoutScore})</span>}
           </span>
         ):null;
         const awayScoreBlock = scoreParts?(
-          <span style={{display:"inline-flex",alignItems:"flex-start",gap:1}}>
+          <span style={{display:"inline-flex",alignItems:"flex-start",justifyContent:"flex-end",gap:1,minWidth:scoreSlotWidth,flexShrink:0}}>
             <span style={scoreNumberStyle}>{resultDisplay.awayScore}</span>
             {resultDisplay.awayShootoutScore!==null&&<span style={shootoutNumberStyle}>({resultDisplay.awayShootoutScore})</span>}
           </span>

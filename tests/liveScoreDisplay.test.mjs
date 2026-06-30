@@ -501,3 +501,16 @@ test("fixture rows use centered status lane with team-attached scores", () => {
   assert.match(fixturesBlock, /const resultStatusBlock = scoreParts\?/);
   assert.match(fixturesBlock, /justifyContent:"center"/);
 });
+
+test("fixture score slots reserve penalty width so normal rows align with shootout rows", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(fixturesBlock, /const scoreSlotWidth = 32;/);
+  assert.match(fixturesBlock, /minWidth:scoreSlotWidth/);
+  assert.match(fixturesBlock, /justifyContent:"flex-start"/);
+  assert.match(fixturesBlock, /justifyContent:"flex-end"/);
+});
