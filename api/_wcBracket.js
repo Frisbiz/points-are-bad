@@ -26,18 +26,18 @@ const THIRD_PLACE_ASSIGNMENTS = {
 const KNOCKOUT_PLACEHOLDER_LABELS_BY_GW = {
   5: [
     ["W74", "W77"],
-    ["W76", "W78"],
     ["W73", "W75"],
-    ["W79", "W80"],
     ["W83", "W84"],
-    ["W86", "W88"],
     ["W81", "W82"],
+    ["W76", "W78"],
+    ["W79", "W80"],
+    ["W86", "W88"],
     ["W85", "W87"],
   ],
   6: [
     ["W89", "W90"],
-    ["W91", "W92"],
     ["W93", "W94"],
+    ["W91", "W92"],
     ["W95", "W96"],
   ],
   7: [
@@ -104,6 +104,40 @@ const YAHOO_GAME_WINNER_LABELS = {
 const YAHOO_GAME_LOSER_LABELS = {
   13532389: "L101",
   13532390: "L102",
+};
+
+const BRACKET_DISPLAY_GAME_IDS_BY_GW = {
+  4: [
+    13532362,
+    13532365,
+    13532361,
+    13532363,
+    13532372,
+    13532373,
+    13532368,
+    13532369,
+    13532364,
+    13532366,
+    13532367,
+    13532370,
+    13532376,
+    13532374,
+    13532371,
+    13532375,
+  ],
+  5: [
+    13532377,
+    13532378,
+    13532381,
+    13532382,
+    13532379,
+    13532380,
+    13532383,
+    13532384,
+  ],
+  6: [13532385, 13532386, 13532387, 13532388],
+  7: [13532389, 13532390],
+  8: [13532392, 13532391],
 };
 
 const WORLD_CUP_BRACKET_TEAM_NAME_LIMIT = 12;
@@ -178,6 +212,26 @@ function loserAdvancementLabel(fixture, index) {
   const yahooLabel = YAHOO_GAME_LOSER_LABELS[yahooGameIdKey(fixture)];
   if (yahooLabel) return yahooLabel;
   return THIRD_PLACE_PLACEHOLDER_LABELS[index] || null;
+}
+
+function bracketDisplayRank(gw, fixture) {
+  const gameIds = BRACKET_DISPLAY_GAME_IDS_BY_GW[Number(gw)] || [];
+  const gameId = yahooGameIdKey(fixture);
+  const gameIndex = gameId ? gameIds.findIndex(id => String(id) === String(gameId)) : -1;
+  if (gameIndex >= 0) return gameIndex;
+
+  const placeholderPairs = KNOCKOUT_PLACEHOLDER_LABELS_BY_GW[Number(gw)] || [];
+  const home = String(fixture?.home || "").trim().toUpperCase();
+  const away = String(fixture?.away || "").trim().toUpperCase();
+  const pairIndex = placeholderPairs.findIndex(([left, right]) => left === home && right === away);
+  return pairIndex >= 0 ? pairIndex : Number.POSITIVE_INFINITY;
+}
+
+export function sortWorldCupBracketFixturesForDisplay(gw, fixtures = []) {
+  return fixtures
+    .map((fixture, index) => ({ fixture, index, rank: bracketDisplayRank(gw, fixture) }))
+    .sort((a, b) => (a.rank - b.rank) || (a.index - b.index))
+    .map(item => item.fixture);
 }
 
 function scoreNumber(value) {

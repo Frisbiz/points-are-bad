@@ -14,6 +14,7 @@ import {
   resolveWorldCupBracketAdvancement,
   resolveWorldCupGlobalDocSeeds,
   resolveWorldCupKnockoutSeeds,
+  sortWorldCupBracketFixturesForDisplay,
   winnerSideForWorldCupFixture,
 } from "../api/_wcBracket.js";
 
@@ -265,6 +266,89 @@ test("uses Yahoo game ids for unresolved World Cup knockout labels when availabl
   );
 });
 
+test("orders World Cup bracket fixtures by visible bracket flow", () => {
+  const fixture = (gameId, home = `H${gameId}`, away = `A${gameId}`) => ({
+    id: `wc-fsoccer-g-${gameId}`,
+    apiId: `soccer.g.${gameId}`,
+    home,
+    away,
+  });
+
+  const roundOf32 = sortWorldCupBracketFixturesForDisplay(4, [
+    fixture(13532361, "South Africa", "Canada"),
+    fixture(13532364, "Brazil", "Japan"),
+    fixture(13532362, "Germany", "Paraguay"),
+    fixture(13532363, "Netherlands", "Morocco"),
+    fixture(13532366, "Ivory Coast", "Norway"),
+    fixture(13532365, "France", "Sweden"),
+    fixture(13532367, "Mexico", "Ecuador"),
+    fixture(13532370, "England", "DR Congo"),
+    fixture(13532372, "Portugal", "Croatia"),
+    fixture(13532373, "Spain", "Austria"),
+    fixture(13532368, "USA", "Bosnia-Herzegovina"),
+    fixture(13532369, "Belgium", "Senegal"),
+    fixture(13532376, "Argentina", "Cape Verde"),
+    fixture(13532374, "Australia", "Egypt"),
+    fixture(13532371, "Switzerland", "Algeria"),
+    fixture(13532375, "Colombia", "Ghana"),
+  ]);
+
+  assert.deepEqual(roundOf32.map(f => f.apiId), [
+    "soccer.g.13532362",
+    "soccer.g.13532365",
+    "soccer.g.13532361",
+    "soccer.g.13532363",
+    "soccer.g.13532372",
+    "soccer.g.13532373",
+    "soccer.g.13532368",
+    "soccer.g.13532369",
+    "soccer.g.13532364",
+    "soccer.g.13532366",
+    "soccer.g.13532367",
+    "soccer.g.13532370",
+    "soccer.g.13532376",
+    "soccer.g.13532374",
+    "soccer.g.13532371",
+    "soccer.g.13532375",
+  ]);
+
+  const roundOf16 = sortWorldCupBracketFixturesForDisplay(5, [
+    fixture(13532378),
+    fixture(13532377),
+    fixture(13532379),
+    fixture(13532380),
+    fixture(13532381),
+    fixture(13532382),
+    fixture(13532383),
+    fixture(13532384),
+  ]);
+
+  assert.deepEqual(roundOf16.map(f => f.apiId), [
+    "soccer.g.13532377",
+    "soccer.g.13532378",
+    "soccer.g.13532381",
+    "soccer.g.13532382",
+    "soccer.g.13532379",
+    "soccer.g.13532380",
+    "soccer.g.13532383",
+    "soccer.g.13532384",
+  ]);
+
+  const quarterfinals = sortWorldCupBracketFixturesForDisplay(6, [
+    fixture(13532387),
+    fixture(13532385),
+    fixture(13532388),
+    fixture(13532386),
+  ]);
+
+  assert.deepEqual(quarterfinals.map(f => f.apiId), [
+    "soccer.g.13532385",
+    "soccer.g.13532386",
+    "soccer.g.13532387",
+    "soccer.g.13532388",
+  ]);
+});
+
 test("advances completed knockout winners into later bracket placeholders", () => {
   const partial = resolveWorldCupBracketAdvancement([
     {
@@ -514,6 +598,7 @@ test("knockout bracket renders with advanced winner placeholders resolved", () =
 
   assert.match(bracketBlock, /resolveWorldCupBracketAdvancement\(group\.gameweeks \|\| \[\]\)/);
   assert.match(bracketBlock, /bracketGameweeks\.find\(g => g\.gw === gwNum\)/);
+  assert.match(bracketBlock, /sortWorldCupBracketFixturesForDisplay\(gwNum/);
   assert.match(bracketBlock, /winnerSideForWorldCupFixture\(f\)/);
   assert.match(bracketBlock, /formatWorldCupBracketMatchMeta\(f/);
 });
