@@ -357,12 +357,12 @@ export function applyKnownWorldCupKnockoutSchedule(gameweeks = []) {
   return (gameweeks || []).map(gwObj => ({
     ...gwObj,
     fixtures: (gwObj.fixtures || []).map((fixture, matchIndex) => {
-      const schedule = knownScheduleForFixture(fixture, gwObj.gw, matchIndex)
-        || teamPairSchedules.get(`${Number(gwObj.gw)}:${fixtureTeamPairKey(fixture)}`);
+      const teamPairSchedule = teamPairSchedules.get(`${Number(gwObj.gw)}:${fixtureTeamPairKey(fixture)}`);
+      const schedule = teamPairSchedule || knownScheduleForFixture(fixture, gwObj.gw, matchIndex);
       if (!schedule) return fixture;
       return {
         ...fixture,
-        apiId: fixture.apiId || `soccer.g.${schedule.gameId}`,
+        apiId: `soccer.g.${schedule.gameId}`,
         date: schedule.date,
         yahooDate: schedule.yahooDate,
         stage: schedule.stage || fixture.stage,

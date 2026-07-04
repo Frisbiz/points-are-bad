@@ -357,7 +357,8 @@ test("known World Cup knockout schedule corrects stale cached fixture dates", ()
     },
   ]);
 
-  assert.equal(gw.fixtures[0].date, "2026-07-04T21:00:00.000Z");
+  assert.equal(gw.fixtures[0].apiId, "soccer.g.13532378");
+  assert.equal(gw.fixtures[0].date, "2026-07-04T17:00:00.000Z");
   assert.equal(gw.fixtures[0].yahooDate, "2026-07-04");
   assert.equal(
     applyKnownWorldCupKnockoutSchedule([
@@ -409,6 +410,53 @@ test("known World Cup knockout schedule corrects stale cached fixture dates", ()
   assert.equal(resolvedTeamFixture.apiId, "soccer.g.13532382");
   assert.equal(resolvedTeamFixture.date, "2026-07-07T00:00:00.000Z");
   assert.equal(resolvedTeamFixture.yahooDate, "2026-07-06");
+
+  const wrongApiIdFixture = applyKnownWorldCupKnockoutSchedule([
+    {
+      gw: 5,
+      fixtures: [
+        {
+          id: "wc-gw5-old-usa-belgium",
+          apiId: "soccer.g.13532380",
+          home: "USA",
+          away: "Belgium",
+          date: "2026-07-06T00:00:00.000Z",
+        },
+      ],
+    },
+  ])[0].fixtures[0];
+  assert.equal(wrongApiIdFixture.apiId, "soccer.g.13532382");
+  assert.equal(wrongApiIdFixture.date, "2026-07-07T00:00:00.000Z");
+  assert.equal(wrongApiIdFixture.yahooDate, "2026-07-06");
+
+  const oldVisibleRows = applyKnownWorldCupKnockoutSchedule([
+    {
+      gw: 5,
+      fixtures: [
+        { id: "old-r16-1", apiId: "soccer.g.13532377", home: "Paraguay", away: "France", date: "2026-07-04T17:00:00.000Z" },
+        { id: "old-r16-2", apiId: "soccer.g.13532378", home: "Canada", away: "Morocco", date: "2026-07-04T21:00:00.000Z" },
+        { id: "old-r16-3", apiId: "soccer.g.13532379", home: "Portugal", away: "Spain", date: "2026-07-05T20:00:00.000Z" },
+        { id: "old-r16-4", apiId: "soccer.g.13532380", home: "USA", away: "Belgium", date: "2026-07-06T00:00:00.000Z" },
+        { id: "old-r16-5", apiId: "soccer.g.13532381", home: "Brazil", away: "Norway", date: "2026-07-06T19:00:00.000Z" },
+        { id: "old-r16-6", apiId: "soccer.g.13532382", home: "Mexico", away: "England", date: "2026-07-07T00:00:00.000Z" },
+        { id: "old-r16-7", apiId: "soccer.g.13532383", home: "Argentina", away: "Egypt", date: "2026-07-07T16:00:00.000Z" },
+        { id: "old-r16-8", apiId: "soccer.g.13532384", home: "Switzerland", away: "Colombia", date: "2026-07-07T20:00:00.000Z" },
+      ],
+    },
+  ])[0].fixtures;
+  assert.deepEqual(
+    oldVisibleRows.map(f => [f.home, f.away, f.apiId, f.date]),
+    [
+      ["Paraguay", "France", "soccer.g.13532377", "2026-07-04T21:00:00.000Z"],
+      ["Canada", "Morocco", "soccer.g.13532378", "2026-07-04T17:00:00.000Z"],
+      ["Portugal", "Spain", "soccer.g.13532381", "2026-07-06T19:00:00.000Z"],
+      ["USA", "Belgium", "soccer.g.13532382", "2026-07-07T00:00:00.000Z"],
+      ["Brazil", "Norway", "soccer.g.13532379", "2026-07-05T20:00:00.000Z"],
+      ["Mexico", "England", "soccer.g.13532380", "2026-07-06T00:00:00.000Z"],
+      ["Argentina", "Egypt", "soccer.g.13532383", "2026-07-07T16:00:00.000Z"],
+      ["Switzerland", "Colombia", "soccer.g.13532384", "2026-07-07T20:00:00.000Z"],
+    ]
+  );
 });
 
 test("orders World Cup bracket fixtures by visible bracket flow", () => {

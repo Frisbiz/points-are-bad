@@ -527,11 +527,14 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
   const group = (g.competition || 'PL') === 'WC'
     ? { ...g, gameweeks: applyKnownWorldCupKnockoutSchedule(g.gameweeks || []) }
     : g;
+  const normalizedGlobalDoc = (group.competition || 'PL') === 'WC'
+    ? { ...globalDoc, gameweeks: applyKnownWorldCupKnockoutSchedule(globalDoc.gameweeks || []) }
+    : globalDoc;
   const seas = group.season || 2025;
   let predictions = group.predictions || {};
   const remaps = [];
   const globalGWMap = {};
-  (globalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = dedupeFixtures(gwObj.fixtures || []); });
+  (normalizedGlobalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = dedupeFixtures(gwObj.fixtures || []); });
   const hasPick = id => Object.values(predictions).some(up => up[id] !== undefined);
   const updatedGameweeks = (group.gameweeks || []).map(gwObj => {
     if ((gwObj.season || seas) !== seas) return gwObj;
@@ -571,7 +574,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     return applyFixtureIdRemaps({ ...group, gameweeks: updatedGameweeks, predictions, lastAutoSync: Date.now() }, remaps);
   }
   const globalPairToGW = {};
-  (globalDoc.gameweeks || []).forEach(gwObj => {
+  (normalizedGlobalDoc.gameweeks || []).forEach(gwObj => {
     (gwObj.fixtures || []).forEach(f => { globalPairToGW[fixturePairKey(f)] = gwObj.gw; });
   });
   const deduped = updatedGameweeks.map(gwObj => {

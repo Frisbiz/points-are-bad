@@ -238,6 +238,131 @@ test("mergeGlobalIntoGroup updates old resolved WC rows without Yahoo game ids",
   assert.equal(merged.predictions.faris["wc-gw5-old-usa-belgium"], "2-1");
 });
 
+test("mergeGlobalIntoGroup fixes old resolved WC rows with wrong Yahoo game ids", () => {
+  const group = {
+    id: "g1",
+    competition: "WC",
+    season: 2026,
+    predictions: {
+      faris: { "wc-gw5-old-usa-belgium": "2-1" },
+    },
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-old-usa-belgium",
+            apiId: "soccer.g.13532380",
+            home: "USA",
+            away: "Belgium",
+            status: "SCHEDULED",
+            date: "2026-07-06T00:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  const globalDoc = {
+    season: 2026,
+    updatedAt: 100,
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-fsoccer-g-13532382",
+            apiId: "soccer.g.13532382",
+            home: "USA",
+            away: "Belgium",
+            status: "SCHEDULED",
+            date: "2026-07-07T00:00:00.000Z",
+            yahooDate: "2026-07-06",
+          },
+        ],
+      },
+    ],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(merged.gameweeks[0].fixtures.length, 1);
+  assert.equal(fixture.id, "wc-gw5-old-usa-belgium");
+  assert.equal(fixture.apiId, "soccer.g.13532382");
+  assert.equal(fixture.date, "2026-07-07T00:00:00.000Z");
+  assert.equal(fixture.yahooDate, "2026-07-06");
+  assert.equal(merged.predictions.faris["wc-gw5-old-usa-belgium"], "2-1");
+});
+
+test("mergeGlobalIntoGroup fixes all old resolved Round of 16 date rows", () => {
+  const groupRows = [
+    ["old-r16-1", "soccer.g.13532377", "Paraguay", "France", "2026-07-04T17:00:00.000Z"],
+    ["old-r16-2", "soccer.g.13532378", "Canada", "Morocco", "2026-07-04T21:00:00.000Z"],
+    ["old-r16-3", "soccer.g.13532379", "Portugal", "Spain", "2026-07-05T20:00:00.000Z"],
+    ["old-r16-4", "soccer.g.13532380", "USA", "Belgium", "2026-07-06T00:00:00.000Z"],
+    ["old-r16-5", "soccer.g.13532381", "Brazil", "Norway", "2026-07-06T19:00:00.000Z"],
+    ["old-r16-6", "soccer.g.13532382", "Mexico", "England", "2026-07-07T00:00:00.000Z"],
+    ["old-r16-7", "soccer.g.13532383", "Argentina", "Egypt", "2026-07-07T16:00:00.000Z"],
+    ["old-r16-8", "soccer.g.13532384", "Switzerland", "Colombia", "2026-07-07T20:00:00.000Z"],
+  ];
+  const correctRows = [
+    ["soccer.g.13532377", "Paraguay", "France", "2026-07-04T21:00:00.000Z", "2026-07-04"],
+    ["soccer.g.13532378", "Canada", "Morocco", "2026-07-04T17:00:00.000Z", "2026-07-04"],
+    ["soccer.g.13532381", "Portugal", "Spain", "2026-07-06T19:00:00.000Z", "2026-07-06"],
+    ["soccer.g.13532382", "USA", "Belgium", "2026-07-07T00:00:00.000Z", "2026-07-06"],
+    ["soccer.g.13532379", "Brazil", "Norway", "2026-07-05T20:00:00.000Z", "2026-07-05"],
+    ["soccer.g.13532380", "Mexico", "England", "2026-07-06T00:00:00.000Z", "2026-07-05"],
+    ["soccer.g.13532383", "Argentina", "Egypt", "2026-07-07T16:00:00.000Z", "2026-07-07"],
+    ["soccer.g.13532384", "Switzerland", "Colombia", "2026-07-07T20:00:00.000Z", "2026-07-07"],
+  ];
+  const group = {
+    id: "g1",
+    competition: "WC",
+    season: 2026,
+    predictions: {
+      faris: Object.fromEntries(groupRows.map(([id]) => [id, "1-0"])),
+    },
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: groupRows.map(([id, apiId, home, away, date]) => ({ id, apiId, home, away, status: "SCHEDULED", date })),
+      },
+    ],
+  };
+  const globalDoc = {
+    season: 2026,
+    updatedAt: 100,
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: correctRows.map(([apiId, home, away, date, yahooDate]) => ({
+          id: `wc-gw5-f${apiId.replaceAll(".", "-")}`,
+          apiId,
+          home,
+          away,
+          status: "SCHEDULED",
+          date,
+          yahooDate,
+        })),
+      },
+    ],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+
+  assert.equal(merged.gameweeks[0].fixtures.length, 8);
+  assert.deepEqual(
+    merged.gameweeks[0].fixtures.map(f => [f.id, f.apiId, f.home, f.away, f.date, f.yahooDate]),
+    groupRows.map(([id], index) => [id, ...correctRows[index]])
+  );
+  assert.deepEqual(merged.predictions.faris, Object.fromEntries(groupRows.map(([id]) => [id, "1-0"])));
+});
+
 test("finished live matches are promoted into cached fixture results", () => {
   const globalDoc = {
     season: 2026,
