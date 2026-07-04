@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
+  applyKnownWorldCupKnockoutSchedule,
+  buildWorldCupKnockoutScheduleFixtures,
   fixtureHasWorldCupSeedPlaceholder,
   formatWorldCupBracketKickoff,
   formatWorldCupBracketMatchMeta,
@@ -263,6 +265,116 @@ test("uses Yahoo game ids for unresolved World Cup knockout labels when availabl
   assert.equal(
     getWorldCupKnockoutPlaceholderLabel(8, 0, "away", "THIRD_PLACE", { apiId: "soccer.g.13532391" }),
     "L102"
+  );
+});
+
+test("builds known World Cup knockout fixtures with verified dates", () => {
+  const roundOf32 = buildWorldCupKnockoutScheduleFixtures(4);
+  assert.equal(roundOf32.length, 16);
+  assert.deepEqual(
+    roundOf32.map(f => [f.apiId, f.date, f.yahooDate]),
+    [
+      ["soccer.g.13532362", "2026-06-29T20:30:00.000Z", "2026-06-29"],
+      ["soccer.g.13532365", "2026-06-30T21:00:00.000Z", "2026-06-30"],
+      ["soccer.g.13532361", "2026-06-28T19:00:00.000Z", "2026-06-28"],
+      ["soccer.g.13532363", "2026-06-30T01:00:00.000Z", "2026-06-29"],
+      ["soccer.g.13532372", "2026-07-02T23:00:00.000Z", "2026-07-02"],
+      ["soccer.g.13532373", "2026-07-02T19:00:00.000Z", "2026-07-02"],
+      ["soccer.g.13532368", "2026-07-02T00:00:00.000Z", "2026-07-01"],
+      ["soccer.g.13532369", "2026-07-01T20:00:00.000Z", "2026-07-01"],
+      ["soccer.g.13532364", "2026-06-29T17:00:00.000Z", "2026-06-29"],
+      ["soccer.g.13532366", "2026-06-30T17:00:00.000Z", "2026-06-30"],
+      ["soccer.g.13532367", "2026-07-01T02:00:00.000Z", "2026-06-30"],
+      ["soccer.g.13532370", "2026-07-01T16:00:00.000Z", "2026-07-01"],
+      ["soccer.g.13532376", "2026-07-03T22:00:00.000Z", "2026-07-03"],
+      ["soccer.g.13532374", "2026-07-03T18:00:00.000Z", "2026-07-03"],
+      ["soccer.g.13532371", "2026-07-03T03:00:00.000Z", "2026-07-02"],
+      ["soccer.g.13532375", "2026-07-04T01:30:00.000Z", "2026-07-03"],
+    ]
+  );
+
+  const roundOf16 = buildWorldCupKnockoutScheduleFixtures(5);
+  assert.equal(roundOf16.length, 8);
+  assert.deepEqual(
+    roundOf16.map(f => [f.apiId, f.home, f.away, f.date]),
+    [
+      ["soccer.g.13532377", "W74", "W77", "2026-07-04T21:00:00.000Z"],
+      ["soccer.g.13532378", "W73", "W75", "2026-07-04T17:00:00.000Z"],
+      ["soccer.g.13532381", "W83", "W84", "2026-07-06T19:00:00.000Z"],
+      ["soccer.g.13532382", "W81", "W82", "2026-07-07T00:00:00.000Z"],
+      ["soccer.g.13532379", "W76", "W78", "2026-07-05T20:00:00.000Z"],
+      ["soccer.g.13532380", "W79", "W80", "2026-07-06T00:00:00.000Z"],
+      ["soccer.g.13532383", "W86", "W88", "2026-07-07T16:00:00.000Z"],
+      ["soccer.g.13532384", "W85", "W87", "2026-07-07T20:00:00.000Z"],
+    ]
+  );
+
+  const quarterFinals = buildWorldCupKnockoutScheduleFixtures(6);
+  assert.equal(quarterFinals.find(f => f.apiId === "soccer.g.13532388")?.date, "2026-07-12T01:00:00.000Z");
+
+  const finalRound = buildWorldCupKnockoutScheduleFixtures(8);
+  assert.deepEqual(
+    finalRound.map(f => [f.apiId, f.stage, f.date]),
+    [
+      ["soccer.g.13532392", "FINAL", "2026-07-19T19:00:00.000Z"],
+      ["soccer.g.13532391", "THIRD_PLACE", "2026-07-18T21:00:00.000Z"],
+    ]
+  );
+});
+
+test("known World Cup knockout schedule corrects stale cached fixture dates", () => {
+  const [gw] = applyKnownWorldCupKnockoutSchedule([
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-fsoccer-g-13532377",
+          apiId: "soccer.g.13532377",
+          home: "Canada",
+          away: "Morocco",
+          date: "2026-07-13T15:00:00.000Z",
+          stage: "ROUND_OF_16",
+          status: "SCHEDULED",
+        },
+      ],
+    },
+    {
+      gw: 4,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw4-fsoccer-g-13532375",
+          apiId: "soccer.g.13532375",
+          home: "Colombia",
+          away: "Ghana",
+          date: "2026-07-10T21:00:00.000Z",
+          stage: "LAST_32",
+          status: "FINISHED",
+          result: "1-0",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(gw.fixtures[0].date, "2026-07-04T21:00:00.000Z");
+  assert.equal(gw.fixtures[0].yahooDate, "2026-07-04");
+  assert.equal(
+    applyKnownWorldCupKnockoutSchedule([
+      {
+        gw: 4,
+        fixtures: [
+          {
+            id: "wc-gw4-fsoccer-g-13532375",
+            apiId: "soccer.g.13532375",
+            home: "Colombia",
+            away: "Ghana",
+            date: "2026-07-10T21:00:00.000Z",
+          },
+        ],
+      },
+    ])[0].fixtures[0].date,
+    "2026-07-04T01:30:00.000Z"
   );
 });
 
@@ -588,6 +700,34 @@ test("advances later knockout winners by Yahoo game id instead of fetched order"
   const fixture = resolved[1].fixtures[0];
   assert.equal(fixture.home, "Paraguay");
   assert.equal(fixture.away, "Canada");
+});
+
+test("resolved Round of 16 fixtures keep the correct kickoff dates", () => {
+  const resolved = resolveWorldCupBracketAdvancement([
+    {
+      gw: 4,
+      season: 2026,
+      fixtures: [
+        { id: "wc-gw4-fsoccer-g-13532361", apiId: "soccer.g.13532361", home: "South Africa", away: "Canada", result: "0-1" },
+        { id: "wc-gw4-fsoccer-g-13532362", apiId: "soccer.g.13532362", home: "Germany", away: "Paraguay", result: "1-1", winnerSide: "away" },
+        { id: "wc-gw4-fsoccer-g-13532363", apiId: "soccer.g.13532363", home: "Netherlands", away: "Morocco", result: "1-1", winnerSide: "away" },
+        { id: "wc-gw4-fsoccer-g-13532365", apiId: "soccer.g.13532365", home: "France", away: "Sweden", result: "3-0" },
+      ],
+    },
+    { gw: 5, season: 2026, fixtures: buildWorldCupKnockoutScheduleFixtures(5) },
+  ]);
+
+  const paraguayFrance = resolved[1].fixtures.find(f => f.apiId === "soccer.g.13532377");
+  const canadaMorocco = resolved[1].fixtures.find(f => f.apiId === "soccer.g.13532378");
+
+  assert.deepEqual(
+    [paraguayFrance.home, paraguayFrance.away, paraguayFrance.date],
+    ["Paraguay", "France", "2026-07-04T21:00:00.000Z"]
+  );
+  assert.deepEqual(
+    [canadaMorocco.home, canadaMorocco.away, canadaMorocco.date],
+    ["Canada", "Morocco", "2026-07-04T17:00:00.000Z"]
+  );
 });
 
 test("knockout bracket renders with advanced winner placeholders resolved", () => {

@@ -106,6 +106,41 @@ const YAHOO_GAME_LOSER_LABELS = {
   13532390: "L102",
 };
 
+const WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID = {
+  13532361: { gw: 4, stage: "LAST_32", date: "2026-06-28T19:00:00.000Z", yahooDate: "2026-06-28" },
+  13532362: { gw: 4, stage: "LAST_32", date: "2026-06-29T20:30:00.000Z", yahooDate: "2026-06-29" },
+  13532363: { gw: 4, stage: "LAST_32", date: "2026-06-30T01:00:00.000Z", yahooDate: "2026-06-29" },
+  13532364: { gw: 4, stage: "LAST_32", date: "2026-06-29T17:00:00.000Z", yahooDate: "2026-06-29" },
+  13532365: { gw: 4, stage: "LAST_32", date: "2026-06-30T21:00:00.000Z", yahooDate: "2026-06-30" },
+  13532366: { gw: 4, stage: "LAST_32", date: "2026-06-30T17:00:00.000Z", yahooDate: "2026-06-30" },
+  13532367: { gw: 4, stage: "LAST_32", date: "2026-07-01T02:00:00.000Z", yahooDate: "2026-06-30" },
+  13532368: { gw: 4, stage: "LAST_32", date: "2026-07-02T00:00:00.000Z", yahooDate: "2026-07-01" },
+  13532369: { gw: 4, stage: "LAST_32", date: "2026-07-01T20:00:00.000Z", yahooDate: "2026-07-01" },
+  13532370: { gw: 4, stage: "LAST_32", date: "2026-07-01T16:00:00.000Z", yahooDate: "2026-07-01" },
+  13532371: { gw: 4, stage: "LAST_32", date: "2026-07-03T03:00:00.000Z", yahooDate: "2026-07-02" },
+  13532372: { gw: 4, stage: "LAST_32", date: "2026-07-02T23:00:00.000Z", yahooDate: "2026-07-02" },
+  13532373: { gw: 4, stage: "LAST_32", date: "2026-07-02T19:00:00.000Z", yahooDate: "2026-07-02" },
+  13532374: { gw: 4, stage: "LAST_32", date: "2026-07-03T18:00:00.000Z", yahooDate: "2026-07-03" },
+  13532375: { gw: 4, stage: "LAST_32", date: "2026-07-04T01:30:00.000Z", yahooDate: "2026-07-03" },
+  13532376: { gw: 4, stage: "LAST_32", date: "2026-07-03T22:00:00.000Z", yahooDate: "2026-07-03" },
+  13532377: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-04T21:00:00.000Z", yahooDate: "2026-07-04" },
+  13532378: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-04T17:00:00.000Z", yahooDate: "2026-07-04" },
+  13532379: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-05T20:00:00.000Z", yahooDate: "2026-07-05" },
+  13532380: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-06T00:00:00.000Z", yahooDate: "2026-07-05" },
+  13532381: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-06T19:00:00.000Z", yahooDate: "2026-07-06" },
+  13532382: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-07T00:00:00.000Z", yahooDate: "2026-07-06" },
+  13532383: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-07T16:00:00.000Z", yahooDate: "2026-07-07" },
+  13532384: { gw: 5, stage: "ROUND_OF_16", date: "2026-07-07T20:00:00.000Z", yahooDate: "2026-07-07" },
+  13532385: { gw: 6, stage: "QUARTER_FINAL", date: "2026-07-09T20:00:00.000Z", yahooDate: "2026-07-09" },
+  13532386: { gw: 6, stage: "QUARTER_FINAL", date: "2026-07-10T19:00:00.000Z", yahooDate: "2026-07-10" },
+  13532387: { gw: 6, stage: "QUARTER_FINAL", date: "2026-07-11T21:00:00.000Z", yahooDate: "2026-07-11" },
+  13532388: { gw: 6, stage: "QUARTER_FINAL", date: "2026-07-12T01:00:00.000Z", yahooDate: "2026-07-11" },
+  13532389: { gw: 7, stage: "SEMI_FINAL", date: "2026-07-14T19:00:00.000Z", yahooDate: "2026-07-14" },
+  13532390: { gw: 7, stage: "SEMI_FINAL", date: "2026-07-15T19:00:00.000Z", yahooDate: "2026-07-15" },
+  13532391: { gw: 8, stage: "THIRD_PLACE", date: "2026-07-18T21:00:00.000Z", yahooDate: "2026-07-18" },
+  13532392: { gw: 8, stage: "FINAL", date: "2026-07-19T19:00:00.000Z", yahooDate: "2026-07-19" },
+};
+
 const BRACKET_DISPLAY_GAME_IDS_BY_GW = {
   4: [
     13532362,
@@ -156,6 +191,11 @@ function yahooGameIdKey(fixture) {
   return match ? match[0] : null;
 }
 
+function knownScheduleForFixture(fixture) {
+  const gameId = yahooGameIdKey(fixture);
+  return gameId ? WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID[gameId] || null : null;
+}
+
 export function isUnresolvedWorldCupTeamSlot(value) {
   const normalized = String(value ?? "").trim().toUpperCase();
   return !normalized || normalized === "TBD";
@@ -196,6 +236,46 @@ export function getWorldCupKnockoutPlaceholderLabel(gw, matchIndex, side, stage 
 
   const roundLabels = KNOCKOUT_PLACEHOLDER_LABELS_BY_GW[Number(gw)];
   return roundLabels?.[Number(matchIndex)]?.[index] || "TBD";
+}
+
+export function buildWorldCupKnockoutScheduleFixtures(gw) {
+  return (BRACKET_DISPLAY_GAME_IDS_BY_GW[Number(gw)] || [])
+    .map((gameId, matchIndex) => {
+      const schedule = WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID[gameId];
+      if (!schedule) return null;
+      const stage = schedule.stage;
+      const fixture = { apiId: `soccer.g.${gameId}` };
+      const home = getWorldCupKnockoutPlaceholderLabel(schedule.gw, matchIndex, "home", stage, fixture);
+      const away = getWorldCupKnockoutPlaceholderLabel(schedule.gw, matchIndex, "away", stage, fixture);
+      return {
+        id: `wc-gw${schedule.gw}-fsoccer-g-${gameId}`,
+        apiId: `soccer.g.${gameId}`,
+        home,
+        away,
+        result: null,
+        status: "SCHEDULED",
+        date: schedule.date,
+        yahooDate: schedule.yahooDate,
+        stage,
+      };
+    })
+    .filter(Boolean);
+}
+
+export function applyKnownWorldCupKnockoutSchedule(gameweeks = []) {
+  return (gameweeks || []).map(gwObj => ({
+    ...gwObj,
+    fixtures: (gwObj.fixtures || []).map(fixture => {
+      const schedule = knownScheduleForFixture(fixture);
+      if (!schedule) return fixture;
+      return {
+        ...fixture,
+        date: schedule.date,
+        yahooDate: schedule.yahooDate,
+        stage: schedule.stage || fixture.stage,
+      };
+    }),
+  }));
 }
 
 function knockoutFeederLabelsForGW(gw) {
@@ -341,7 +421,7 @@ function setGWFixtures(gameweeks, gw, fixtures) {
 }
 
 export function resolveWorldCupBracketAdvancement(gameweeks = []) {
-  let resolvedGameweeks = gameweeks.map(gwObj => ({
+  let resolvedGameweeks = applyKnownWorldCupKnockoutSchedule(gameweeks).map(gwObj => ({
     ...gwObj,
     fixtures: (gwObj.fixtures || []).map(fixture => ({ ...fixture })),
   }));

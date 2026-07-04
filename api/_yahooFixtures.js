@@ -1,7 +1,7 @@
 import { db, docKey, getValue, setValue } from "./_db.js";
 import { applyFinishedLiveMatchesToGlobalDoc, dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 import { parseYahooWorldCupStandings } from "./wc-standings.js";
-import { fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
+import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const YAHOO_WC_TEAMS_URL = "https://api-secure.sports.yahoo.com/v1/editorial/league/soccer.l.fbwcup/teams";
@@ -289,23 +289,56 @@ async function resolveWCSeedPlaceholders(fixtures) {
 
 async function resolveCachedWCGlobalDocSeeds(globalDoc) {
   const formattedCache = formatWorldCupGlobalDocSeedPlaceholders(globalDoc);
-  const hasCachedSeeds = (formattedCache.globalDoc?.gameweeks || []).some(gwObj =>
+  const withKnownSchedule = applyKnownWCScheduleToGlobalDoc(formattedCache.globalDoc);
+  const hasCachedSeeds = (withKnownSchedule.globalDoc?.gameweeks || []).some(gwObj =>
     (gwObj.fixtures || []).some(fixtureHasWorldCupSeedPlaceholder)
   );
-  if (!hasCachedSeeds) return formattedCache;
+  if (!hasCachedSeeds) {
+    return {
+      changed: formattedCache.changed || withKnownSchedule.changed,
+      globalDoc: withKnownSchedule.globalDoc,
+    };
+  }
 
   try {
     const standings = await fetchYahooWCStandings();
-    if (!wcGroupStageComplete(standings)) return formattedCache;
-    const resolved = resolveWorldCupGlobalDocSeeds(formattedCache.globalDoc, standings);
+    if (!wcGroupStageComplete(standings)) {
+      return {
+        changed: formattedCache.changed || withKnownSchedule.changed,
+        globalDoc: withKnownSchedule.globalDoc,
+      };
+    }
+    const resolved = resolveWorldCupGlobalDocSeeds(withKnownSchedule.globalDoc, standings);
+    const resolvedWithKnownSchedule = applyKnownWCScheduleToGlobalDoc(resolved.globalDoc);
     return {
-      changed: formattedCache.changed || resolved.changed,
-      globalDoc: resolved.globalDoc,
+      changed: formattedCache.changed || withKnownSchedule.changed || resolved.changed || resolvedWithKnownSchedule.changed,
+      globalDoc: resolvedWithKnownSchedule.globalDoc,
     };
   } catch (e) {
     console.warn("WC cached seed resolution skipped:", e.message);
-    return formattedCache;
+    return {
+      changed: formattedCache.changed || withKnownSchedule.changed,
+      globalDoc: withKnownSchedule.globalDoc,
+    };
   }
+}
+
+function applyKnownWCScheduleToGlobalDoc(globalDoc = {}) {
+  const previousGameweeks = globalDoc?.gameweeks || [];
+  const nextGameweeks = applyKnownWorldCupKnockoutSchedule(previousGameweeks);
+  const changed = nextGameweeks.some((gwObj, gwIndex) => {
+    const previousFixtures = previousGameweeks[gwIndex]?.fixtures || [];
+    return (gwObj.fixtures || []).some((fixture, fixtureIndex) => {
+      const previous = previousFixtures[fixtureIndex] || {};
+      return fixture.date !== previous.date
+        || fixture.yahooDate !== previous.yahooDate
+        || fixture.stage !== previous.stage;
+    });
+  });
+  return {
+    changed,
+    globalDoc: changed ? { ...globalDoc, gameweeks: nextGameweeks } : globalDoc,
+  };
 }
 
 function addDays(isoDate, days) {
@@ -354,7 +387,9 @@ async function fetchYahooWCRoundByDates(dates, targetGW) {
     .flat()
     .filter(gwObj => gwObj.gw === Number(targetGW))
     .flatMap(gwObj => gwObj.fixtures);
-  return (await resolveWCSeedPlaceholders(dedupeFixtures(fixtures)))
+  const fallbackFixtures = fixtures.length ? fixtures : buildWorldCupKnockoutScheduleFixtures(targetGW);
+  const scheduledFixtures = applyKnownWorldCupKnockoutSchedule([{ gw: Number(targetGW), fixtures: fallbackFixtures }])[0]?.fixtures || [];
+  return (await resolveWCSeedPlaceholders(dedupeFixtures(scheduledFixtures)))
     .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
 }
 
@@ -415,6 +450,10 @@ async function fetchYahooSeason(competition) {
     dayGroups.flat().forEach(gwObj => {
       if (!byGW[gwObj.gw]) byGW[gwObj.gw] = [];
       byGW[gwObj.gw].push(...gwObj.fixtures);
+    });
+    [5, 6, 7, 8].forEach(gw => {
+      const fixtures = byGW[gw]?.length ? byGW[gw] : buildWorldCupKnockoutScheduleFixtures(gw);
+      byGW[gw] = applyKnownWorldCupKnockoutSchedule([{ gw, fixtures }])[0]?.fixtures || [];
     });
     const needsSeedResolution = Object.values(byGW)
       .flat()

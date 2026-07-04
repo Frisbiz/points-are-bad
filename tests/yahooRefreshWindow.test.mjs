@@ -17,3 +17,18 @@ test("Yahoo fixture cache keeps missing results in a 72 hour recovery window", (
   assert.match(recentWindowBlock, /kickoff >= now - 72 \* 60 \* 60_000/);
   assert.match(refreshDatesBlock, /kickoff >= now - 72 \* 60 \* 60_000/);
 });
+
+test("Yahoo fixture cache normalizes known World Cup knockout dates before fresh-cache return", () => {
+  const cacheResolverBlock = yahooSource.slice(
+    yahooSource.indexOf("async function resolveCachedWCGlobalDocSeeds"),
+    yahooSource.indexOf("function addDays")
+  );
+  const refreshBlock = yahooSource.slice(
+    yahooSource.indexOf("export async function refreshYahooFixtureCache"),
+    yahooSource.indexOf("async function handleRefreshYahooFixtureCache")
+  );
+
+  assert.match(cacheResolverBlock, /applyKnownWCScheduleToGlobalDoc\(formattedCache\.globalDoc\)/);
+  assert.match(cacheResolverBlock, /if \(!hasCachedSeeds\)[\s\S]*withKnownSchedule\.globalDoc/);
+  assert.match(refreshBlock, /resolveCachedWCGlobalDocSeeds\(globalDoc\)[\s\S]*if \(!force && !seasonSync && interval > 0/);
+});
