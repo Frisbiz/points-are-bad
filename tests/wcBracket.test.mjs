@@ -101,7 +101,6 @@ test("legacy World Cup normalization collapses duplicate placeholder rows into t
           },
           {
             id: "blank-canada-morocco",
-            apiId: "soccer.g.13532378",
             home: "",
             away: "",
             status: "SCHEDULED",
@@ -109,7 +108,6 @@ test("legacy World Cup normalization collapses duplicate placeholder rows into t
           },
           {
             id: "blank-paraguay-france",
-            apiId: "soccer.g.13532377",
             home: "W74",
             away: "W77",
             status: "SCHEDULED",
@@ -150,6 +148,40 @@ test("legacy World Cup normalization collapses duplicate placeholder rows into t
   assert.deepEqual(normalized.dibsSkips, {
     "real-canada-morocco": ["faris"],
   });
+});
+
+test("legacy World Cup normalization does not collapse distinct real fixtures at the same kickoff", () => {
+  const group = {
+    competition: "WC",
+    season: 2026,
+    gameweeks: [
+      {
+        gw: 4,
+        fixtures: [
+          {
+            id: "real-alpha-beta",
+            home: "Alpha FC",
+            away: "Beta FC",
+            status: "SCHEDULED",
+            date: "2026-07-04T17:00:00.000Z",
+          },
+          {
+            id: "real-gamma-delta",
+            home: "Gamma FC",
+            away: "Delta FC",
+            status: "SCHEDULED",
+            date: "2026-07-04T17:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  const normalized = normalizeWorldCupGroup(group);
+  const fixtures = normalized.gameweeks[0].fixtures;
+
+  assert.equal(fixtures.length, 2);
+  assert.deepEqual(fixtures.map(f => f.id), ["real-alpha-beta", "real-gamma-delta"]);
 });
 
 const standings = {

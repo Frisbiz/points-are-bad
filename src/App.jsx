@@ -3790,10 +3790,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
   const isWC = isWorldCupGroupLike(group);
   const activeSeason = isWC ? (group.season||2026) : (group.season||2025);
-  const fixtureGameweeks = useMemo(()=>isWC?resolveWorldCupBracketAdvancement(group.gameweeks||[]):(group.gameweeks||[]),[isWC,group.gameweeks]);
+  const fixtureGroup = useMemo(()=>isWC?normalizeWorldCupGroup(group):group,[isWC,group]);
+  const fixtureGameweeks = fixtureGroup.gameweeks||[];
   const [viewGW, setViewGW] = useState(()=>{
-    const seas = group.season||2025;
-    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
+    const seas = activeSeason;
+    const seasonGWs = (fixtureGameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
     // Find lowest GW with at least one non-postponed fixture missing a result
     const activeGW = seasonGWs.find(gwObj =>
       (gwObj.fixtures||[]).some(f => !f.result && f.status !== "POSTPONED")
@@ -3802,42 +3803,42 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     // All complete: show last GW with results
     const withResults = seasonGWs.filter(gwObj=>(gwObj.fixtures||[]).some(f=>f.result));
     if (withResults.length) return withResults[withResults.length-1].gw;
-    return group.currentGW||1;
+    return fixtureGroup.currentGW||1;
   });
   const currentGW = viewGW;
   const activeGW = useMemo(() => {
-    const seas = group.season || 2025;
-    const seasonGWs = (group.gameweeks || []).filter(g => (g.season || seas) === seas).sort((a, b) => a.gw - b.gw);
+    const seas = activeSeason;
+    const seasonGWs = (fixtureGameweeks || []).filter(g => (g.season || seas) === seas).sort((a, b) => a.gw - b.gw);
     const found = seasonGWs.find(gwObj =>
       (gwObj.fixtures || []).some(f => !f.result && f.status !== "POSTPONED")
     );
     return found?.gw || null;
-  }, [group.gameweeks, group.season]);
+  }, [fixtureGameweeks, activeSeason]);
   const gwFixtures = ((fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[]).slice().sort((a,b)=>{
     const da=a.date?new Date(a.date).getTime():Infinity;
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
-  const liveScores = useLiveScores(currentGW, gwFixtures, isWC ? "WC" : (group.competition || "PL"), activeSeason, initialLiveScores);
+  const liveScores = useLiveScores(currentGW, gwFixtures, isWC ? "WC" : (fixtureGroup.competition || "PL"), activeSeason, initialLiveScores);
   const gwObj = (fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
-  const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
+  const firstPicks = useMemo(()=>computeFirstPickGW(fixtureGroup),[fixtureGroup]);
   const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
-  const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
+  const picksLocked = !!(fixtureGroup.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);
   const allFixturesFinished = gwFixtures.length>0 && gwFixtures.every(f=>{
-    const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
+    const hiddenPostponed = (fixtureGroup.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
     return !!f.result || hiddenPostponed;
   });
-  const myPreds = group.predictions?.[user.username]||{};
-  const gwAdminLocked = !isAdmin && (group.hiddenGWs||[]).includes(currentGW);
-  const dibsTurnFor = group.mode==="dibs"
-    ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(group,f.id)]))
+  const myPreds = fixtureGroup.predictions?.[user.username]||{};
+  const gwAdminLocked = !isAdmin && (fixtureGroup.hiddenGWs||[]).includes(currentGW);
+  const dibsTurnFor = fixtureGroup.mode==="dibs"
+    ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(fixtureGroup,f.id)]))
     : {};
   const unpickedUnlocked = gwAdminLocked ? [] : gwFixtures.filter(f=>{
-    const hiddenPostponed = (group.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
+    const hiddenPostponed = (fixtureGroup.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
     const locked=hiddenPostponed||!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
     if (locked) return false;
     if (myPreds[f.id]) return false;
-    if (group.mode==="dibs" && dibsTurnFor[f.id] !== user.username) return false;
+    if (fixtureGroup.mode==="dibs" && dibsTurnFor[f.id] !== user.username) return false;
     return true;
   });
   const canViewAllPicks = unpickedUnlocked.length===0;
@@ -3848,11 +3849,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     if (locked) return;
     if (!/^\d+-\d+$/.test(val)) return;
     // Dibs mode checks
-    if (group.mode === "dibs") {
-      const turn = computeDibsTurn(group, fixtureId);
+    if (fixtureGroup.mode === "dibs") {
+      const turn = computeDibsTurn(fixtureGroup, fixtureId);
       if (turn !== user.username) return; // not your turn
       // block duplicate scoreline
-      const taken = Object.entries(group.predictions || {})
+      const taken = Object.entries(fixtureGroup.predictions || {})
         .filter(([u]) => u !== user.username)
         .some(([, picks]) => /^\d+-\d+$/.test(picks?.[fixtureId] || "") && picks[fixtureId] === val);
       if (taken) {
@@ -3862,13 +3863,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
       }
     }
     if (val === "1-1") {
-      const max = draw11LimitMax(group.draw11Limit);
+      const max = draw11LimitMax(fixtureGroup.draw11Limit);
       if (Number.isFinite(max)) {
         const used = gwFixtures.filter(f => f.id !== fixtureId && myPreds[f.id] === "1-1").length;
         if (used >= max) {
           alert(max === 0
             ? "1-1 predictions are not allowed in this group."
-            : `You can only make ${max} 1-1 prediction${max > 1 ? "s" : ""} per ${draw11LimitPeriod(group)}. Limit reached.`);
+            : `You can only make ${max} 1-1 prediction${max > 1 ? "s" : ""} per ${draw11LimitPeriod(fixtureGroup)}. Limit reached.`);
           setPredDraft(d => ({...d, [fixtureId]: myPreds[fixtureId] || ""}));
           return;
         }
@@ -3909,29 +3910,28 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
   const setGW = (gw) => {setDeleteGWStep(0);setRemoveGWStep(0);setViewGW(gw);};
 
   useEffect(()=>{
-    const seas = group.season||2025;
-    const exists = (group.gameweeks||[]).some(g=>g.gw===viewGW&&(g.season||seas)===seas);
-    if (!exists) setViewGW(group.currentGW||1);
-  },[group.gameweeks]);
+    const seas = activeSeason;
+    const exists = (fixtureGameweeks||[]).some(g=>g.gw===viewGW&&(g.season||seas)===seas);
+    if (!exists) setViewGW(fixtureGroup.currentGW||1);
+  },[fixtureGameweeks, activeSeason, viewGW, fixtureGroup.currentGW]);
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
-    const seas = group.season||2025;
-    const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
+    const seas = activeSeason;
+    const seasonGWs = (fixtureGameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
     const targetGW = activeGW || viewGW; const idx = seasonGWs.findIndex(g=>g.gw===targetGW);
     if (idx<0) return;
     const pos = idx*57 - gwStripRef.current.clientWidth/2 + 27;
     gwStripRef.current.scrollLeft = Math.max(0, pos);
-  },[]);
+  },[fixtureGameweeks, activeSeason, activeGW, viewGW]);
 
   useEffect(()=>{
     if (lget(wizardKey)===currentGW) return;
-    if (!isAdmin && (group.hiddenGWs||[]).includes(currentGW)) { setWizardQueue(null); return; }
-    const activeSeason = group.season||2025;
+    if (!isAdmin && (fixtureGroup.hiddenGWs||[]).includes(currentGW)) { setWizardQueue(null); return; }
     const now = new Date();
     let nearestUpcomingGW = null;
     let nearestDate = null;
-    for (const gwObj of (group.gameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason)) {
+    for (const gwObj of (fixtureGameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason)) {
       for (const f of (gwObj.fixtures||[])) {
         if (f.date&&!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||new Date(f.date)<=now)) {
           const d=new Date(f.date);
@@ -3946,7 +3946,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     });
     if (unpicked.length>0){setWizardQueue(unpicked);setWizardStep(0);setWizardPred("");}
     else setWizardQueue(null);
-  },[currentGW,group.id]);
+  },[currentGW, wizardKey, isAdmin, fixtureGroup.hiddenGWs, fixtureGameweeks, activeSeason, gwFixtures, myPreds]);
 
   const showWizard = wizardQueue!==null&&wizardStep<(wizardQueue?.length??0)&&lget(wizardKey)!==currentGW;
   const wizardFixture = showWizard?wizardQueue[wizardStep]:null;
@@ -4004,7 +4004,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
       )}
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <div>
-          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{isWC ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
+          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{isWC ? gwLabel(fixtureGroup,currentGW) : `Gameweek ${currentGW}`}</h1>
           {isIndex&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Set your picks before the whistle.</div>}
         </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
@@ -4012,8 +4012,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
             <button onClick={()=>gwStripRef.current&&gwStripRef.current.scrollBy({left:-gwStripRef.current.clientWidth,behavior:"smooth"})} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim2)",cursor:"pointer",fontSize:13,padding:"4px 8px",lineHeight:1,flexShrink:0}}>‹</button>
             <div style={{position:"relative",flex:1,maxWidth:396}}>
             <div ref={node => { gwStripRef.current = node; if (node && !node._wheelBound) { node._wheelBound = true; node.addEventListener("wheel", e => { e.preventDefault(); node.scrollLeft += e.deltaY; }, { passive: false }); } }} className="gw-strip" style={{display:"flex",gap:3,overflowX:"auto",flex:1}}>
-              {(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).sort((a,b)=>a.gw-b.gw).map(g=>{
-                const adminHidden = !isAdmin && (group.hiddenGWs||[]).includes(g.gw);
+              {(fixtureGameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason).sort((a,b)=>a.gw-b.gw).map(g=>{
+                const adminHidden = !isAdmin && (fixtureGroup.hiddenGWs||[]).includes(g.gw);
                 return (
                   <button key={g.gw} onClick={()=>setGW(g.gw)} style={{
                     background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
@@ -4036,7 +4036,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
                   }}>
                     <span>{adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{isWC?`R${g.gw}`:gwLabel(group,g.gw)}</span>
                     {(()=>{
-                      const status = computeGWStatus(g, group.hiddenGWs, isAdmin);
+                      const status = computeGWStatus(g, fixtureGroup.hiddenGWs, isAdmin);
                       const dotColor = status==="complete"?"#22c55e":status==="active"?"#f59e0b":status==="locked"?"#ef4444":null;
                       return dotColor ? <span style={{width:5,height:5,borderRadius:"50%",background:dotColor,flexShrink:0}}/> : <span style={{width:5,height:5}}/>;
                     })()}
@@ -4074,7 +4074,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         </div>
       </div>
 
-      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={isWC ? "WC" : (group.competition || "PL")} season={activeSeason} initialLiveScores={initialLiveScores} />
+      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={isWC ? "WC" : (fixtureGroup.competition || "PL")} season={activeSeason} initialLiveScores={initialLiveScores} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
@@ -4102,7 +4102,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
         const dateStr = formatFixtureDate(f.date);
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
-        const isHidden = (group.hiddenFixtures||[]).includes(f.id);
+        const isHidden = (fixtureGroup.hiddenFixtures||[]).includes(f.id);
         const liveMatch = liveScores[`${f.home}|${f.away}`];
         const yahooScored = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime"||liveMatch.status==="finished") && liveMatch.homeScore != null && liveMatch.awayScore != null;
         const yahooFinal = yahooScored && liveMatch.status==="finished";
@@ -4148,8 +4148,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
             ):pendingScoreSync?(
               <span style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1}}>SYNCING</span>
             ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
-        const isMyDibsTurn = group.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
-        const waitingFor = group.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
+        const isMyDibsTurn = fixtureGroup.mode !== "dibs" || dibsTurnFor[f.id] === user.username;
+        const waitingFor = fixtureGroup.mode === "dibs" && !locked && !isMyDibsTurn ? dibsTurnFor[f.id] : null;
         const pickBlock = picksLocked && !hardLocked ? (
           <span style={{display:"flex",alignItems:"center",gap:6}}>
             <span title="picks locked" style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>
@@ -4278,7 +4278,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
           </div>
         );
       })}
-      {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(group.members||[]).length>1&&(
+      {unpickedUnlocked.length===0&&!picksLocked&&!allFixturesFinished&&(fixtureGroup.members||[]).length>1&&(
         <div style={{marginTop:16,marginBottom:8}}>
           <Btn variant="success" style={{width:"100%"}} onClick={async()=>{
             const{ok,data}=await callAPI('group-user',{groupId:group.id,payload:{type:'lock-picks',season:activeSeason,gw:currentGW}});
@@ -4290,11 +4290,11 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
           <div style={{fontSize:11,color:"var(--text-dim)",textAlign:"center",marginTop:8}}>You won't be able to change your picks after locking.</div>
         </div>
       )}
-      {(group.mode==="dibs"
-        ? (group.members||[]).length>1
-        : (picksLocked||allFixturesFinished)&&(group.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={group} gwFixtures={gwFixtures.filter(f=>!(group.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup} liveScores={liveScores}/>}
-      {gwFixtures.some(f=>f.result)&&group.mode!=="dibs"&&(group.members||[]).length>1&&!canViewAllPicks&&(
+      {(fixtureGroup.mode==="dibs"
+        ? (fixtureGroup.members||[]).length>1
+        : (picksLocked||allFixturesFinished)&&(fixtureGroup.members||[]).length>1&&canViewAllPicks
+      )&&<AllPicksTable group={fixtureGroup} gwFixtures={gwFixtures.filter(f=>!(fixtureGroup.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup} liveScores={liveScores}/>}
+      {gwFixtures.some(f=>f.result)&&fixtureGroup.mode!=="dibs"&&(fixtureGroup.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Lock size={28} color="var(--text-dim)"/></div>
           <div style={{fontSize:13,color:"var(--text-mid)",marginBottom:6}}>Submit your picks to unlock all picks</div>

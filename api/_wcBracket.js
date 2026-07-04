@@ -618,7 +618,34 @@ function worldCupFixtureLookupKeys(gw, fixture) {
   const gameId = yahooGameIdKey(fixture);
   const keys = [];
   if (gameId) keys.push(`${Number(gw)}:game:${gameId}`);
+  if (
+    fixture?.home
+    && fixture?.away
+    && !isWorldCupPlaceholderTeam(fixture.home)
+    && !isWorldCupPlaceholderTeam(fixture.away)
+  ) {
+    const home = teamKey(fixture.home);
+    const away = teamKey(fixture.away);
+    if (home && away) keys.push(`${Number(gw)}:teams:${home}:${away}`);
+  }
+  if (Number(gw) >= 4 && fixture?.date) {
+    const time = new Date(fixture.date).getTime();
+    if (Number.isFinite(time)) keys.push(`${Number(gw)}:date:${new Date(time).toISOString()}`);
+  }
   return keys;
+}
+
+function canCollapseWorldCupFixtureByLookupKey(key, current, candidate) {
+  if (!String(key || "").includes(":date:")) return true;
+  if (worldCupRealTeamCount(current) < 2 || worldCupRealTeamCount(candidate) < 2) return true;
+  const currentHome = teamKey(current?.home);
+  const currentAway = teamKey(current?.away);
+  const candidateHome = teamKey(candidate?.home);
+  const candidateAway = teamKey(candidate?.away);
+  return !!currentHome
+    && !!currentAway
+    && currentHome === candidateHome
+    && currentAway === candidateAway;
 }
 
 function hasOwn(obj, key) {
@@ -722,7 +749,10 @@ function collapseDuplicateWorldCupFixtures(group = {}) {
     const indexByKey = new Map();
     (gwObj.fixtures || []).forEach(fixture => {
       const keys = worldCupFixtureLookupKeys(gwObj.gw, fixture);
-      const existingIndex = keys.map(key => indexByKey.get(key)).find(index => index !== undefined);
+      const existing = keys
+        .map(key => ({ key, index: indexByKey.get(key) }))
+        .find(item => item.index !== undefined && canCollapseWorldCupFixtureByLookupKey(item.key, out[item.index], fixture));
+      const existingIndex = existing?.index;
       if (existingIndex === undefined) {
         const nextIndex = out.length;
         out.push(fixture);
