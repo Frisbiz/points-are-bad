@@ -500,6 +500,35 @@ test("world cup fixtures tab resolves knockout advancement before rendering fixt
   );
 });
 
+test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
+  const source = loadAppSource();
+  const countdownBlock = source.slice(
+    source.indexOf("function NextMatchCountdown"),
+    source.indexOf("function computeGWStatus")
+  );
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(
+    countdownBlock,
+    /function NextMatchCountdown\(\{ fixtureGameweeks = \[\], myPreds = \{\} \}\)/
+  );
+  assert.match(
+    countdownBlock,
+    /const next = \(fixtureGameweeks\|\|\[\]\)/
+  );
+  assert.doesNotMatch(
+    countdownBlock,
+    /const next = \(group\.gameweeks \|\| \[\]\)/
+  );
+  assert.match(
+    fixturesBlock,
+    /<NextMatchCountdown fixtureGameweeks=\{fixtureGameweeks\} myPreds=\{myPreds\} \/>/
+  );
+});
+
 test("fixture shootout scores render like small top-right score exponents", () => {
   const source = loadAppSource();
   const fixturesBlock = source.slice(

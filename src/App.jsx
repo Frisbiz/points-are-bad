@@ -3538,7 +3538,7 @@ function LeagueTab({group,user,names,theme}) {
 }
 
 /* ── FIXTURES ────────────────────────────────────── */
-function NextMatchCountdown({ group, myPreds = {} }) {
+function NextMatchCountdown({ fixtureGameweeks = [], myPreds = {} }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const mob = useMobile();
@@ -3547,7 +3547,7 @@ function NextMatchCountdown({ group, myPreds = {} }) {
     return () => clearInterval(t);
   }, []);
 
-  const next = (group.gameweeks || [])
+  const next = (fixtureGameweeks||[])
     .flatMap(gw => gw.fixtures || [])
     .filter(f => f.date && !f.result && f.status !== "FINISHED" && f.status !== "IN_PLAY" && f.status !== "PAUSED" && new Date(f.date) > now)
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
@@ -3935,7 +3935,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         </div>
       </div>
 
-      <NextMatchCountdown group={group} myPreds={myPreds} />
+      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
