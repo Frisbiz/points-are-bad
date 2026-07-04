@@ -141,6 +141,17 @@ const WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID = {
   13532392: { gw: 8, stage: "FINAL", date: "2026-07-19T19:00:00.000Z", yahooDate: "2026-07-19" },
 };
 
+const WORLD_CUP_KNOWN_TEAM_GAME_IDS = [
+  { gw: 5, home: "Paraguay", away: "France", gameId: 13532377 },
+  { gw: 5, home: "Canada", away: "Morocco", gameId: 13532378 },
+  { gw: 5, home: "Portugal", away: "Spain", gameId: 13532381 },
+  { gw: 5, home: "USA", away: "Belgium", gameId: 13532382 },
+  { gw: 5, home: "Brazil", away: "Norway", gameId: 13532379 },
+  { gw: 5, home: "Mexico", away: "England", gameId: 13532380 },
+  { gw: 5, home: "Argentina", away: "Egypt", gameId: 13532383 },
+  { gw: 5, home: "Switzerland", away: "Colombia", gameId: 13532384 },
+];
+
 const BRACKET_DISPLAY_GAME_IDS_BY_GW = {
   4: [
     13532362,
@@ -202,6 +213,56 @@ function slotLabel(value) {
 
 function isWinnerLoserSlot(value) {
   return /^[WL]\d+$/.test(slotLabel(value));
+}
+
+function fixtureTeamPairKey(fixture) {
+  const home = teamKey(fixture?.home);
+  const away = teamKey(fixture?.away);
+  return home && away ? `${home}|${away}` : null;
+}
+
+function buildKnownTeamPairSchedules(gameweeks = []) {
+  const labelTeams = new Map();
+  for (const gw of [4, 5, 6, 7]) {
+    const gwObj = (gameweeks || []).find(item => Number(item.gw) === gw);
+    (gwObj?.fixtures || []).forEach((fixture, index) => {
+      const winnerSide = winnerSideForWorldCupFixture(fixture);
+      if (!winnerSide) return;
+
+      const winnerLabel = winnerAdvancementLabel(fixture, gw, index);
+      const winnerTeam = fixture?.[winnerSide];
+      if (winnerLabel && !isUnresolvedWorldCupTeamSlot(winnerTeam)) {
+        labelTeams.set(winnerLabel, winnerTeam);
+      }
+
+      if (gw === 7) {
+        const loserLabel = loserAdvancementLabel(fixture, index);
+        const loserTeam = fixture?.[winnerSide === "home" ? "away" : "home"];
+        if (loserLabel && !isUnresolvedWorldCupTeamSlot(loserTeam)) {
+          labelTeams.set(loserLabel, loserTeam);
+        }
+      }
+    });
+  }
+
+  const schedules = new Map();
+  for (const [gw, gameIds] of Object.entries(BRACKET_DISPLAY_GAME_IDS_BY_GW)) {
+    gameIds.forEach(gameId => {
+      const labels = YAHOO_GAME_PLACEHOLDER_LABELS[gameId] || [];
+      const home = labelTeams.get(labels[0]);
+      const away = labelTeams.get(labels[1]);
+      const schedule = scheduleWithGameId(gameId);
+      if (!home || !away || !schedule) return;
+      schedules.set(`${Number(gw)}:${fixtureTeamPairKey({ home, away })}`, schedule);
+    });
+  }
+
+  WORLD_CUP_KNOWN_TEAM_GAME_IDS.forEach(({ gw, home, away, gameId }) => {
+    const schedule = scheduleWithGameId(gameId);
+    if (schedule) schedules.set(`${gw}:${fixtureTeamPairKey({ home, away })}`, schedule);
+  });
+
+  return schedules;
 }
 
 function knownScheduleForFixture(fixture, gw = null, matchIndex = null) {
@@ -292,10 +353,12 @@ export function buildWorldCupKnockoutScheduleFixtures(gw) {
 }
 
 export function applyKnownWorldCupKnockoutSchedule(gameweeks = []) {
+  const teamPairSchedules = buildKnownTeamPairSchedules(gameweeks);
   return (gameweeks || []).map(gwObj => ({
     ...gwObj,
     fixtures: (gwObj.fixtures || []).map((fixture, matchIndex) => {
-      const schedule = knownScheduleForFixture(fixture, gwObj.gw, matchIndex);
+      const schedule = knownScheduleForFixture(fixture, gwObj.gw, matchIndex)
+        || teamPairSchedules.get(`${Number(gwObj.gw)}:${fixtureTeamPairKey(fixture)}`);
       if (!schedule) return fixture;
       return {
         ...fixture,

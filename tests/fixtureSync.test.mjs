@@ -180,6 +180,64 @@ test("mergeGlobalIntoGroup updates old WC placeholder rows after teams advance",
   assert.equal(merged.predictions.faris["wc-gw5-old-row"], "2-1");
 });
 
+test("mergeGlobalIntoGroup updates old resolved WC rows without Yahoo game ids", () => {
+  const group = {
+    id: "g1",
+    competition: "WC",
+    season: 2026,
+    predictions: {
+      faris: { "wc-gw5-old-usa-belgium": "2-1" },
+    },
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-old-usa-belgium",
+            home: "USA",
+            away: "Belgium",
+            status: "SCHEDULED",
+            date: "2026-07-06T00:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  const globalDoc = {
+    season: 2026,
+    updatedAt: 100,
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-fsoccer-g-13532382",
+            apiId: "soccer.g.13532382",
+            home: "USA",
+            away: "Belgium",
+            status: "SCHEDULED",
+            date: "2026-07-07T00:00:00.000Z",
+            yahooDate: "2026-07-06",
+          },
+        ],
+      },
+    ],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(merged.gameweeks[0].fixtures.length, 1);
+  assert.equal(fixture.id, "wc-gw5-old-usa-belgium");
+  assert.equal(fixture.apiId, "soccer.g.13532382");
+  assert.equal(fixture.date, "2026-07-07T00:00:00.000Z");
+  assert.equal(fixture.yahooDate, "2026-07-06");
+  assert.equal(merged.predictions.faris["wc-gw5-old-usa-belgium"], "2-1");
+});
+
 test("finished live matches are promoted into cached fixture results", () => {
   const globalDoc = {
     season: 2026,
