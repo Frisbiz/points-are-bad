@@ -184,6 +184,70 @@ test("legacy World Cup normalization does not collapse distinct real fixtures at
   assert.deepEqual(fixtures.map(f => f.id), ["real-alpha-beta", "real-gamma-delta"]);
 });
 
+test("legacy World Cup normalization preserves picks when reused ids belong to different matches", () => {
+  const group = {
+    competition: "WC",
+    season: 2026,
+    members: ["faris"],
+    predictions: {
+      faris: {
+        "canada-real": "1-2",
+        "paraguay-real": "0-3",
+      },
+    },
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "paraguay-real",
+            apiId: "soccer.g.13532377",
+            home: "Paraguay",
+            away: "France",
+            status: "SCHEDULED",
+            date: "2026-07-04T21:00:00.000Z",
+          },
+          {
+            id: "canada-real",
+            apiId: "soccer.g.13532378",
+            home: "Canada",
+            away: "Morocco",
+            status: "SCHEDULED",
+            date: "2026-07-04T17:00:00.000Z",
+          },
+          {
+            id: "paraguay-real",
+            home: "",
+            away: "",
+            status: "SCHEDULED",
+            date: "2026-07-04T17:00:00.000Z",
+          },
+          {
+            id: "canada-real",
+            home: "",
+            away: "",
+            status: "SCHEDULED",
+            date: "2026-07-04T21:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  const normalized = normalizeWorldCupGroup(group);
+  const fixtures = normalized.gameweeks[0].fixtures;
+
+  assert.deepEqual(fixtures.map(f => [f.id, f.home, f.away]), [
+    ["paraguay-real", "Paraguay", "France"],
+    ["canada-real", "Canada", "Morocco"],
+  ]);
+  assert.deepEqual(normalized.predictions.faris, {
+    "canada-real": "1-2",
+    "paraguay-real": "0-3",
+  });
+});
+
 const standings = {
   groups: [
     {

@@ -648,6 +648,21 @@ function canCollapseWorldCupFixtureByLookupKey(key, current, candidate) {
     && currentAway === candidateAway;
 }
 
+function worldCupFixturesShareLookupKey(gw, a, b) {
+  const aKeys = new Set(worldCupFixtureLookupKeys(gw, a));
+  return worldCupFixtureLookupKeys(gw, b).some(key => aKeys.has(key));
+}
+
+function worldCupFixtureIdUsedByDifferentMatch(gw, fixtures, duplicate, keeper) {
+  if (!duplicate?.id) return false;
+  return (fixtures || []).some(other =>
+    other !== duplicate
+    && other !== keeper
+    && other?.id === duplicate.id
+    && !worldCupFixturesShareLookupKey(gw, other, keeper)
+  );
+}
+
 function hasOwn(obj, key) {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
 }
@@ -764,7 +779,7 @@ function collapseDuplicateWorldCupFixtures(group = {}) {
       const replace = shouldReplaceWorldCupFixtureKeeper(current, fixture, predictions);
       const keeper = replace ? fixture : current;
       const duplicate = replace ? current : fixture;
-      if (duplicate.id && keeper.id && duplicate.id !== keeper.id) {
+      if (duplicate.id && keeper.id && duplicate.id !== keeper.id && !worldCupFixtureIdUsedByDifferentMatch(gwObj.gw, gwObj.fixtures || [], duplicate, keeper)) {
         predictions = remapWorldCupPredictionId(predictions, duplicate.id, keeper.id);
         remaps.push([duplicate.id, keeper.id]);
       }
