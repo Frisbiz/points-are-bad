@@ -66,6 +66,92 @@ test("old 2026 World Cup groups without a competition flag are detected and norm
   );
 });
 
+test("legacy World Cup normalization collapses duplicate placeholder rows into the real fixture", () => {
+  const group = {
+    id: "old-wc",
+    season: 2026,
+    predictions: {
+      faris: {
+        "real-canada-morocco": "1-2",
+        "blank-canada-morocco": "0-3",
+        "blank-paraguay-france": "0-3",
+      },
+      damon: {
+        "blank-canada-morocco": "2-0",
+      },
+    },
+    hiddenFixtures: ["blank-canada-morocco"],
+    dibsSkips: {
+      "blank-canada-morocco": ["faris"],
+    },
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "real-canada-morocco",
+            apiId: "soccer.g.13532378",
+            home: "Canada",
+            away: "Morocco",
+            homeCrest: "can.png",
+            awayCrest: "mar.png",
+            status: "SCHEDULED",
+            date: "2026-07-04T17:00:00.000Z",
+          },
+          {
+            id: "blank-canada-morocco",
+            apiId: "soccer.g.13532378",
+            home: "",
+            away: "",
+            status: "SCHEDULED",
+            date: "2026-07-04T17:00:00.000Z",
+          },
+          {
+            id: "blank-paraguay-france",
+            apiId: "soccer.g.13532377",
+            home: "W74",
+            away: "W77",
+            status: "SCHEDULED",
+            date: "2026-07-04T21:00:00.000Z",
+          },
+          {
+            id: "real-paraguay-france",
+            apiId: "soccer.g.13532377",
+            home: "Paraguay",
+            away: "France",
+            status: "SCHEDULED",
+            date: "2026-07-04T21:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  const normalized = normalizeWorldCupGroup(group);
+  const fixtures = normalized.gameweeks[0].fixtures;
+
+  assert.equal(fixtures.length, 2);
+  assert.deepEqual(
+    fixtures.map(f => [f.id, f.apiId, f.home, f.away, f.date]),
+    [
+      ["real-canada-morocco", "soccer.g.13532378", "Canada", "Morocco", "2026-07-04T17:00:00.000Z"],
+      ["real-paraguay-france", "soccer.g.13532377", "Paraguay", "France", "2026-07-04T21:00:00.000Z"],
+    ]
+  );
+  assert.deepEqual(normalized.predictions.faris, {
+    "real-canada-morocco": "1-2",
+    "real-paraguay-france": "0-3",
+  });
+  assert.deepEqual(normalized.predictions.damon, {
+    "real-canada-morocco": "2-0",
+  });
+  assert.deepEqual(normalized.hiddenFixtures, ["real-canada-morocco"]);
+  assert.deepEqual(normalized.dibsSkips, {
+    "real-canada-morocco": ["faris"],
+  });
+});
+
 const standings = {
   groups: [
     {

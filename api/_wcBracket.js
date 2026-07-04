@@ -587,6 +587,166 @@ export function resolveWorldCupBracketAdvancement(gameweeks = []) {
   });
 }
 
+function isWorldCupPlaceholderTeam(value) {
+  const raw = String(value || "").trim().toUpperCase();
+  return !raw
+    || raw === "TBD"
+    || /^[WL]\d+$/.test(raw)
+    || /^\d[A-L]$/.test(raw)
+    || /^3[A-L](?:\/3[A-L])+$/.test(raw);
+}
+
+function worldCupRealTeamCount(fixture) {
+  return ["home", "away"].reduce((count, side) => count + (isWorldCupPlaceholderTeam(fixture?.[side]) ? 0 : 1), 0);
+}
+
+function worldCupFixtureDataScore(fixture) {
+  if (!fixture) return -1;
+  const status = String(fixture.status || "").toUpperCase();
+  const statusRank = status === "FINISHED" ? 5 : status === "IN_PLAY" ? 4 : status === "PAUSED" ? 3 : status === "POSTPONED" ? 2 : status === "SCHEDULED" ? 1 : 0;
+  return worldCupRealTeamCount(fixture) * 100
+    + statusRank * 10
+    + (fixture.result ? 6 : 0)
+    + (fixture.liveScore ? 4 : 0)
+    + (fixture.date ? 2 : 0)
+    + (fixture.apiId ? 1 : 0)
+    + (fixture.homeCrest ? 1 : 0)
+    + (fixture.awayCrest ? 1 : 0);
+}
+
+function worldCupFixtureLookupKeys(gw, fixture) {
+  const gameId = yahooGameIdKey(fixture);
+  const keys = [];
+  if (gameId) keys.push(`${Number(gw)}:game:${gameId}`);
+  return keys;
+}
+
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj || {}, key);
+}
+
+function worldCupFixturePickCount(predictions, fixtureId) {
+  if (!fixtureId) return 0;
+  return Object.values(predictions || {}).reduce((count, picks) => count + (hasOwn(picks, fixtureId) ? 1 : 0), 0);
+}
+
+function remapWorldCupPredictionId(predictions, fromId, toId) {
+  if (!predictions || !fromId || !toId || fromId === toId) return predictions;
+  let next = predictions;
+  Object.entries(predictions).forEach(([username, picks]) => {
+    if (!hasOwn(picks, fromId)) return;
+    if (next === predictions) next = { ...predictions };
+    const updated = { ...(picks || {}) };
+    if (!hasOwn(updated, toId)) updated[toId] = updated[fromId];
+    delete updated[fromId];
+    next[username] = updated;
+  });
+  return next;
+}
+
+function shouldReplaceWorldCupFixtureKeeper(current, candidate, predictions) {
+  const currentRealTeams = worldCupRealTeamCount(current);
+  const candidateRealTeams = worldCupRealTeamCount(candidate);
+  if (currentRealTeams !== candidateRealTeams) return candidateRealTeams > currentRealTeams;
+
+  const currentPicks = worldCupFixturePickCount(predictions, current?.id);
+  const candidatePicks = worldCupFixturePickCount(predictions, candidate?.id);
+  if (currentPicks !== candidatePicks) return candidatePicks > currentPicks;
+
+  return worldCupFixtureDataScore(candidate) > worldCupFixtureDataScore(current);
+}
+
+function mergeWorldCupTeamName(keeperValue, duplicateValue) {
+  if (isWorldCupPlaceholderTeam(keeperValue) && !isWorldCupPlaceholderTeam(duplicateValue)) return duplicateValue;
+  return keeperValue || duplicateValue || null;
+}
+
+function mergeWorldCupFixtureData(keeper, duplicate) {
+  const best = worldCupFixtureDataScore(duplicate) > worldCupFixtureDataScore(keeper) ? duplicate : keeper;
+  const liveStatus = best.status === "IN_PLAY" || best.status === "PAUSED";
+  return {
+    ...keeper,
+    apiId: best.apiId || keeper.apiId || duplicate.apiId,
+    home: mergeWorldCupTeamName(keeper.home, duplicate.home),
+    away: mergeWorldCupTeamName(keeper.away, duplicate.away),
+    result: best.result ?? keeper.result ?? duplicate.result ?? null,
+    status: best.status || keeper.status || duplicate.status,
+    date: best.date || keeper.date || duplicate.date || null,
+    yahooDate: best.yahooDate || keeper.yahooDate || duplicate.yahooDate || null,
+    liveScore: liveStatus ? (best.liveScore || null) : null,
+    homeCrest: best.homeCrest || keeper.homeCrest || duplicate.homeCrest || null,
+    awayCrest: best.awayCrest || keeper.awayCrest || duplicate.awayCrest || null,
+    homeTeamId: best.homeTeamId || keeper.homeTeamId || duplicate.homeTeamId || null,
+    awayTeamId: best.awayTeamId || keeper.awayTeamId || duplicate.awayTeamId || null,
+    winningTeamId: best.winningTeamId || keeper.winningTeamId || duplicate.winningTeamId || null,
+    winnerSide: best.winnerSide || keeper.winnerSide || duplicate.winnerSide || null,
+    homeShootoutScore: best.homeShootoutScore ?? keeper.homeShootoutScore ?? duplicate.homeShootoutScore ?? null,
+    awayShootoutScore: best.awayShootoutScore ?? keeper.awayShootoutScore ?? duplicate.awayShootoutScore ?? null,
+    stage: best.stage || keeper.stage || duplicate.stage || null,
+    elapsed: liveStatus ? (best.elapsed || null) : null,
+    yahooLastUpdated: best.yahooLastUpdated || keeper.yahooLastUpdated || duplicate.yahooLastUpdated || null,
+  };
+}
+
+function applyWorldCupFixtureIdRemaps(group, remaps = []) {
+  if (!remaps.length) return group;
+  const alias = new Map(remaps);
+  const resolve = id => {
+    let next = id;
+    const seen = new Set();
+    while (alias.has(next) && !seen.has(next)) {
+      seen.add(next);
+      next = alias.get(next);
+    }
+    return next;
+  };
+  const next = { ...group };
+  if (Array.isArray(group.hiddenFixtures)) {
+    next.hiddenFixtures = Array.from(new Set(group.hiddenFixtures.map(resolve)));
+  }
+  if (group.dibsSkips) {
+    next.dibsSkips = Object.entries(group.dibsSkips).reduce((acc, [fixtureId, skips]) => {
+      const key = resolve(fixtureId);
+      acc[key] = Array.from(new Set([...(acc[key] || []), ...(skips || [])]));
+      return acc;
+    }, {});
+  }
+  return next;
+}
+
+function collapseDuplicateWorldCupFixtures(group = {}) {
+  let predictions = group.predictions || {};
+  const remaps = [];
+  const gameweeks = (group.gameweeks || []).map(gwObj => {
+    const out = [];
+    const indexByKey = new Map();
+    (gwObj.fixtures || []).forEach(fixture => {
+      const keys = worldCupFixtureLookupKeys(gwObj.gw, fixture);
+      const existingIndex = keys.map(key => indexByKey.get(key)).find(index => index !== undefined);
+      if (existingIndex === undefined) {
+        const nextIndex = out.length;
+        out.push(fixture);
+        keys.forEach(key => indexByKey.set(key, nextIndex));
+        return;
+      }
+
+      const current = out[existingIndex];
+      const replace = shouldReplaceWorldCupFixtureKeeper(current, fixture, predictions);
+      const keeper = replace ? fixture : current;
+      const duplicate = replace ? current : fixture;
+      if (duplicate.id && keeper.id && duplicate.id !== keeper.id) {
+        predictions = remapWorldCupPredictionId(predictions, duplicate.id, keeper.id);
+        remaps.push([duplicate.id, keeper.id]);
+      }
+      out[existingIndex] = mergeWorldCupFixtureData(keeper, duplicate);
+      worldCupFixtureLookupKeys(gwObj.gw, out[existingIndex]).forEach(key => indexByKey.set(key, existingIndex));
+    });
+    return { ...gwObj, fixtures: out };
+  });
+
+  return applyWorldCupFixtureIdRemaps({ ...group, predictions, gameweeks }, remaps);
+}
+
 export function normalizeWorldCupGroup(group = {}) {
   if (!isWorldCupGroupLike(group)) return group;
   const season = Number(group.season) || 2026;
@@ -594,12 +754,12 @@ export function normalizeWorldCupGroup(group = {}) {
     ...gwObj,
     season: gwObj.season || season,
   }));
-  return {
+  return collapseDuplicateWorldCupFixtures({
     ...group,
     competition: "WC",
     season,
     gameweeks,
-  };
+  });
 }
 
 function teamKey(value) {
