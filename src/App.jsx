@@ -172,6 +172,91 @@ function formatFixtureDate(value, options = {}) {
   return new Intl.DateTimeFormat("en-GB", formatOptions).format(date).replace(", ", " ");
 }
 
+function buildNextMatchCardState({ fixtureGameweeks = [], liveScores = {}, myPreds = {}, now = new Date() } = {}) {
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
+  const fixtures = (fixtureGameweeks || [])
+    .flatMap(gw => (gw.fixtures || []).map(f => ({ ...f, _gw: gw.gw, _season: gw.season })));
+  const scoreFromLive = lm => (
+    lm && lm.homeScore !== null && lm.homeScore !== undefined && lm.awayScore !== null && lm.awayScore !== undefined
+      ? `${lm.homeScore}-${lm.awayScore}`
+      : null
+  );
+  const scoreFromFixture = f => f.liveScore || null;
+  const liveItems = fixtures
+    .map(f => {
+      const lm = liveScores?.[`${f.home}|${f.away}`];
+      const liveStatus = lm?.status === "in_progress" || lm?.status === "halftime" || f.status === "IN_PLAY" || f.status === "PAUSED";
+      const finalStatus = !!f.result || f.status === "FINISHED" || lm?.status === "finished";
+      if (!liveStatus || finalStatus || f.status === "POSTPONED") return null;
+      const halftime = lm?.status === "halftime" || f.status === "PAUSED";
+      return {
+        fixture: f,
+        liveMatch: lm || null,
+        scoreText: scoreFromLive(lm) || scoreFromFixture(f),
+        secondaryLabel: halftime ? "HT" : (lm?.elapsed || f.elapsed || "LIVE"),
+        kickoffMs: f.date ? new Date(f.date).getTime() : Number.MAX_SAFE_INTEGER,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.kickoffMs - b.kickoffMs);
+
+  if (liveItems.length) {
+    const current = liveItems[0];
+    return {
+      mode: "live",
+      label: "Live now",
+      fixture: current.fixture,
+      liveMatch: current.liveMatch,
+      scoreText: current.scoreText,
+      secondaryLabel: current.secondaryLabel,
+      moreLiveCount: Math.max(0, liveItems.length - 1),
+    };
+  }
+
+  const next = fixtures
+    .filter(f => {
+      if (!f.date || f.result || f.status === "FINISHED" || f.status === "IN_PLAY" || f.status === "PAUSED" || f.status === "POSTPONED") return false;
+      const kickoffMs = new Date(f.date).getTime();
+      return Number.isFinite(kickoffMs) && kickoffMs > safeNowMs;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+  if (!next) return null;
+
+  const diff = new Date(next.date).getTime() - safeNowMs;
+  const hasPick = !!myPreds[next.id];
+  const urgent = !hasPick && diff < 3 * 3600000;
+  const warning = !hasPick && diff < 24 * 3600000;
+  return {
+    mode: "upcoming",
+    label: warning ? "Picks due" : "Next kick-off",
+    fixture: next,
+    diff,
+    hasPick,
+    urgent,
+    warning,
+  };
+}
+
+function findNextMatchLiveScoreTarget(fixtureGameweeks = [], now = new Date()) {
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
+  const liveWindow = (f) => {
+    if (!f || f.result || f.status === "FINISHED" || f.status === "POSTPONED") return false;
+    if (f.status === "IN_PLAY" || f.status === "PAUSED") return true;
+    if (!f.date) return false;
+    const kickoffMs = new Date(f.date).getTime();
+    return Number.isFinite(kickoffMs) && kickoffMs <= safeNowMs + 5 * 60000 && kickoffMs >= safeNowMs - 72 * 3600000;
+  };
+  return (fixtureGameweeks || [])
+    .filter(gw => (gw.fixtures || []).some(liveWindow))
+    .sort((a, b) => {
+      const aTime = Math.min(...(a.fixtures || []).filter(liveWindow).map(f => f.date ? new Date(f.date).getTime() : Number.MAX_SAFE_INTEGER));
+      const bTime = Math.min(...(b.fixtures || []).filter(liveWindow).map(f => f.date ? new Date(f.date).getTime() : Number.MAX_SAFE_INTEGER));
+      return aTime - bTime;
+    })[0] || null;
+}
+
 // Best-available scoreline for RENDERING/DISPLAY purposes only.
 // Prefers the final result, then a cached live score, then the Yahoo live feed.
 // DO NOT use this in computeStats or any Trends/standings aggregation — those
@@ -3538,7 +3623,7 @@ function LeagueTab({group,user,names,theme}) {
 }
 
 /* ── FIXTURES ────────────────────────────────────── */
-function NextMatchCountdown({ fixtureGameweeks = [], myPreds = {} }) {
+function NextMatchCountdown({ fixtureGameweeks = [], myPreds = {}, competition = "PL", season = 2025, initialLiveScores = {} }) {
   const [now, setNow] = useState(new Date());
   const [expanded, setExpanded] = useState(false);
   const mob = useMobile();
@@ -3547,23 +3632,23 @@ function NextMatchCountdown({ fixtureGameweeks = [], myPreds = {} }) {
     return () => clearInterval(t);
   }, []);
 
-  const next = (fixtureGameweeks||[])
-    .flatMap(gw => gw.fixtures || [])
-    .filter(f => f.date && !f.result && f.status !== "FINISHED" && f.status !== "IN_PLAY" && f.status !== "PAUSED" && new Date(f.date) > now)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+  const liveScoreTarget = useMemo(()=>findNextMatchLiveScoreTarget(fixtureGameweeks, now),[fixtureGameweeks, now]);
+  const cardLiveScores = useLiveScores(liveScoreTarget?.gw, liveScoreTarget?.fixtures || [], competition, season, initialLiveScores);
+  const cardState = buildNextMatchCardState({ fixtureGameweeks, liveScores: cardLiveScores, myPreds, now });
 
-  if (!next) return null;
+  if (!cardState) return null;
 
-  const diff = new Date(next.date) - now;
-  const hasPick = !!myPreds[next.id];
-  const urgent = !hasPick && diff < 3 * 3600000;
-  const warning = !hasPick && diff < 24 * 3600000;
-  const label = warning ? "Picks due" : "Next kick-off";
+  const next = cardState.fixture;
+  const isLiveCard = cardState.mode === "live";
+  const diff = cardState.diff || 0;
+  const urgent = !!cardState.urgent;
+  const warning = !!cardState.warning;
+  const label = cardState.label;
   const deadpanLine = null;
-  const borderColor = urgent ? "#ef444435" : warning ? "#f59e0b35" : "var(--border3)";
-  const bgColor = urgent ? "#ef444408" : warning ? "#f59e0b08" : "var(--card)";
-  const textColor = urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-dim)";
-  const timerColor = urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-bright)";
+  const borderColor = isLiveCard ? "#f59e0b45" : urgent ? "#ef444435" : warning ? "#f59e0b35" : "var(--border3)";
+  const bgColor = isLiveCard ? "#f59e0b08" : urgent ? "#ef444408" : warning ? "#f59e0b08" : "var(--card)";
+  const textColor = isLiveCard ? "#f59e0b" : urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-dim)";
+  const timerColor = isLiveCard ? "#f59e0b" : urgent ? "#ef4444" : warning ? "#f59e0b" : "var(--text-bright)";
   const days = Math.floor(diff / 86400000);
   const hours = Math.floor((diff % 86400000) / 3600000);
   const mins = Math.floor((diff % 3600000) / 60000);
@@ -3580,6 +3665,41 @@ function NextMatchCountdown({ fixtureGameweeks = [], myPreds = {} }) {
           {pad(hours)}:{pad(mins)}:{pad(secs)}
         </>
       )}
+    </div>
+  );
+
+  const liveStatusEl = isLiveCard ? (
+    <div style={{fontFamily:"'DM Mono',monospace",fontSize:mob?14:15,color:"#f59e0b",letterSpacing:2,animation:"pulse 1.5s infinite",whiteSpace:"nowrap"}}>
+      {cardState.secondaryLabel || "LIVE"}
+    </div>
+  ) : null;
+  const liveScoreEl = isLiveCard ? (
+    <div style={{fontFamily:"'DM Mono',monospace",fontSize:mob?15:16,color:"var(--text-bright)",letterSpacing:1,textAlign:"center",whiteSpace:"nowrap"}}>
+      {cardState.scoreText || "vs"}
+    </div>
+  ) : null;
+  const moreLiveText = isLiveCard && cardState.moreLiveCount > 0 ? `+${cardState.moreLiveCount} MORE LIVE` : null;
+
+  if (isLiveCard && mob) return (
+    <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7,gap:10}}>
+        <div>
+          <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase"}}>{label}</div>
+          {moreLiveText&&<div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",marginTop:3}}>{moreLiveText}</div>}
+        </div>
+        {liveStatusEl}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 58px minmax(0,1fr)",alignItems:"center",gap:8,fontSize:13,color:"var(--text-mid)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,minWidth:0}}>
+          <span title={next.home} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shortTeamName(next.home)}</span>
+          <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
+        </div>
+        {liveScoreEl}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:6,minWidth:0}}>
+          <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
+          <span title={next.away} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shortTeamName(next.away)}</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -3601,6 +3721,25 @@ function NextMatchCountdown({ fixtureGameweeks = [], myPreds = {} }) {
           <span title={next.away} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{shortTeamName(next.away)}</span>
         </div>
       </div>
+    </div>
+  );
+
+  if (isLiveCard) return (
+    <div style={{background:bgColor,border:`1px solid ${borderColor}`,borderRadius:8,padding:"12px 14px",marginBottom:18,display:"grid",gridTemplateColumns:"72px 1fr 130px 1fr 105px 70px",gap:10,alignItems:"center"}}>
+      <div>
+        <div style={{fontSize:10,color:textColor,letterSpacing:2,textTransform:"uppercase",lineHeight:1.3}}>{label}</div>
+        {moreLiveText&&<div style={{fontSize:9,color:"var(--text-dim3)",letterSpacing:1,textTransform:"uppercase",lineHeight:1.3,marginTop:4}}>{moreLiveText}</div>}
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
+        <span title={next.home} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.home}</span>
+        <TeamBadge team={next.home} crest={next.homeCrest} size={22} />
+      </div>
+      {liveScoreEl}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-start",gap:8,minWidth:0,fontSize:14,color:"var(--text-mid)"}}>
+        <TeamBadge team={next.away} crest={next.awayCrest} size={22} />
+        <span title={next.away} style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{next.away}</span>
+      </div>
+      <div style={{gridColumn:"5/7",display:"flex",justifyContent:"flex-end"}}>{liveStatusEl}</div>
     </div>
   );
 
@@ -3935,7 +4074,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         </div>
       </div>
 
-      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} />
+      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={group.competition || "PL"} season={activeSeason} initialLiveScores={initialLiveScores} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>

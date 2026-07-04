@@ -513,11 +513,19 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
 
   assert.match(
     countdownBlock,
-    /function NextMatchCountdown\(\{ fixtureGameweeks = \[\], myPreds = \{\} \}\)/
+    /function NextMatchCountdown\(\{ fixtureGameweeks = \[\], myPreds = \{\}, competition = "PL", season = 2025, initialLiveScores = \{\} \}\)/
   );
   assert.match(
     countdownBlock,
-    /const next = \(fixtureGameweeks\|\|\[\]\)/
+    /const cardState = buildNextMatchCardState\(\{ fixtureGameweeks, liveScores: cardLiveScores, myPreds, now \}\);/
+  );
+  assert.match(
+    countdownBlock,
+    /const liveScoreTarget = useMemo\(\(\)=>findNextMatchLiveScoreTarget\(fixtureGameweeks, now\),\[fixtureGameweeks, now\]\);/
+  );
+  assert.match(
+    countdownBlock,
+    /useLiveScores\(liveScoreTarget\?\.gw, liveScoreTarget\?\.fixtures \|\| \[\], competition, season, initialLiveScores\)/
   );
   assert.doesNotMatch(
     countdownBlock,
@@ -525,8 +533,71 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
   );
   assert.match(
     fixturesBlock,
-    /<NextMatchCountdown fixtureGameweeks=\{fixtureGameweeks\} myPreds=\{myPreds\} \/>/
+    /<NextMatchCountdown[^>]*fixtureGameweeks=\{fixtureGameweeks\}[^>]*myPreds=\{myPreds\}[^>]*competition=\{group\.competition \|\| "PL"\}[^>]*season=\{activeSeason\}[^>]*initialLiveScores=\{initialLiveScores\}[^>]*\/>/
   );
+});
+
+test("picks due card prefers the current live game over the next kickoff", () => {
+  const buildNextMatchCardState = loadAppFunction("buildNextMatchCardState");
+  const now = new Date("2026-07-04T18:30:00.000Z");
+
+  const state = buildNextMatchCardState({
+    now,
+    fixtureGameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw4-live",
+            home: "South Africa",
+            away: "Canada",
+            date: "2026-07-04T17:00:00.000Z",
+            status: "SCHEDULED",
+            result: null,
+          },
+        ],
+      },
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-future",
+            home: "Brazil",
+            away: "Japan",
+            date: "2026-07-05T17:00:00.000Z",
+            status: "SCHEDULED",
+            result: null,
+          },
+        ],
+      },
+    ],
+    liveScores: {
+      "South Africa|Canada": {
+        status: "in_progress",
+        homeScore: 0,
+        awayScore: 1,
+        elapsed: "64'",
+      },
+    },
+  });
+
+  assert.equal(state.mode, "live");
+  assert.equal(state.label, "Live now");
+  assert.equal(state.secondaryLabel, "64'");
+  assert.equal(state.scoreText, "0-1");
+  assert.equal(state.fixture.id, "wc-gw4-live");
+});
+
+test("picks due card live copy does not add picks locked text", () => {
+  const source = loadAppSource();
+  const countdownBlock = source.slice(
+    source.indexOf("function NextMatchCountdown"),
+    source.indexOf("function computeGWStatus")
+  );
+
+  assert.doesNotMatch(countdownBlock, /PICKS LOCKED|Picks locked/);
 });
 
 test("fixture shootout scores render like small top-right score exponents", () => {
