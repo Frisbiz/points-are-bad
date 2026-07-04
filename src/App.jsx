@@ -3833,15 +3833,18 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
   const dibsTurnFor = fixtureGroup.mode==="dibs"
     ? Object.fromEntries(gwFixtures.map(f=>[f.id, computeDibsTurn(fixtureGroup,f.id)]))
     : {};
-  const unpickedUnlocked = gwAdminLocked ? [] : gwFixtures.filter(f=>{
+  const fixtureClosedForPicks = f => {
     const hiddenPostponed = (fixtureGroup.hiddenFixtures||[]).includes(f.id) && f.status === "POSTPONED";
-    const locked=hiddenPostponed||!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
-    if (locked) return false;
+    return hiddenPostponed||!!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
+  };
+  const allFixturesClosedForPicks = gwFixtures.length>0&&gwFixtures.every(fixtureClosedForPicks);
+  const unpickedUnlocked = (gwAdminLocked||picksLocked) ? [] : gwFixtures.filter(f=>{
+    if (fixtureClosedForPicks(f)) return false;
     if (myPreds[f.id]) return false;
     if (fixtureGroup.mode==="dibs" && dibsTurnFor[f.id] !== user.username) return false;
     return true;
   });
-  const canViewAllPicks = unpickedUnlocked.length===0;
+  const canViewAllPicks = picksLocked||allFixturesClosedForPicks||unpickedUnlocked.length===0;
 
   const savePred = async (fixtureId, val) => {
     const f = gwFixtures.find(fx => fx.id === fixtureId);
@@ -4292,7 +4295,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
       )}
       {(fixtureGroup.mode==="dibs"
         ? (fixtureGroup.members||[]).length>1
-        : (picksLocked||allFixturesFinished)&&(fixtureGroup.members||[]).length>1&&canViewAllPicks
+        : (picksLocked||allFixturesFinished||allFixturesClosedForPicks)&&(fixtureGroup.members||[]).length>1&&canViewAllPicks
       )&&<AllPicksTable group={fixtureGroup} gwFixtures={gwFixtures.filter(f=>!(fixtureGroup.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} adminUser={user} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup} liveScores={liveScores}/>}
       {gwFixtures.some(f=>f.result)&&fixtureGroup.mode!=="dibs"&&(fixtureGroup.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>

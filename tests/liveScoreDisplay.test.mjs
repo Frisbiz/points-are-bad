@@ -567,6 +567,23 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
   );
 });
 
+test("locked fixture users can view the all-picks table even with missing own picks", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(
+    fixturesBlock,
+    /const canViewAllPicks = picksLocked\|\|allFixturesClosedForPicks\|\|unpickedUnlocked\.length===0;/
+  );
+  assert.match(
+    fixturesBlock,
+    /\(picksLocked\|\|allFixturesFinished\|\|allFixturesClosedForPicks\)&&\(fixtureGroup\.members\|\|\[\]\)\.length>1&&canViewAllPicks/
+  );
+});
+
 test("picks due card prefers the current live game over the next kickoff", () => {
   const buildNextMatchCardState = loadAppFunction("buildNextMatchCardState");
   const now = new Date("2026-07-04T18:30:00.000Z");
