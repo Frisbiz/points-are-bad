@@ -3651,6 +3651,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
   const activeSeason = group.season||2025;
   const isWC = (group.competition||"PL") === "WC";
+  const fixtureGameweeks = useMemo(()=>isWC?resolveWorldCupBracketAdvancement(group.gameweeks||[]):(group.gameweeks||[]),[isWC,group.gameweeks]);
   const [viewGW, setViewGW] = useState(()=>{
     const seas = group.season||2025;
     const seasonGWs = (group.gameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
@@ -3673,13 +3674,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     );
     return found?.gw || null;
   }, [group.gameweeks, group.season]);
-  const gwFixtures = ((group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[]).slice().sort((a,b)=>{
+  const gwFixtures = ((fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[]).slice().sort((a,b)=>{
     const da=a.date?new Date(a.date).getTime():Infinity;
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
   const liveScores = useLiveScores(currentGW, gwFixtures, group.competition || "PL", activeSeason, initialLiveScores);
-  const gwObj = (group.gameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
+  const gwObj = (fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
   const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
   const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
   const picksLocked = !!(group.picksLocked?.[user.username]?.[activeSeason]?.[currentGW]);

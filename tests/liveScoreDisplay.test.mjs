@@ -475,6 +475,31 @@ test("fixtures show syncing instead of TBD while a missing result is recoverable
   assert.match(fixturesBlock, />SYNCING</);
 });
 
+test("world cup fixtures tab resolves knockout advancement before rendering fixtures", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(
+    fixturesBlock,
+    /const fixtureGameweeks = useMemo\(\(\)=>isWC\?resolveWorldCupBracketAdvancement\(group\.gameweeks\|\|\[\]\):\(group\.gameweeks\|\|\[\]\),\[isWC,group\.gameweeks\]\);/
+  );
+  assert.match(
+    fixturesBlock,
+    /const gwFixtures = \(\(fixtureGameweeks\|\|\[\]\)\.find\(g=>g\.gw===currentGW&&\(g\.season\|\|activeSeason\)===activeSeason\)\?\.fixtures\|\|\[\]\)\.slice\(\)\.sort/
+  );
+  assert.match(
+    fixturesBlock,
+    /const gwObj = \(fixtureGameweeks\|\|\[\]\)\.find\(g=>g\.gw===currentGW&&\(g\.season\|\|activeSeason\)===activeSeason\);/
+  );
+  assert.doesNotMatch(
+    fixturesBlock,
+    /const gwFixtures = \(\(group\.gameweeks\|\|\[\]\)\.find/
+  );
+});
+
 test("fixture shootout scores render like small top-right score exponents", () => {
   const source = loadAppSource();
   const fixturesBlock = source.slice(
