@@ -191,9 +191,38 @@ function yahooGameIdKey(fixture) {
   return match ? match[0] : null;
 }
 
-function knownScheduleForFixture(fixture) {
+function scheduleWithGameId(gameId) {
+  const schedule = WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID[gameId];
+  return schedule ? { ...schedule, gameId } : null;
+}
+
+function slotLabel(value) {
+  return String(value ?? "").trim().toUpperCase();
+}
+
+function isWinnerLoserSlot(value) {
+  return /^[WL]\d+$/.test(slotLabel(value));
+}
+
+function knownScheduleForFixture(fixture, gw = null, matchIndex = null) {
   const gameId = yahooGameIdKey(fixture);
-  return gameId ? WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID[gameId] || null : null;
+  if (gameId) return scheduleWithGameId(gameId);
+
+  const gwNum = Number(gw);
+  const home = slotLabel(fixture?.home);
+  const away = slotLabel(fixture?.away);
+  const gameIds = BRACKET_DISPLAY_GAME_IDS_BY_GW[gwNum] || [];
+  const placeholderGameId = gameIds.find(id => {
+    const labels = YAHOO_GAME_PLACEHOLDER_LABELS[id] || [];
+    return slotLabel(labels[0]) === home && slotLabel(labels[1]) === away;
+  });
+  if (placeholderGameId) return scheduleWithGameId(placeholderGameId);
+
+  const indexedGameId = Number.isInteger(matchIndex) ? gameIds[matchIndex] : null;
+  if (indexedGameId && (isWinnerLoserSlot(home) || isWinnerLoserSlot(away))) {
+    return scheduleWithGameId(indexedGameId);
+  }
+  return null;
 }
 
 export function isUnresolvedWorldCupTeamSlot(value) {
@@ -265,11 +294,12 @@ export function buildWorldCupKnockoutScheduleFixtures(gw) {
 export function applyKnownWorldCupKnockoutSchedule(gameweeks = []) {
   return (gameweeks || []).map(gwObj => ({
     ...gwObj,
-    fixtures: (gwObj.fixtures || []).map(fixture => {
-      const schedule = knownScheduleForFixture(fixture);
+    fixtures: (gwObj.fixtures || []).map((fixture, matchIndex) => {
+      const schedule = knownScheduleForFixture(fixture, gwObj.gw, matchIndex);
       if (!schedule) return fixture;
       return {
         ...fixture,
+        apiId: fixture.apiId || `soccer.g.${schedule.gameId}`,
         date: schedule.date,
         yahooDate: schedule.yahooDate,
         stage: schedule.stage || fixture.stage,

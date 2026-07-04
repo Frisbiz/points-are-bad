@@ -376,6 +376,22 @@ test("known World Cup knockout schedule corrects stale cached fixture dates", ()
     ])[0].fixtures[0].date,
     "2026-07-04T01:30:00.000Z"
   );
+  const placeholderFixture = applyKnownWorldCupKnockoutSchedule([
+    {
+      gw: 5,
+      fixtures: [
+        {
+          id: "wc-gw5-old-row",
+          home: "W81",
+          away: "W82",
+          date: "2026-07-06T00:00:00.000Z",
+        },
+      ],
+    },
+  ])[0].fixtures[0];
+  assert.equal(placeholderFixture.apiId, "soccer.g.13532382");
+  assert.equal(placeholderFixture.date, "2026-07-07T00:00:00.000Z");
+  assert.equal(placeholderFixture.yahooDate, "2026-07-06");
 });
 
 test("orders World Cup bracket fixtures by visible bracket flow", () => {

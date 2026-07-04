@@ -1,3 +1,5 @@
+import { applyKnownWorldCupKnockoutSchedule } from "./_wcBracket.js";
+
 export const TEAM_NAME_MAP = {
   // Premier League - with and without FC suffix (API returns both forms)
   "Wolverhampton Wanderers FC": "Wolves",
@@ -252,14 +254,29 @@ function shouldReplaceFixtureKeeper(current, candidate, predictions) {
   return fixtureDataScore(candidate) > fixtureDataScore(current);
 }
 
+function isUnresolvedTeamSlot(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  return !raw
+    || raw === 'TBD'
+    || /^[WL]\d+$/.test(raw)
+    || /^\d[A-L]$/.test(raw)
+    || /^3[A-L](?:\/3[A-L])+$/.test(raw);
+}
+
+function mergeTeamName(keeperValue, duplicateValue, bestValue) {
+  if (isUnresolvedTeamSlot(keeperValue) && !isUnresolvedTeamSlot(duplicateValue)) return duplicateValue;
+  if (isUnresolvedTeamSlot(duplicateValue) && !isUnresolvedTeamSlot(keeperValue)) return keeperValue;
+  return bestValue || keeperValue || duplicateValue;
+}
+
 function mergeFixtureData(keeper, duplicate) {
   const best = betterFixtureData(keeper, duplicate);
   const liveStatus = best.status === 'IN_PLAY' || best.status === 'PAUSED';
   return {
     ...keeper,
     apiId: best.apiId || keeper.apiId || duplicate.apiId,
-    home: normName(best.home || keeper.home || duplicate.home),
-    away: normName(best.away || keeper.away || duplicate.away),
+    home: normName(mergeTeamName(keeper.home, duplicate.home, best.home)),
+    away: normName(mergeTeamName(keeper.away, duplicate.away, best.away)),
     result: best.result ?? keeper.result ?? duplicate.result ?? null,
     status: best.status || keeper.status || duplicate.status,
     date: best.date || keeper.date || duplicate.date || null,
@@ -507,13 +524,16 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
 }
 
 export function mergeGlobalIntoGroup(globalDoc, g) {
-  const seas = g.season || 2025;
-  let predictions = g.predictions || {};
+  const group = (g.competition || 'PL') === 'WC'
+    ? { ...g, gameweeks: applyKnownWorldCupKnockoutSchedule(g.gameweeks || []) }
+    : g;
+  const seas = group.season || 2025;
+  let predictions = group.predictions || {};
   const remaps = [];
   const globalGWMap = {};
   (globalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = dedupeFixtures(gwObj.fixtures || []); });
   const hasPick = id => Object.values(predictions).some(up => up[id] !== undefined);
-  const updatedGameweeks = (g.gameweeks || []).map(gwObj => {
+  const updatedGameweeks = (group.gameweeks || []).map(gwObj => {
     if ((gwObj.season || seas) !== seas) return gwObj;
     const globalFixtures = globalGWMap[gwObj.gw];
     if (!globalFixtures || !globalFixtures.length) return gwObj;
@@ -547,8 +567,8 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return { ...gwObj, fixtures: [...working, ...toAdd] };
   });
-  if ((g.competition || 'PL') === 'WC') {
-    return applyFixtureIdRemaps({ ...g, gameweeks: updatedGameweeks, predictions, lastAutoSync: Date.now() }, remaps);
+  if ((group.competition || 'PL') === 'WC') {
+    return applyFixtureIdRemaps({ ...group, gameweeks: updatedGameweeks, predictions, lastAutoSync: Date.now() }, remaps);
   }
   const globalPairToGW = {};
   (globalDoc.gameweeks || []).forEach(gwObj => {
@@ -563,7 +583,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return { ...gwObj, fixtures: filtered };
   });
-  return applyFixtureIdRemaps({ ...g, gameweeks: deduped, predictions, lastAutoSync: Date.now() }, remaps);
+  return applyFixtureIdRemaps({ ...group, gameweeks: deduped, predictions, lastAutoSync: Date.now() }, remaps);
 }
 
 export function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
