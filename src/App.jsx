@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, Fragment } fr
 import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
-import { formatWorldCupBracketMatchMeta, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, resolveWorldCupBracketAdvancement, sortWorldCupBracketFixturesForDisplay, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
+import { formatWorldCupBracketMatchMeta, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement, sortWorldCupBracketFixturesForDisplay, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -547,7 +547,7 @@ function stageLabel(stage, matchday) {
 }
 
 function gwLabel(group, gwNum) {
-  const comp = group.competition || "PL";
+  const comp = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
   if (comp === "PL" || comp === "LL") return `GW${gwNum}`;
   const gwObj = (group.gameweeks || []).find(g => g.gw === gwNum);
   const stages = (gwObj?.fixtures || []).map(f => f.stage).filter(Boolean);
@@ -557,7 +557,7 @@ function gwLabel(group, gwNum) {
 
 function autoSyncTargetGW(group, now = Date.now()) {
   if (!group) return null;
-  const seas = group.season || 2025;
+  const seas = isWorldCupGroupLike(group) ? (group.season || 2026) : (group.season || 2025);
   const candidates = [];
   const incomplete = [];
   (group.gameweeks || [])
@@ -607,7 +607,7 @@ function draw11LimitMax(value) {
 
 function draw11LimitPeriod(groupOrCompetition) {
   const comp = typeof groupOrCompetition === "string" ? groupOrCompetition : (groupOrCompetition?.competition || "PL");
-  return comp === "WC" ? "round" : "gameweek";
+  return (typeof groupOrCompetition === "string" ? comp === "WC" : isWorldCupGroupLike(groupOrCompetition)) ? "round" : "gameweek";
 }
 
 function draw11LimitLabel(group) {
@@ -2101,7 +2101,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
       <div style={{background:"var(--surface)",border:"1px solid var(--border3)",borderRadius:10,padding:"12px 14px",marginBottom:20,fontSize:11,color:"var(--text-mid)",lineHeight:1.8}}>
         <div>{inviteGroup.members?.length||0} member{inviteGroup.members?.length===1?"":"s"}</div>
-        <div>{(inviteGroup.competition||"PL")==="WC"?"World Cup 2026":(inviteGroup.competition||"PL")==="LL"?"La Liga":"Premier League"}</div>
+        <div>{isWorldCupGroupLike(inviteGroup)?"World Cup 2026":(inviteGroup.competition||"PL")==="LL"?"La Liga":"Premier League"}</div>
         <div>{(inviteGroup.mode||"open").toUpperCase()} mode</div>
       </div>
       <div style={{display:"flex",gap:10}}>
@@ -2783,10 +2783,10 @@ export default function App() {
       setUser(u);
       if(u.username!==DEMO_SHARED_USERNAME&&u.theme)setThemeRaw(u.theme);
       setNeedsSetup(!u.email);
-      const allGroups = (await Promise.all((u.groupIds||[]).map(id=>sget(`group:${id}`)))).filter(Boolean);
+      const allGroups = (await Promise.all((u.groupIds||[]).map(id=>sget(`group:${id}`)))).filter(Boolean).map(normalizeWorldCupGroup);
       setGroups(allGroups);
       if(saved?.groupId){
-        const g = allGroups.find(x=>x.id===saved.groupId) || await sget(`group:${saved.groupId}`);
+        const g = allGroups.find(x=>x.id===saved.groupId) || normalizeWorldCupGroup(await sget(`group:${saved.groupId}`));
         if(g&&g.members?.includes(u.username)){
           await fetchGroupNames(g, u);
           setGroup(g);
@@ -2839,7 +2839,7 @@ export default function App() {
       setTheme(fallbackTheme);
       localStorage.setItem("theme", fallbackTheme);
     }
-    const loginGroups = (await Promise.all((nextUser.groupIds || []).map(id=>sget(`group:${id}`)))).filter(Boolean);
+    const loginGroups = (await Promise.all((nextUser.groupIds || []).map(id=>sget(`group:${id}`)))).filter(Boolean).map(normalizeWorldCupGroup);
     lset("session", nextSession);
     setGroups(loginGroups);
     setGroup(null);
@@ -2848,7 +2848,7 @@ export default function App() {
     if(nextUser.username!==DEMO_SHARED_USERNAME&&nextUser.theme)setThemeRaw(nextUser.theme);
     setNeedsSetup(false);
     if ((nextUser.groupIds || []).length === 1 && !nextSession.groupId) {
-      const onlyGroup = loginGroups[0] || await sget(`group:${nextUser.groupIds[0]}`);
+      const onlyGroup = loginGroups[0] || normalizeWorldCupGroup(await sget(`group:${nextUser.groupIds[0]}`));
       if (onlyGroup && onlyGroup.members?.includes(nextUser.username)) {
         await fetchGroupNames(onlyGroup, nextUser);
         setGroup(onlyGroup);
@@ -2861,7 +2861,7 @@ export default function App() {
   const handleLogout = async () => {await callAPI('auth-logout'); ldel("session");setUser(null);setGroup(null);setShowLanding(true);};
   const handleEnterGroup = async (g) => {
     const fresh = await sget(`group:${g.id}`);
-    const resolved = fresh || g;
+    const resolved = normalizeWorldCupGroup(fresh || g);
     await fetchGroupNames(resolved, user);
     setGroup(resolved);
     setGroups(prev => prev.some(x => x.id === resolved.id) ? prev : [...prev, resolved]);
@@ -2875,12 +2875,12 @@ export default function App() {
       const sessionRes = await fetch('/api/security?action=auth-session').catch(()=>null);
       const sessionData = sessionRes ? await sessionRes.json().catch(()=>({user:null})) : {user:null};
       const ids = sessionData.user?.groupIds || [];
-      const gs = (await Promise.all(ids.map(id=>sget(`group:${id}`)))).filter(Boolean);
+      const gs = (await Promise.all(ids.map(id=>sget(`group:${id}`)))).filter(Boolean).map(normalizeWorldCupGroup);
       setGroups(gs);
     }
   };
   const handleSetTab = useCallback((t)=>{setTab(t);lset("session",{...lget("session"),tab:t});},[]);
-  const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=await sget(`group:${group.id}`);if(fresh&&JSON.stringify(fresh)!==JSON.stringify(group))setGroup(fresh);},[group]);
+  const refreshGroup = useCallback(async()=>{if(!group)return;const fresh=normalizeWorldCupGroup(await sget(`group:${group.id}`));if(fresh&&JSON.stringify(fresh)!==JSON.stringify(group))setGroup(fresh);},[group]);
   const isAdmin=!!(user&&group&&group.admins?.includes(user.username));
   const isCreator=!!(user&&group&&group.creatorUsername===user.username);
   return (
@@ -3037,12 +3037,13 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     setPwSuccess(true);setPwLoading(false);
     setTimeout(()=>{setAccountOpen(false);setPwCurrent("");setPwNew("");setPwConfirm("");setPwSuccess(false);},2000);
   };
-  const activeSeason = group.season || 2025;
+  const isWCGroup = isWorldCupGroupLike(group);
+  const activeSeason = isWCGroup ? (group.season || 2026) : (group.season || 2025);
   const liveScoreGW = autoSyncTargetGW(group);
   const liveScoreFixtures = useMemo(() => {
     return ((group.gameweeks || []).find(g => g.gw === liveScoreGW && (g.season || activeSeason) === activeSeason)?.fixtures || []);
   }, [group.gameweeks, liveScoreGW, activeSeason]);
-  const standingsLiveScores = useLiveScores(liveScoreGW, liveScoreFixtures, group.competition || "PL", activeSeason);
+  const standingsLiveScores = useLiveScores(liveScoreGW, liveScoreFixtures, isWCGroup ? "WC" : (group.competition || "PL"), activeSeason);
   const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, standingsLiveScores),[group, standingsLiveScores]);
   const stats = useMemo(()=>computeStats(scoringGroup),[scoringGroup]);
   const myRank = stats.findIndex(s => s.username === user.username) + 1;
@@ -3069,7 +3070,6 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     }, 0);
     recapContent = { gwNum, winners, minPts, totalGoals, flavor: getWeeklyWinnerFlavor(minPts, winners.length, totalGoals) };
   }
-  const isWCGroup = (group.competition || "PL") === "WC";
   const nav = isWCGroup ? [...NAV.slice(0,2), "Standings", ...NAV.slice(2)] : NAV;
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
@@ -3527,7 +3527,7 @@ function LeagueTab({group,user,names,theme}) {
   const stats = useMemo(()=>computeStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
-  const comp = group.competition || "PL";
+  const comp = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
   const isLeague = comp === "PL" || comp === "LL";
   const [leagueTable, setLeagueTable] = useState(null);
   const [showTable, setShowTable] = useState(false);
@@ -3788,8 +3788,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
   const [removeGWStep, setRemoveGWStep] = useState(0);
   const [wizardPred, setWizardPred] = useState("");
   const wizardKey = `wizard-seen:${group.id}:${user.username}`;
-  const activeSeason = group.season||2025;
-  const isWC = (group.competition||"PL") === "WC";
+  const isWC = isWorldCupGroupLike(group);
+  const activeSeason = isWC ? (group.season||2026) : (group.season||2025);
   const fixtureGameweeks = useMemo(()=>isWC?resolveWorldCupBracketAdvancement(group.gameweeks||[]):(group.gameweeks||[]),[isWC,group.gameweeks]);
   const [viewGW, setViewGW] = useState(()=>{
     const seas = group.season||2025;
@@ -3818,7 +3818,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
-  const liveScores = useLiveScores(currentGW, gwFixtures, group.competition || "PL", activeSeason, initialLiveScores);
+  const liveScores = useLiveScores(currentGW, gwFixtures, isWC ? "WC" : (group.competition || "PL"), activeSeason, initialLiveScores);
   const gwObj = (fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
   const firstPicks = useMemo(()=>computeFirstPickGW(group),[group]);
   const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
@@ -4004,7 +4004,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
       )}
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <div>
-          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{(group.competition||"PL")==="WC" ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
+          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{isWC ? gwLabel(group,currentGW) : `Gameweek ${currentGW}`}</h1>
           {isIndex&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Set your picks before the whistle.</div>}
         </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
@@ -4074,7 +4074,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         </div>
       </div>
 
-      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={group.competition || "PL"} season={activeSeason} initialLiveScores={initialLiveScores} />
+      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={isWC ? "WC" : (group.competition || "PL")} season={activeSeason} initialLiveScores={initialLiveScores} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
@@ -5562,7 +5562,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                 .map(g=>{
                   const hidden=(group.hiddenGWs||[]).includes(g.gw);
                   const label=gwLabel(group,g.gw);
-                  const isWC=(group.competition||"PL")==="WC";
+                  const isWC=isWorldCupGroupLike(group);
                   return (
                     <button key={g.gw} onClick={async()=>{
                       const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'toggle-hidden-gw',gw:g.gw}});
@@ -5633,7 +5633,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
       )
     },
     {
-      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||((group.competition||"PL")!=="PL"&&(group.competition||"PL")!=="LL"), summary:`Season ${activeSeason}`,
+      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||isWorldCupGroupLike(group)||((group.competition||"PL")!=="PL"&&(group.competition||"PL")!=="LL"), summary:`Season ${activeSeason}`,
       content:(()=>{
         const allSeasons=[...new Set((group.gameweeks||[]).map(g=>g.season||activeSeason))].sort((a,b)=>a-b);
         return (

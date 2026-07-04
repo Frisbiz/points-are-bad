@@ -1,4 +1,4 @@
-import { applyKnownWorldCupKnockoutSchedule } from "./_wcBracket.js";
+import { applyKnownWorldCupKnockoutSchedule, isWorldCupGroupLike, normalizeWorldCupGroup } from "./_wcBracket.js";
 
 export const TEAM_NAME_MAP = {
   // Premier League - with and without FC suffix (API returns both forms)
@@ -524,10 +524,8 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
 }
 
 export function mergeGlobalIntoGroup(globalDoc, g) {
-  const group = (g.competition || 'PL') === 'WC'
-    ? { ...g, gameweeks: applyKnownWorldCupKnockoutSchedule(g.gameweeks || []) }
-    : g;
-  const normalizedGlobalDoc = (group.competition || 'PL') === 'WC'
+  const group = isWorldCupGroupLike(g) ? normalizeWorldCupGroup(g) : g;
+  const normalizedGlobalDoc = isWorldCupGroupLike(group)
     ? { ...globalDoc, gameweeks: applyKnownWorldCupKnockoutSchedule(globalDoc.gameweeks || []) }
     : globalDoc;
   const seas = group.season || 2025;
@@ -570,7 +568,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return { ...gwObj, fixtures: [...working, ...toAdd] };
   });
-  if ((group.competition || 'PL') === 'WC') {
+  if (isWorldCupGroupLike(group)) {
     return applyFixtureIdRemaps({ ...group, gameweeks: updatedGameweeks, predictions, lastAutoSync: Date.now() }, remaps);
   }
   const globalPairToGW = {};

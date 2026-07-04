@@ -12,7 +12,9 @@ import {
   formatWorldCupFixtureSeedPlaceholders,
   formatWorldCupGlobalDocSeedPlaceholders,
   getWorldCupKnockoutPlaceholderLabel,
+  isWorldCupGroupLike,
   isUnresolvedWorldCupTeamSlot,
+  normalizeWorldCupGroup,
   resolveWorldCupBracketAdvancement,
   resolveWorldCupGlobalDocSeeds,
   resolveWorldCupKnockoutSeeds,
@@ -21,6 +23,48 @@ import {
 } from "../api/_wcBracket.js";
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
+
+test("old 2026 World Cup groups without a competition flag are detected and normalized", () => {
+  const group = {
+    id: "old-wc",
+    season: 2026,
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          { id: "old-r16-1", apiId: "soccer.g.13532377", home: "Paraguay", away: "France", status: "SCHEDULED", date: "2026-07-04T17:00:00.000Z" },
+          { id: "old-r16-2", apiId: "soccer.g.13532378", home: "Canada", away: "Morocco", status: "SCHEDULED", date: "2026-07-04T21:00:00.000Z" },
+          { id: "old-r16-3", apiId: "soccer.g.13532379", home: "Portugal", away: "Spain", status: "SCHEDULED", date: "2026-07-05T20:00:00.000Z" },
+          { id: "old-r16-4", apiId: "soccer.g.13532380", home: "USA", away: "Belgium", status: "SCHEDULED", date: "2026-07-06T00:00:00.000Z" },
+          { id: "old-r16-5", apiId: "soccer.g.13532381", home: "Brazil", away: "Norway", status: "SCHEDULED", date: "2026-07-06T19:00:00.000Z" },
+          { id: "old-r16-6", apiId: "soccer.g.13532382", home: "Mexico", away: "England", status: "SCHEDULED", date: "2026-07-07T00:00:00.000Z" },
+          { id: "old-r16-7", apiId: "soccer.g.13532383", home: "Argentina", away: "Egypt", status: "SCHEDULED", date: "2026-07-07T16:00:00.000Z" },
+          { id: "old-r16-8", apiId: "soccer.g.13532384", home: "Switzerland", away: "Colombia", status: "SCHEDULED", date: "2026-07-07T20:00:00.000Z" },
+        ],
+      },
+    ],
+  };
+
+  const normalized = normalizeWorldCupGroup(group);
+
+  assert.equal(isWorldCupGroupLike(group), true);
+  assert.equal(normalized.competition, "WC");
+  assert.equal(normalized.season, 2026);
+  assert.deepEqual(
+    normalized.gameweeks[0].fixtures.map(f => [f.id, f.apiId, f.home, f.away, f.date, f.yahooDate]),
+    [
+      ["old-r16-1", "soccer.g.13532377", "Paraguay", "France", "2026-07-04T21:00:00.000Z", "2026-07-04"],
+      ["old-r16-2", "soccer.g.13532378", "Canada", "Morocco", "2026-07-04T17:00:00.000Z", "2026-07-04"],
+      ["old-r16-3", "soccer.g.13532381", "Portugal", "Spain", "2026-07-06T19:00:00.000Z", "2026-07-06"],
+      ["old-r16-4", "soccer.g.13532382", "USA", "Belgium", "2026-07-07T00:00:00.000Z", "2026-07-06"],
+      ["old-r16-5", "soccer.g.13532379", "Brazil", "Norway", "2026-07-05T20:00:00.000Z", "2026-07-05"],
+      ["old-r16-6", "soccer.g.13532380", "Mexico", "England", "2026-07-06T00:00:00.000Z", "2026-07-05"],
+      ["old-r16-7", "soccer.g.13532383", "Argentina", "Egypt", "2026-07-07T16:00:00.000Z", "2026-07-07"],
+      ["old-r16-8", "soccer.g.13532384", "Switzerland", "Colombia", "2026-07-07T20:00:00.000Z", "2026-07-07"],
+    ]
+  );
+});
 
 const standings = {
   groups: [

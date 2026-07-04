@@ -286,6 +286,44 @@ function knownScheduleForFixture(fixture, gw = null, matchIndex = null) {
   return null;
 }
 
+function isWorldCupStage(value) {
+  return [
+    "GROUP_STAGE",
+    "LAST_32",
+    "ROUND_OF_16",
+    "QUARTER_FINAL",
+    "SEMI_FINAL",
+    "THIRD_PLACE",
+    "FINAL",
+  ].includes(String(value || "").trim().toUpperCase());
+}
+
+function isWorldCupFixtureLike(fixture) {
+  if (!fixture) return false;
+  if (yahooGameIdKey(fixture)) return true;
+  if (/^wc[-_]/i.test(String(fixture.id || ""))) return true;
+  if (isWorldCupStage(fixture.stage)) return true;
+  if (isWinnerLoserSlot(fixture.home) || isWinnerLoserSlot(fixture.away)) return true;
+
+  const pairKey = fixtureTeamPairKey(fixture);
+  return WORLD_CUP_KNOWN_TEAM_GAME_IDS.some(({ home, away }) => pairKey === fixtureTeamPairKey({ home, away }));
+}
+
+export function isWorldCupGroupLike(group = {}) {
+  const competition = String(group?.competition || "").trim().toUpperCase();
+  if (competition === "WC") return true;
+
+  const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
+  const inferredSeason = Number(group?.season || gameweeks.find(gw => gw?.season)?.season || 0);
+  if (inferredSeason !== 2026) return false;
+
+  const gwNums = gameweeks.map(gw => Number(gw?.gw)).filter(Number.isFinite);
+  const hasWorldCupRoundShape = gwNums.length > 0 && gwNums.length <= 8 && gwNums.every(gw => gw >= 1 && gw <= 8);
+  const fixtures = gameweeks.flatMap(gw => gw?.fixtures || []);
+
+  return fixtures.some(isWorldCupFixtureLike) || hasWorldCupRoundShape;
+}
+
 export function isUnresolvedWorldCupTeamSlot(value) {
   const normalized = String(value ?? "").trim().toUpperCase();
   return !normalized || normalized === "TBD";
@@ -547,6 +585,21 @@ export function resolveWorldCupBracketAdvancement(gameweeks = []) {
     const patched = resolveAdvancementPlaceholders(gwObj.fixtures || [], advancementByLabel, gwObj.gw);
     return patched.changed ? { ...gwObj, fixtures: patched.fixtures } : gwObj;
   });
+}
+
+export function normalizeWorldCupGroup(group = {}) {
+  if (!isWorldCupGroupLike(group)) return group;
+  const season = Number(group.season) || 2026;
+  const gameweeks = resolveWorldCupBracketAdvancement(group.gameweeks || []).map(gwObj => ({
+    ...gwObj,
+    season: gwObj.season || season,
+  }));
+  return {
+    ...group,
+    competition: "WC",
+    season,
+    gameweeks,
+  };
 }
 
 function teamKey(value) {

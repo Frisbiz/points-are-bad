@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { isWorldCupGroupLike } from "../api/_wcBracket.js";
 
 function loadAppSource() {
   return fs.readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
@@ -27,7 +28,7 @@ function loadAppFunction(name) {
   }
   assert.notEqual(end, -1, `${name} body should close`);
   const fnSource = source.slice(start, end);
-  return Function(`${fnSource}; return ${name};`)();
+  return Function("isWorldCupGroupLike", `${fnSource}; return ${name};`)(isWorldCupGroupLike);
 }
 
 test("finished Yahoo scores display while the group fixture waits for sync", () => {
@@ -445,7 +446,7 @@ test("fixtures tab is seeded with live scores already loaded by the game shell",
   );
   assert.match(
     source,
-    /useLiveScores\(currentGW, gwFixtures, group\.competition \|\| "PL", activeSeason, initialLiveScores\)/,
+    /useLiveScores\(currentGW, gwFixtures, isWC \? "WC" : \(group\.competition \|\| "PL"\), activeSeason, initialLiveScores\)/,
     "FixturesTab should seed its live-score hook from initial live scores"
   );
   assert.match(
@@ -500,6 +501,26 @@ test("world cup fixtures tab resolves knockout advancement before rendering fixt
   );
 });
 
+test("world cup fixture rendering uses the WC detector for old groups", () => {
+  const source = loadAppSource();
+  const gameBlock = source.slice(
+    source.indexOf("function GameUI"),
+    source.indexOf("function WCBracketTab")
+  );
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(source, /isWorldCupGroupLike/);
+  assert.match(gameBlock, /const isWCGroup = isWorldCupGroupLike\(group\);/);
+  assert.match(fixturesBlock, /const isWC = isWorldCupGroupLike\(group\);/);
+  assert.match(
+    fixturesBlock,
+    /useLiveScores\(currentGW, gwFixtures, isWC \? "WC" : \(group\.competition \|\| "PL"\), activeSeason, initialLiveScores\)/
+  );
+});
+
 test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
   const source = loadAppSource();
   const countdownBlock = source.slice(
@@ -533,7 +554,7 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
   );
   assert.match(
     fixturesBlock,
-    /<NextMatchCountdown[^>]*fixtureGameweeks=\{fixtureGameweeks\}[^>]*myPreds=\{myPreds\}[^>]*competition=\{group\.competition \|\| "PL"\}[^>]*season=\{activeSeason\}[^>]*initialLiveScores=\{initialLiveScores\}[^>]*\/>/
+    /<NextMatchCountdown[^>]*fixtureGameweeks=\{fixtureGameweeks\}[^>]*myPreds=\{myPreds\}[^>]*competition=\{isWC \? "WC" : \(group\.competition \|\| "PL"\)\}[^>]*season=\{activeSeason\}[^>]*initialLiveScores=\{initialLiveScores\}[^>]*\/>/
   );
 });
 

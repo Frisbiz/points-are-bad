@@ -2,7 +2,7 @@ import { db, docKey, getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
 import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeGroupFixtures } from "./_fixtureSync.js";
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
-import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
+import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 
 const FD_COMP_MAP = { PL: 'PL', LL: 'PD', WC: 'WC' };
@@ -78,7 +78,7 @@ function draw11LimitMax(value) {
 }
 
 function draw11LimitPeriod(group) {
-  return (group.competition || 'PL') === 'WC' ? 'round' : 'gameweek';
+  return isWorldCupGroupLike(group) ? 'round' : 'gameweek';
 }
 
 function findFixtureGW(group, fixtureId) {
@@ -636,8 +636,9 @@ export default async function handler(req, res) {
     if (!groupId) return bad(res, 400, 'Missing groupId');
     const username = await requireUser(req, res);
     if (!username) return;
-    const group = await getValue(`group:${groupId}`);
-    if (!group) return bad(res, 404, 'Group not found');
+    const storedGroup = await getValue(`group:${groupId}`);
+    if (!storedGroup) return bad(res, 404, 'Group not found');
+    const group = normalizeWorldCupGroup(storedGroup);
     if (!(group.members || []).includes(username)) return bad(res, 403, 'Forbidden');
     const groupKey = `group:${groupId}`;
 
@@ -690,9 +691,9 @@ export default async function handler(req, res) {
 
     if (payload.type === 'auto-sync-fixtures') {
       const targetGW = Number(payload.gw || group.currentGW || 1);
-      const comp = group.competition || 'PL';
-      const isWC = comp === 'WC';
-      const seas = group.season || 2025;
+      const isWC = isWorldCupGroupLike(group);
+      const comp = isWC ? 'WC' : (group.competition || 'PL');
+      const seas = isWC ? 2026 : (group.season || 2025);
       let globalDoc;
       let syncInfo = { fetched: false, reason: 'cached' };
       if (comp === 'LL') {
@@ -753,7 +754,8 @@ export default async function handler(req, res) {
     if (!groupId) return bad(res, 400, 'Missing groupId');
     const auth = await requireAdmin(req, res, groupId);
     if (!auth) return;
-    const { username, group } = auth;
+    const { username } = auth;
+    const group = normalizeWorldCupGroup(auth.group);
     const groupKey = `group:${groupId}`;
 
     if (payload.type === 'create-backup') {
@@ -969,8 +971,9 @@ export default async function handler(req, res) {
       // Previously did a loopback fetch to http://127.0.0.1/api/fixtures which never
       // resolves from inside a Vercel serverless function. Call the Football-Data API
       // directly like every other handler in this file does.
-      const comp = group.competition || 'PL';
-      const seas = comp === 'WC' ? 2026 : (group.season || 2025);
+      const isWC = isWorldCupGroupLike(group);
+      const comp = isWC ? 'WC' : (group.competition || 'PL');
+      const seas = isWC ? 2026 : (group.season || 2025);
       let matches;
       try { matches = await fetchFromFD(null, seas, comp); }
       catch (e) { return bad(res, e.status || 500, e.message); }
@@ -1004,7 +1007,7 @@ export default async function handler(req, res) {
       const seas = group.season || 2025;
       const gwObj = (group.gameweeks || []).find(gw => gw.gw === gwToClear && (gw.season || seas) === seas);
       const fixtureIds = new Set((gwObj?.fixtures || []).map(f => f.id));
-      const isWC = (group.competition || 'PL') === 'WC';
+      const isWC = isWorldCupGroupLike(group);
       const prefix = isWC ? 'wc-' : seas !== 2025 ? `${seas}-` : '';
       const freshFixtures = isWC ? [] : Array.from({ length: 10 }, (_, i) => ({ id: `${prefix}gw${gwToClear}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
       const preds = { ...(group.predictions || {}) };
@@ -1039,9 +1042,9 @@ export default async function handler(req, res) {
 
     if (payload.type === 'sync-fixtures') {
       const currentGW = Number(payload.gw || group.currentGW || 1);
-      const comp = group.competition || 'PL';
-      const isWC = comp === 'WC';
-      const seas = group.season || 2025;
+      const isWC = isWorldCupGroupLike(group);
+      const comp = isWC ? 'WC' : (group.competition || 'PL');
+      const seas = isWC ? 2026 : (group.season || 2025);
       let updatedGlobal;
       let apiFixtures = [];
       let source = 'football-data';

@@ -363,6 +363,63 @@ test("mergeGlobalIntoGroup fixes all old resolved Round of 16 date rows", () => 
   assert.deepEqual(merged.predictions.faris, Object.fromEntries(groupRows.map(([id]) => [id, "1-0"])));
 });
 
+test("mergeGlobalIntoGroup treats old 2026 World Cup groups without competition as WC", () => {
+  const group = {
+    id: "old-wc",
+    season: 2026,
+    predictions: {
+      faris: { "old-r16-usa-belgium": "2-1" },
+    },
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "old-r16-usa-belgium",
+            apiId: "soccer.g.13532380",
+            home: "USA",
+            away: "Belgium",
+            status: "SCHEDULED",
+            date: "2026-07-06T00:00:00.000Z",
+          },
+        ],
+      },
+    ],
+  };
+
+  const globalDoc = {
+    season: 2026,
+    updatedAt: 100,
+    gameweeks: [
+      {
+        gw: 5,
+        season: 2026,
+        fixtures: [
+          {
+            id: "wc-gw5-fsoccer-g-13532382",
+            apiId: "soccer.g.13532382",
+            home: "USA",
+            away: "Belgium",
+            status: "SCHEDULED",
+            date: "2026-07-07T00:00:00.000Z",
+            yahooDate: "2026-07-06",
+          },
+        ],
+      },
+    ],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(merged.competition, "WC");
+  assert.equal(fixture.id, "old-r16-usa-belgium");
+  assert.equal(fixture.apiId, "soccer.g.13532382");
+  assert.equal(fixture.date, "2026-07-07T00:00:00.000Z");
+  assert.equal(merged.predictions.faris["old-r16-usa-belgium"], "2-1");
+});
+
 test("finished live matches are promoted into cached fixture results", () => {
   const globalDoc = {
     season: 2026,

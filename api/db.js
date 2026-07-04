@@ -1,5 +1,6 @@
 import { db, docKey } from "./_db.js";
 import { getSession, readSessionToken } from "./_auth.js";
+import { normalizeWorldCupGroup } from "./_wcBracket.js";
 
 // fixtures: are public (no sensitive data, needed for fixture display)
 // group: and groupcode: require a valid session - group docs contain all member picks
@@ -27,7 +28,8 @@ export default async function handler(req, res) {
 
     try {
       const snap = await db.collection("data").doc(docKey(key)).get();
-      return res.status(200).json({ value: snap.exists ? snap.data().value : null });
+      const value = snap.exists ? snap.data().value : null;
+      return res.status(200).json({ value: key.startsWith("group:") ? normalizeWorldCupGroup(value) : value });
     } catch (e) {
       console.error("db GET error", key, e);
       return res.status(500).json({ error: "Read failed" });
