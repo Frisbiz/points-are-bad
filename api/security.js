@@ -206,6 +206,18 @@ function makeDemoWCGameweeks() {
   ];
 }
 
+function fixtureSyncPayload(group = {}) {
+  return JSON.stringify({
+    gameweeks: group.gameweeks || [],
+    predictions: group.predictions || {},
+  });
+}
+
+function hasFixtureSyncChanges(before, after) {
+  if (!after) return false;
+  return fixtureSyncPayload(before) !== fixtureSyncPayload(after);
+}
+
 async function requireUser(req, res) {
   const token = readSessionToken(req);
   const session = await getSession(token);
@@ -714,14 +726,19 @@ export default async function handler(req, res) {
         }
       }
       const cleanedGroup = dedupeGroupFixtures(group);
+      const merged = globalDoc ? mergeGlobalIntoGroup(globalDoc, cleanedGroup) : null;
       if (globalDoc.updatedAt <= (group.lastAutoSync || 0)) {
+        if (hasFixtureSyncChanges(cleanedGroup, merged)) {
+          const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
+          await setValue(groupKey, next);
+          return res.status(200).json({ group: next, updated: true, sync: { ...syncInfo, staleMerge: true } });
+        }
         if (cleanedGroup !== group) {
           await setValue(groupKey, cleanedGroup);
           return res.status(200).json({ group: cleanedGroup, updated: true, sync: { ...syncInfo, cleanup: true } });
         }
         return res.status(200).json({ group, updated: false });
       }
-      const merged = mergeGlobalIntoGroup(globalDoc, cleanedGroup);
       if (!merged) return res.status(200).json({ group, updated: false });
       const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
       await setValue(groupKey, next);

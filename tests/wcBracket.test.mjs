@@ -712,6 +712,8 @@ test("resolved Round of 16 fixtures keep the correct kickoff dates", () => {
         { id: "wc-gw4-fsoccer-g-13532362", apiId: "soccer.g.13532362", home: "Germany", away: "Paraguay", result: "1-1", winnerSide: "away" },
         { id: "wc-gw4-fsoccer-g-13532363", apiId: "soccer.g.13532363", home: "Netherlands", away: "Morocco", result: "1-1", winnerSide: "away" },
         { id: "wc-gw4-fsoccer-g-13532365", apiId: "soccer.g.13532365", home: "France", away: "Sweden", result: "3-0" },
+        { id: "wc-gw4-fsoccer-g-13532368", apiId: "soccer.g.13532368", home: "USA", away: "Bosnia-Herzegovina", result: "2-0" },
+        { id: "wc-gw4-fsoccer-g-13532369", apiId: "soccer.g.13532369", home: "Belgium", away: "Senegal", result: "3-2" },
       ],
     },
     { gw: 5, season: 2026, fixtures: buildWorldCupKnockoutScheduleFixtures(5) },
@@ -727,6 +729,20 @@ test("resolved Round of 16 fixtures keep the correct kickoff dates", () => {
   assert.deepEqual(
     [canadaMorocco.home, canadaMorocco.away, canadaMorocco.date],
     ["Canada", "Morocco", "2026-07-04T17:00:00.000Z"]
+  );
+
+  const usaBelgium = resolved[1].fixtures.find(f => f.apiId === "soccer.g.13532382");
+  assert.deepEqual(
+    [
+      usaBelgium.home,
+      usaBelgium.away,
+      formatWorldCupBracketMatchMeta(usaBelgium, { timeZone: "America/Los_Angeles" }),
+    ],
+    [
+      "USA",
+      "Belgium",
+      { primary: "7/6", secondary: "5:00 PM" },
+    ]
   );
 });
 
