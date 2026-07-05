@@ -207,6 +207,17 @@ function scheduleWithGameId(gameId) {
   return schedule ? { ...schedule, gameId } : null;
 }
 
+function scheduleByUniqueKickoff(gw, fixture) {
+  if (Number(gw) < 4 || !fixture?.date) return null;
+  const time = new Date(fixture.date).getTime();
+  if (!Number.isFinite(time)) return null;
+  const kickoff = new Date(time).toISOString();
+  const matches = Object.entries(WORLD_CUP_KNOCKOUT_SCHEDULE_BY_GAME_ID)
+    .filter(([, schedule]) => Number(schedule.gw) === Number(gw) && schedule.date === kickoff);
+  if (matches.length !== 1) return null;
+  return scheduleWithGameId(matches[0][0]);
+}
+
 function slotLabel(value) {
   return String(value ?? "").trim().toUpperCase();
 }
@@ -283,6 +294,8 @@ function knownScheduleForFixture(fixture, gw = null, matchIndex = null) {
   if (indexedGameId && (isWinnerLoserSlot(home) || isWinnerLoserSlot(away))) {
     return scheduleWithGameId(indexedGameId);
   }
+  const kickoffSchedule = scheduleByUniqueKickoff(gwNum, fixture);
+  if (kickoffSchedule) return kickoffSchedule;
   return null;
 }
 

@@ -685,6 +685,41 @@ test("known World Cup knockout schedule corrects stale cached fixture dates", ()
   );
 });
 
+test("known World Cup knockout schedule maps short Yahoo placeholder ids by kickoff date", () => {
+  const [gw] = applyKnownWorldCupKnockoutSchedule([
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "gw5-f537376",
+          apiId: "537376",
+          home: null,
+          away: null,
+          status: "TIMED",
+          date: "2026-07-04T17:00:00.000Z",
+        },
+        {
+          id: "gw5-f537375",
+          apiId: "537375",
+          home: null,
+          away: null,
+          status: "TIMED",
+          date: "2026-07-04T21:00:00.000Z",
+        },
+      ],
+    },
+  ]);
+
+  assert.deepEqual(
+    gw.fixtures.map(f => [f.id, f.apiId, f.date, f.stage]),
+    [
+      ["gw5-f537376", "soccer.g.13532378", "2026-07-04T17:00:00.000Z", "ROUND_OF_16"],
+      ["gw5-f537375", "soccer.g.13532377", "2026-07-04T21:00:00.000Z", "ROUND_OF_16"],
+    ]
+  );
+});
+
 test("orders World Cup bracket fixtures by visible bracket flow", () => {
   const fixture = (gameId, home = `H${gameId}`, away = `A${gameId}`) => ({
     id: `wc-fsoccer-g-${gameId}`,
