@@ -301,6 +301,22 @@ function fixtureResultDisplayParts(fixture, liveMatch, scoreStr) {
   };
 }
 
+function fixtureDelayStatus(fixture, liveMatch, now = Date.now()) {
+  const fixtureStatus = String(fixture?.status || "").toUpperCase();
+  const liveStatus = String(liveMatch?.status || "").toLowerCase();
+  if (fixtureStatus === "DELAYED" || liveStatus === "delayed") return "DELAYED";
+  if (liveStatus !== "scheduled") return null;
+
+  const nowMs = Number(now);
+  const safeNow = Number.isFinite(nowMs) ? nowMs : Date.now();
+  const liveStart = liveMatch?.startTime ? new Date(liveMatch.startTime).getTime() : NaN;
+  if (!Number.isFinite(liveStart) || liveStart <= safeNow) return null;
+
+  const fixtureStart = fixture?.date ? new Date(fixture.date).getTime() : NaN;
+  if (!Number.isFinite(fixtureStart)) return "DELAYED";
+  return liveStart > fixtureStart + 60000 ? "DELAYED" : null;
+}
+
 function fixtureWinnerSide(fixture, liveMatch, resultDisplay) {
   const cleanSide = (value) => (value === "home" || value === "away" ? value : null);
   const metadataSide = cleanSide(fixture?.winnerSide) || cleanSide(liveMatch?.winnerSide);
@@ -734,10 +750,30 @@ function useHorizontalScroll() {
 const LIVE_SCORE_CACHE = new Map();
 const EMPTY_LIVE_SCORES = {};
 
+function liveScoreDatesForFixtures(fixtures = []) {
+  const addUtcDays = (isoDate, days) => {
+    const date = new Date(`${isoDate}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
+  const dates = new Set();
+  (fixtures || []).forEach(f => {
+    const yahooDate = String(f?.yahooDate || "").slice(0, 10);
+    if (yahooDate) dates.add(yahooDate);
+    if (!f?.date) return;
+    const time = new Date(f.date).getTime();
+    if (!Number.isFinite(time)) return;
+    const utcDate = new Date(time).toISOString().slice(0, 10);
+    dates.add(utcDate);
+    const previousDate = addUtcDays(utcDate, -1);
+    if (previousDate) dates.add(previousDate);
+  });
+  return [...dates].filter(Boolean).sort();
+}
+
 function liveScoreCacheKey(gw, fixtures = [], competition = "PL", season = 2025) {
-  const dateKey = competition === "WC"
-    ? [...new Set((fixtures || []).map(f => String(f.date || "").slice(0, 10)).filter(Boolean))].sort().join(",")
-    : "";
+  const dateKey = competition === "WC" ? liveScoreDatesForFixtures(fixtures).join(",") : "";
   return `${competition}:${season}:${gw}:${dateKey}`;
 }
 
@@ -802,9 +838,7 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
         return;
       }
       try {
-        const dateList = competition === "WC"
-          ? [...new Set((fixturesRef.current || []).map(f => String(f.date || "").slice(0, 10)).filter(Boolean))]
-          : [];
+        const dateList = competition === "WC" ? liveScoreDatesForFixtures(fixturesRef.current) : [];
         const params = new URLSearchParams({ week: String(gw), competition, season: String(season) });
         if (dateList.length) params.set("dates", dateList.join(","));
         const res = await fetch(`/api/live?${params}`);
@@ -4103,10 +4137,10 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const locked = hardLocked || picksLocked;
         const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
-        const dateStr = formatFixtureDate(f.date);
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (fixtureGroup.hiddenFixtures||[]).includes(f.id);
         const liveMatch = liveScores[`${f.home}|${f.away}`];
+        const dateStr = formatFixtureDate(liveMatch?.startTime || f.date);
         const yahooScored = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime"||liveMatch.status==="finished") && liveMatch.homeScore != null && liveMatch.awayScore != null;
         const yahooFinal = yahooScored && liveMatch.status==="finished";
         const storedFinal = !!f.result || f.status==="FINISHED";
@@ -4115,7 +4149,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const elapsed = yahooScored ? liveMatch.elapsed : (isLive ? f.elapsed : null);
         const resultDisplay = fixtureResultDisplayParts(f, liveMatch, scoreStr);
         const scoreParts = resultDisplay ? [resultDisplay.homeScore, resultDisplay.awayScore] : null;
-        const pendingScoreSync = !scoreParts && shouldFetchLiveScores([f]);
+        const delayStatus = !scoreParts ? fixtureDelayStatus(f, liveMatch) : null;
+        const pendingScoreSync = !scoreParts && !delayStatus && shouldFetchLiveScores([f]);
         const completedWinnerSide = (storedFinal || yahooFinal) ? fixtureWinnerSide(f, liveMatch, resultDisplay) : null;
         const mutedOpacity = hardLocked ? 0.55 : 1;
         const homeSideOpacity = hardLocked && completedWinnerSide !== "home" ? 0.55 : 1;
@@ -4148,6 +4183,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
               <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
               {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
               </div>
+            ):delayStatus?(
+              <span style={{color:"#f59e0b",fontSize:9,letterSpacing:1,opacity:0.8}}>DELAYED</span>
             ):pendingScoreSync?(
               <span style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1}}>SYNCING</span>
             ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;

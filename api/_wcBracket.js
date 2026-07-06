@@ -207,6 +207,38 @@ function scheduleWithGameId(gameId) {
   return schedule ? { ...schedule, gameId } : null;
 }
 
+function sameIsoMinute(a, b) {
+  if (!a || !b) return false;
+  const aTime = new Date(a).getTime();
+  const bTime = new Date(b).getTime();
+  if (!Number.isFinite(aTime) || !Number.isFinite(bTime)) return false;
+  return Math.floor(aTime / 60000) === Math.floor(bTime / 60000);
+}
+
+function hasFreshYahooKickoff(fixture, schedule) {
+  if (!fixture?.date || !fixture?.yahooLastUpdated) return false;
+  const fixtureGameId = yahooGameIdKey(fixture);
+  if (!fixtureGameId || String(fixtureGameId) !== String(schedule?.gameId)) return false;
+  const time = new Date(fixture.date).getTime();
+  return Number.isFinite(time);
+}
+
+function applySchedulePatchToFixture(fixture, schedule) {
+  const preserveYahooKickoff = hasFreshYahooKickoff(fixture, schedule);
+  const date = preserveYahooKickoff ? fixture.date : schedule.date;
+  const yahooDate = preserveYahooKickoff ? (fixture.yahooDate || schedule.yahooDate) : schedule.yahooDate;
+  const scheduleChanged = preserveYahooKickoff && !sameIsoMinute(fixture.date, schedule.date);
+  const delayedStatus = scheduleChanged && String(fixture.status || "").toUpperCase() === "SCHEDULED";
+  return {
+    ...fixture,
+    apiId: `soccer.g.${schedule.gameId}`,
+    date,
+    yahooDate,
+    stage: schedule.stage || fixture.stage,
+    status: delayedStatus ? "DELAYED" : fixture.status,
+  };
+}
+
 function scheduleByUniqueKickoff(gw, fixture) {
   if (Number(gw) < 4 || !fixture?.date) return null;
   const time = new Date(fixture.date).getTime();
@@ -411,13 +443,7 @@ export function applyKnownWorldCupKnockoutSchedule(gameweeks = []) {
       const teamPairSchedule = teamPairSchedules.get(`${Number(gwObj.gw)}:${fixtureTeamPairKey(fixture)}`);
       const schedule = teamPairSchedule || knownScheduleForFixture(fixture, gwObj.gw, matchIndex);
       if (!schedule) return fixture;
-      return {
-        ...fixture,
-        apiId: `soccer.g.${schedule.gameId}`,
-        date: schedule.date,
-        yahooDate: schedule.yahooDate,
-        stage: schedule.stage || fixture.stage,
-      };
+      return applySchedulePatchToFixture(fixture, schedule);
     }),
   }));
 }
@@ -616,7 +642,7 @@ function worldCupRealTeamCount(fixture) {
 function worldCupFixtureDataScore(fixture) {
   if (!fixture) return -1;
   const status = String(fixture.status || "").toUpperCase();
-  const statusRank = status === "FINISHED" ? 5 : status === "IN_PLAY" ? 4 : status === "PAUSED" ? 3 : status === "POSTPONED" ? 2 : status === "SCHEDULED" ? 1 : 0;
+  const statusRank = status === "FINISHED" ? 5 : status === "IN_PLAY" ? 4 : status === "PAUSED" ? 3 : status === "POSTPONED" || status === "DELAYED" ? 2 : status === "SCHEDULED" ? 1 : 0;
   return worldCupRealTeamCount(fixture) * 100
     + statusRank * 10
     + (fixture.result ? 6 : 0)

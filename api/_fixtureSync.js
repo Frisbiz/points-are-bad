@@ -187,6 +187,7 @@ function fixtureStatusRank(status) {
     case 'IN_PLAY': return 4;
     case 'PAUSED': return 3;
     case 'POSTPONED': return 2;
+    case 'DELAYED': return 2;
     case 'SCHEDULED': return 1;
     default: return 0;
   }

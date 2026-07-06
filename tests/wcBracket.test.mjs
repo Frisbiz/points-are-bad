@@ -720,6 +720,32 @@ test("known World Cup knockout schedule maps short Yahoo placeholder ids by kick
   );
 });
 
+test("known World Cup knockout schedule preserves delayed Yahoo kickoff updates", () => {
+  const [gw] = applyKnownWorldCupKnockoutSchedule([
+    {
+      gw: 5,
+      season: 2026,
+      fixtures: [
+        {
+          id: "wc-gw5-fsoccer-g-13532380",
+          apiId: "soccer.g.13532380",
+          home: "Mexico",
+          away: "England",
+          status: "SCHEDULED",
+          date: "2026-07-06T01:00:00.000Z",
+          yahooDate: "2026-07-05",
+          yahooLastUpdated: "2026-07-05 16:45:49",
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(gw.fixtures[0].apiId, "soccer.g.13532380");
+  assert.equal(gw.fixtures[0].date, "2026-07-06T01:00:00.000Z");
+  assert.equal(gw.fixtures[0].yahooDate, "2026-07-05");
+  assert.equal(gw.fixtures[0].status, "DELAYED");
+});
+
 test("orders World Cup bracket fixtures by visible bracket flow", () => {
   const fixture = (gameId, home = `H${gameId}`, away = `A${gameId}`) => ({
     id: `wc-fsoccer-g-${gameId}`,

@@ -63,3 +63,48 @@ test("normalizes Yahoo knockout shootout winner metadata", async () => {
   assert.equal(fixture.awayShootoutScore, 4);
   assert.equal(fixture.elapsed, "120'");
 });
+
+test("normalizes explicit Yahoo delayed statuses", async () => {
+  const { normalizeGames } = await loadYahooFixturesModule();
+  const scoreboard = {
+    teams: {
+      "soccer.t.383": {
+        display_name: "Mexico",
+        first_name: "Mexico",
+        full_name: "Mexico",
+      },
+      "soccer.t.377": {
+        display_name: "England",
+        first_name: "England",
+        full_name: "England",
+      },
+    },
+    games: {
+      "soccer.g.13532380": {
+        gameid: "soccer.g.13532380",
+        global_gameid: "soccer.g.13532380",
+        start_time: "Mon, 06 Jul 2026 01:00:00 +0000",
+        season_phase_id: "season.phase.knockout",
+        game_type: "Round of 16",
+        status_display_name: "Delayed",
+        status_description: "Delayed",
+        status_type: "status.type.delayed",
+        home_team_id: "soccer.t.383",
+        away_team_id: "soccer.t.377",
+        total_home_points: null,
+        total_away_points: null,
+        last_updated: "2026-07-05 16:45:49",
+      },
+    },
+  };
+
+  const [gw] = normalizeGames(scoreboard, "WC", null, "2026-07-05");
+  const fixture = gw.fixtures[0];
+
+  assert.equal(gw.gw, 5);
+  assert.equal(fixture.home, "Mexico");
+  assert.equal(fixture.away, "England");
+  assert.equal(fixture.status, "DELAYED");
+  assert.equal(fixture.result, null);
+  assert.equal(fixture.date, "2026-07-06T01:00:00.000Z");
+});

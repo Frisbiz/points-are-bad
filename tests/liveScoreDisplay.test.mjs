@@ -436,6 +436,38 @@ test("fixture kickoff labels use 12-hour am/pm time", () => {
   assert.equal(formatFixtureDate("not a date"), null);
 });
 
+test("world cup live score date lookup includes Yahoo scoreboard dates", () => {
+  const liveScoreDatesForFixtures = loadAppFunction("liveScoreDatesForFixtures");
+  const fixtures = [
+    {
+      id: "wc-gw5-fsoccer-g-13532380",
+      home: "Mexico",
+      away: "England",
+      date: "2026-07-06T01:00:00.000Z",
+      yahooDate: "2026-07-05",
+    },
+  ];
+
+  assert.deepEqual(liveScoreDatesForFixtures(fixtures), ["2026-07-05", "2026-07-06"]);
+});
+
+test("fixture delay status shows delayed instead of syncing for moved kickoffs", () => {
+  const fixtureDelayStatus = loadAppFunction("fixtureDelayStatus");
+  const fixture = {
+    id: "wc-gw5-fsoccer-g-13532380",
+    home: "Mexico",
+    away: "England",
+    status: "SCHEDULED",
+    date: "2026-07-06T00:00:00.000Z",
+  };
+  const liveMatch = {
+    status: "scheduled",
+    startTime: "2026-07-06T01:00:00.000Z",
+  };
+
+  assert.equal(fixtureDelayStatus(fixture, liveMatch, new Date("2026-07-06T00:15:00.000Z").getTime()), "DELAYED");
+});
+
 test("fixtures tab is seeded with live scores already loaded by the game shell", () => {
   const source = loadAppSource();
 
@@ -472,7 +504,8 @@ test("fixtures show syncing instead of TBD while a missing result is recoverable
     source.indexOf("function AllPicksTable")
   );
 
-  assert.match(fixturesBlock, /const pendingScoreSync = !scoreParts && shouldFetchLiveScores\(\[f\]\);/);
+  assert.match(fixturesBlock, /const delayStatus = !scoreParts \? fixtureDelayStatus\(f, liveMatch\) : null;/);
+  assert.match(fixturesBlock, /const pendingScoreSync = !scoreParts && !delayStatus && shouldFetchLiveScores\(\[f\]\);/);
   assert.match(fixturesBlock, />SYNCING</);
 });
 

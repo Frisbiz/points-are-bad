@@ -125,6 +125,7 @@ function parseStatus(game) {
   const display = String(game.status_display_name || game.status_description || "").toLowerCase();
   if (status.includes("final") || display.includes("finished") || display.includes("final")) return "FINISHED";
   if (status.includes("postponed") || status.includes("cancelled") || display.includes("postpone") || display.includes("cancel")) return "POSTPONED";
+  if (status.includes("delay") || display.includes("delay")) return "DELAYED";
   if (boolish(game.is_halftime) || display.includes("half")) return "PAUSED";
   if (status.includes("in_progress") || status.includes("mid_event") || display.includes("live") || display.includes("progress")) return "IN_PLAY";
   return "SCHEDULED";
@@ -407,7 +408,7 @@ export async function fetchYahooLiveMatches(competition, week, dates = []) {
       homeScore: Number.isFinite(homeScore) ? homeScore : 0,
       awayScore: Number.isFinite(awayScore) ? awayScore : 0,
       elapsed: f.elapsed || null,
-      status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : "scheduled",
+      status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : f.status === "DELAYED" ? "delayed" : "scheduled",
       startTime: f.date || null,
       ...knockoutWinnerPatch(f),
     };

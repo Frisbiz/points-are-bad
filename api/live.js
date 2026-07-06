@@ -22,7 +22,7 @@ function liveMatchesFromFixtures(fixtures = []) {
       homeScore: Number.isFinite(homeScore) ? homeScore : 0,
       awayScore: Number.isFinite(awayScore) ? awayScore : 0,
       elapsed: f.elapsed || null,
-      status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : "scheduled",
+      status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : f.status === "DELAYED" ? "delayed" : "scheduled",
       startTime: f.date || null,
       ...knockoutWinnerPatch(f),
     };
