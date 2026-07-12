@@ -463,6 +463,32 @@ test("formats seed placeholders already stored in the WC global fixture cache be
   assert.equal(fixture.awayOriginalSeed, "3E/3F/3G/3I/3J");
 });
 
+test("already resolved World Cup seed metadata is idempotent", () => {
+  const globalDoc = {
+    gameweeks: [
+      {
+        gw: 4,
+        fixtures: [
+          {
+            id: "wc-gw4-fsoccer-g-13532373",
+            home: "Spain",
+            away: "Austria",
+            awaySeed: "2J",
+            awayOriginalSeed: "2J",
+            awayTeamId: "soccer.t.869",
+            awayCrest: "aut.png",
+          },
+        ],
+      },
+    ],
+  };
+
+  const resolved = resolveWorldCupGlobalDocSeeds(globalDoc, standings);
+
+  assert.equal(resolved.changed, false);
+  assert.equal(resolved.globalDoc, globalDoc);
+});
+
 test("labels unresolved World Cup knockout bracket slots like Yahoo", () => {
   assert.equal(getWorldCupKnockoutPlaceholderLabel(5, 0, "home"), "W74");
   assert.equal(getWorldCupKnockoutPlaceholderLabel(5, 0, "away"), "W77");

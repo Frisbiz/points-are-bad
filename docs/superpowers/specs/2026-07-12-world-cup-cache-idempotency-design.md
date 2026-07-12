@@ -8,13 +8,13 @@ The World Cup fixture cache contains resolved knockout fixtures that retain thei
 
 ## Design
 
-Make seed-placeholder formatting idempotent at the fixture-side boundary. If the displayed seed and stored original seed already match the desired values, the formatter returns no patch. As a result, a fully normalized cache preserves object identity and `formatWorldCupGlobalDocSeedPlaceholders` reports `changed: false`.
+Make seed-placeholder formatting idempotent at the fixture-side boundary. If a real team is already resolved and its stored seed belongs to the original seed source, the formatter preserves it instead of converting it back into a placeholder. Seed resolution also suppresses patches whose values already match the fixture. As a result, a fully normalized cache preserves object identity and reports `changed: false` throughout the normalization pipeline.
 
 The fixture refresh flow and cache freshness policy remain unchanged. Once normalization stops generating false changes, stale completed rounds will proceed to Yahoo and merge their results normally.
 
 ## Testing
 
-Add a regression test with a resolved knockout fixture that retains `awayOriginalSeed`. The first assertion verifies formatting leaves an already-normalized global document unchanged. The test must fail before the production change and pass afterward.
+Add a regression test with a resolved knockout fixture that retains `awaySeed` and `awayOriginalSeed`. The assertions verify re-resolving the already-normalized global document reports no change and preserves object identity. The test must fail before the production change and pass afterward.
 
 Run the focused World Cup bracket tests, the complete Node test suite, and the production build. After deployment, force-refresh World Cup round 6 and verify the shared cache contains all four quarter-final results and the projected semifinal fixtures are France vs Spain and England vs Argentina.
 

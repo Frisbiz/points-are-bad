@@ -4,7 +4,7 @@
 
 **Goal:** Prevent unchanged World Cup seed normalization from refreshing the cache timestamp and blocking finished-round fixture updates.
 
-**Architecture:** Keep the existing cache and refresh flow intact. Make the fixture-side seed formatter return no patch when both the displayed seed and original seed are already normalized, allowing the existing global formatter's reference-identity change detection to remain accurate.
+**Architecture:** Keep the existing cache and refresh flow intact. Preserve real teams whose resolved seed belongs to their original seed source, and suppress resolution patches whose values already match. This keeps the existing reference-identity change detection accurate.
 
 **Tech Stack:** Node.js ES modules, `node:test`, Firebase Admin, Vercel.
 
@@ -24,44 +24,47 @@
 
 **Interfaces:**
 - Consumes: `formatWorldCupGlobalDocSeedPlaceholders(globalDoc)`.
-- Produces: unchanged object identity and `{ changed: false }` for already-normalized seed metadata.
+- Produces: unchanged object identity and `{ changed: false }` for already-resolved seed metadata.
 
 - [ ] **Step 1: Write the failing regression test**
 
 ```js
-test("already formatted World Cup seed metadata is idempotent", () => {
+test("already resolved World Cup seed metadata is idempotent", () => {
   const globalDoc = {
     gameweeks: [{
       gw: 4,
       fixtures: [{
         id: "wc-gw4-fsoccer-g-13532373",
         home: "Spain",
-        away: "2J",
+        away: "Austria",
+        awaySeed: "2J",
         awayOriginalSeed: "2J",
+        awayTeamId: "soccer.t.869",
+        awayCrest: "aut.png",
       }],
     }],
   };
 
-  const formatted = formatWorldCupGlobalDocSeedPlaceholders(globalDoc);
+  const resolved = resolveWorldCupGlobalDocSeeds(globalDoc, standings);
 
-  assert.equal(formatted.changed, false);
-  assert.equal(formatted.globalDoc, globalDoc);
+  assert.equal(resolved.changed, false);
+  assert.equal(resolved.globalDoc, globalDoc);
 });
 ```
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
-Run: `node --test --test-name-pattern="already formatted World Cup seed metadata is idempotent" tests/wcBracket.test.mjs`
+Run: `node --test --test-name-pattern="already resolved World Cup seed metadata is idempotent" tests/wcBracket.test.mjs`
 
 Expected: FAIL because `formatted.changed` is currently `true`.
 
 - [ ] **Step 3: Implement the minimal idempotency check**
 
-In `formatFixtureSideSeedPlaceholder`, return `null` when `fixture[side]` already equals the desired display value and `fixture[side + "OriginalSeed"]` already equals the normalized source string. Otherwise return the existing patch.
+In `formatFixtureSideSeedPlaceholder`, preserve a real resolved team when its stored seed belongs to the original seed source. When resolving seed metadata, return no patch if every patch value already matches the fixture.
 
 - [ ] **Step 4: Verify focused and full test suites**
 
-Run: `node --test --test-name-pattern="already formatted World Cup seed metadata is idempotent" tests/wcBracket.test.mjs`
+Run: `node --test --test-name-pattern="already resolved World Cup seed metadata is idempotent" tests/wcBracket.test.mjs`
 
 Expected: PASS.
 

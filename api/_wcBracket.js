@@ -900,6 +900,13 @@ function formatFixtureSideSeedPlaceholder(fixture, side) {
   const source = sideSeedSource(fixture, side);
   const display = yahooStyleSeedName(source);
   if (!display) return null;
+  const resolvedSeed = parseSeed(fixture?.[`${side}Seed`]);
+  const directSeed = parseSeed(source);
+  const thirdSeeds = parseThirdSeedList(source);
+  const alreadyResolved = resolvedSeed
+    && (resolvedSeed === directSeed || thirdSeeds.includes(resolvedSeed))
+    && !hasWorldCupSeedPlaceholder(fixture?.[side]);
+  if (alreadyResolved) return null;
   return {
     [side]: display,
     [`${side}OriginalSeed`]: String(source || "").trim(),
@@ -985,12 +992,17 @@ function rowPatchForSide(side, row, seed, originalSeed) {
   };
 }
 
+function changedRowPatchForSide(fixture, side, row, seed, originalSeed) {
+  const patch = rowPatchForSide(side, row, seed, originalSeed);
+  return Object.entries(patch).some(([key, value]) => fixture?.[key] !== value) ? patch : null;
+}
+
 function resolveSide(fixture, side, index) {
   const originalSeed = String(sideSeedSource(fixture, side) || "").trim();
   const simpleSeed = parseSeed(originalSeed);
   if (simpleSeed) {
     const row = index.bySeed.get(simpleSeed);
-    return row ? rowPatchForSide(side, row, simpleSeed, originalSeed) : null;
+    return row ? changedRowPatchForSide(fixture, side, row, simpleSeed, originalSeed) : null;
   }
 
   const candidates = parseThirdSeedList(originalSeed);
@@ -1002,7 +1014,7 @@ function resolveSide(fixture, side, index) {
   if (!resolvedSeed || !candidates.includes(resolvedSeed)) return null;
 
   const row = index.bySeed.get(resolvedSeed);
-  return row ? rowPatchForSide(side, row, resolvedSeed, originalSeed) : null;
+  return row ? changedRowPatchForSide(fixture, side, row, resolvedSeed, originalSeed) : null;
 }
 
 export function resolveWorldCupKnockoutSeeds(fixtures = [], standings = {}) {
