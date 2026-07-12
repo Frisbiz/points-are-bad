@@ -32,3 +32,17 @@ test("group reads normalize old World Cup groups before returning them", () => {
   assert.match(dbSource, /normalizeWorldCupGroup/);
   assert.match(dbSource, /key\.startsWith\("group:"\) \? normalizeWorldCupGroup\(value\) : value/);
 });
+
+test("finished live score sync merges authoritative global fixtures and skips unchanged writes", () => {
+  assert.match(securitySource, /if \(payload\.type === 'sync-finished-live-scores'\)/);
+  const start = securitySource.indexOf("if (payload.type === 'sync-finished-live-scores')");
+  const end = securitySource.indexOf("if (payload.type === 'auto-sync-fixtures')", start);
+  const finalizationBlock = securitySource.slice(start, end);
+
+  assert.match(finalizationBlock, /const globalDoc = await getValue\(fixtureGlobalKey\(comp, seas\)\);/);
+  assert.match(finalizationBlock, /const cleanedGroup = dedupeGroupFixtures\(group\);/);
+  assert.match(finalizationBlock, /const merged = globalDoc \? mergeGlobalIntoGroup\(globalDoc, cleanedGroup\) : null;/);
+  assert.match(finalizationBlock, /if \(!merged \|\| !hasFixtureSyncChanges\(cleanedGroup, merged\)\)[\s\S]*updated: false/);
+  assert.match(finalizationBlock, /await setValue\(groupKey, next\);[\s\S]*updated: true/);
+  assert.doesNotMatch(finalizationBlock, /refreshYahooFixtureCache/);
+});

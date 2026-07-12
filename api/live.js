@@ -1,6 +1,7 @@
 import { getValue } from "./_db.js";
 import { normName } from "./_fixtureSync.js";
 import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache, saveFinishedLiveMatchesToCache } from "./_yahooFixtures.js";
+import { setLiveSuccessCacheHeaders } from "./_livePolicy.js";
 
 function knockoutWinnerPatch(f = {}) {
   const patch = {};
@@ -34,10 +35,7 @@ export default async function handler(req, res) {
   if (!week) return res.status(400).json({ error: "week parameter required" });
 
   const comp = competition === "WC" ? "WC" : competition === "PL" ? "PL" : null;
-  if (!comp) {
-    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
-    return res.status(200).json({ matches: [], week: Number.parseInt(week, 10), competition });
-  }
+  if (!comp) return res.status(400).json({ error: "unsupported competition" });
 
   try {
     const seas = comp === "WC" ? 2026 : Number(season || 2025);
@@ -49,7 +47,7 @@ export default async function handler(req, res) {
       } catch (e) {
         console.error("Live final score cache promotion:", e.message);
       }
-      res.setHeader("Cache-Control", "no-store, max-age=0");
+      setLiveSuccessCacheHeaders(res);
       return res.status(200).json({ matches, week: Number.parseInt(week, 10), competition: comp });
     } catch (e) {
       console.error("Live direct Yahoo fallback:", e.message);
@@ -64,7 +62,7 @@ export default async function handler(req, res) {
       globalDoc = await getValue(fixtureGlobalKey(comp, seas));
     }
     const fixtures = (globalDoc?.gameweeks || []).find(gw => gw.gw === Number(week))?.fixtures || [];
-    res.setHeader("Cache-Control", "no-store, max-age=0");
+    setLiveSuccessCacheHeaders(res);
     return res.status(200).json({ matches: liveMatchesFromFixtures(fixtures), week: Number.parseInt(week, 10), competition: comp });
   } catch (e) {
     console.error("Live cache read error:", e.message);

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Area, Cell, ReferenceLine } from "recharts";
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
 import { formatWorldCupBracketMatchMeta, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement, sortWorldCupBracketFixturesForDisplay, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
+import { LIVE_POLL_INTERVAL_MS, SCHEDULE_SYNC_INTERVAL_MS, hasUnpersistedFinishedLiveScores, shouldRunVisibleTask, FINALIZATION_RETRY_INTERVAL_MS } from "../api/_livePolicy.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -829,14 +830,25 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
     }
     let cancelled = false;
     let timer = null;
+    let running = false;
+
+    const schedulePoll = (delay) => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        poll();
+      }, delay);
+    };
 
     const poll = async () => {
-      if (cancelled) return;
+      if (cancelled || running || document.visibilityState !== "visible") return;
       if (!shouldFetchLiveScores(fixturesRef.current)) {
         // No live window: check again in 60s in case a match is about to start
-        timer = setTimeout(poll, 60000);
+        schedulePoll(60_000);
         return;
       }
+      running = true;
       try {
         const dateList = competition === "WC" ? liveScoreDatesForFixtures(fixturesRef.current) : [];
         const params = new URLSearchParams({ week: String(gw), competition, season: String(season) });
@@ -852,11 +864,26 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
         LIVE_SCORE_CACHE.set(cacheKey, map);
         setLiveData(map);
       } catch (_) {}
-      if (!cancelled) timer = setTimeout(poll, 5000);
+      running = false;
+      schedulePoll(LIVE_POLL_INTERVAL_MS);
     };
 
+    const onLiveVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        return;
+      }
+      if (!running && !timer) poll();
+    };
+
+    document.addEventListener("visibilitychange", onLiveVisibilityChange);
     poll();
-    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onLiveVisibilityChange);
+    };
   }, [gw, competition, season, cacheKey]);
 
   return liveData;
@@ -1425,9 +1452,18 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
       if (!ok || !data.user){setError(data.error||"Registration failed - please try again.");setLoading(false);return;}
       onLogin(data.user);
     } else {
-      const { ok, data } = await callAPI('auth-login', { username: username.toLowerCase(), password });
-      if (!ok || !data.user){setError(data.error||"Invalid credentials.");setLoading(false);return;}
-      onLogin(data.user);
+      const loginResult = await callAPI('auth-login', { username: username.toLowerCase(), password });
+      if (!loginResult.ok || !loginResult.data.user) {
+        const message = loginResult.status === 401
+          ? (loginResult.data.error || "Invalid credentials.")
+          : (loginResult.status >= 500
+            ? "Sign in is temporarily unavailable. Please try again."
+            : (loginResult.error || "Sign in is temporarily unavailable. Please try again."));
+        setError(message);
+        setLoading(false);
+        return;
+      }
+      onLogin(loginResult.data.user);
     }
     setLoading(false);
   };
@@ -2998,11 +3034,19 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     if (!group?.id || group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) return;
     let cancelled = false;
     let running = false;
-    const hydrate = async () => {
-      if (cancelled || running) return;
+    let lastScheduleSyncAt = 0;
+    const runScheduleSync = async () => {
+      const now = Date.now();
+      if (cancelled || running || !shouldRunVisibleTask({
+        visibilityState: document.visibilityState,
+        lastRunAt: lastScheduleSyncAt,
+        now,
+        intervalMs: SCHEDULE_SYNC_INTERVAL_MS,
+      })) return;
       const current = liveGroupRef.current;
       const targetGW = autoSyncTargetGW(current);
       if (!targetGW) return;
+      lastScheduleSyncAt = now;
       running = true;
       try {
         const { ok, data } = await callAPI("group-user", { groupId: current.id, payload: { type: "auto-sync-fixtures", gw: targetGW } });
@@ -3012,9 +3056,17 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       } catch (_) {}
       running = false;
     };
-    hydrate();
-    const timer = setInterval(hydrate, 20000);
-    return () => { cancelled = true; clearInterval(timer); };
+    const onScheduleVisibilityChange = () => {
+      if (document.visibilityState === "visible") runScheduleSync();
+    };
+    document.addEventListener("visibilitychange", onScheduleVisibilityChange);
+    runScheduleSync();
+    const timer = setInterval(runScheduleSync, SCHEDULE_SYNC_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onScheduleVisibilityChange);
+    };
   },[group.id, group.code, setGroup]);
   const [thumbs,setThumbs]=useState([]);
   const [profileOpen,setProfileOpen]=useState(false);
@@ -3078,6 +3130,22 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     return ((group.gameweeks || []).find(g => g.gw === liveScoreGW && (g.season || activeSeason) === activeSeason)?.fixtures || []);
   }, [group.gameweeks, liveScoreGW, activeSeason]);
   const standingsLiveScores = useLiveScores(liveScoreGW, liveScoreFixtures, isWCGroup ? "WC" : (group.competition || "PL"), activeSeason);
+  const finalizingLiveScoresRef = useRef(false);
+  const lastLiveFinalizationAttemptRef = useRef(0);
+  useEffect(() => {
+    if (group.code === DEMO_GROUP_CODE || group.code === DEMO_WC_GROUP_CODE) return;
+    if (!hasUnpersistedFinishedLiveScores(group, standingsLiveScores)) return;
+    if (finalizingLiveScoresRef.current || Date.now() - lastLiveFinalizationAttemptRef.current < FINALIZATION_RETRY_INTERVAL_MS) return;
+    let cancelled = false;
+    finalizingLiveScoresRef.current = true;
+    lastLiveFinalizationAttemptRef.current = Date.now();
+    callAPI("group-user", { groupId: group.id, payload: { type: "sync-finished-live-scores" } })
+      .then(({ ok, data }) => {
+        if (!cancelled && ok && data.group) setGroup(data.group);
+      })
+      .finally(() => { finalizingLiveScoresRef.current = false; });
+    return () => { cancelled = true; };
+  }, [group, standingsLiveScores, setGroup]);
   const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, standingsLiveScores),[group, standingsLiveScores]);
   const stats = useMemo(()=>computeStats(scoringGroup),[scoringGroup]);
   const myRank = stats.findIndex(s => s.username === user.username) + 1;

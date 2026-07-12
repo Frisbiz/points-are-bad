@@ -689,6 +689,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ group: next });
     }
 
+    if (payload.type === 'sync-finished-live-scores') {
+      const isWC = isWorldCupGroupLike(group);
+      const comp = isWC ? 'WC' : (group.competition || 'PL');
+      const seas = isWC ? 2026 : (group.season || 2025);
+      const globalDoc = await getValue(fixtureGlobalKey(comp, seas));
+      const cleanedGroup = dedupeGroupFixtures(group);
+      const merged = globalDoc ? mergeGlobalIntoGroup(globalDoc, cleanedGroup) : null;
+      if (!merged || !hasFixtureSyncChanges(cleanedGroup, merged)) {
+        return res.status(200).json({ group: cleanedGroup, updated: false });
+      }
+      const next = { ...merged, lastAutoSync: globalDoc.updatedAt };
+      await setValue(groupKey, next);
+      return res.status(200).json({ group: next, updated: true });
+    }
+
     if (payload.type === 'auto-sync-fixtures') {
       const targetGW = Number(payload.gw || group.currentGW || 1);
       const isWC = isWorldCupGroupLike(group);
