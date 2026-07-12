@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 .vercel
+.worktrees/
 .env
 CLAUDE.md
 seed.js
