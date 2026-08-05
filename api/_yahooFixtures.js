@@ -2,6 +2,7 @@ import { db, docKey, getValue, setValue } from "./_db.js";
 import { applyFinishedLiveMatchesToGlobalDoc, dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 import { parseYahooWorldCupStandings } from "./wc-standings.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
+import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const YAHOO_WC_TEAMS_URL = "https://api-secure.sports.yahoo.com/v1/editorial/league/soccer.l.fbwcup/teams";
@@ -12,7 +13,7 @@ const SYNC_LOCK_VERSION = "v3";
 const COMP_CONFIG = {
   PL: {
     league: "soccer.l.fbgb",
-    season: 2025,
+    season: CURRENT_LEAGUE_SEASON,
     weeks: 38,
     schedStates: "2",
   },
@@ -71,9 +72,9 @@ const STAGE_MAP = [
   [/final/i, "FINAL"],
 ];
 
-export function fixtureGlobalKey(competition = "PL", season = 2025) {
+export function fixtureGlobalKey(competition = "PL", season = CURRENT_LEAGUE_SEASON) {
   const comp = competition === "WC" ? "WC" : competition === "LL" ? "LL" : "PL";
-  return comp === "WC" ? "fixtures:WC:2026" : `fixtures:${comp}:${season || COMP_CONFIG[comp]?.season || 2025}`;
+  return comp === "WC" ? "fixtures:WC:2026" : `fixtures:${comp}:${season || COMP_CONFIG[comp]?.season || CURRENT_LEAGUE_SEASON}`;
 }
 
 function toInt(value) {

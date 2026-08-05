@@ -4,6 +4,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
 import { formatWorldCupBracketMatchMeta, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement, sortWorldCupBracketFixturesForDisplay, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
 import { LIVE_POLL_INTERVAL_MS, SCHEDULE_SYNC_INTERVAL_MS, hasUnpersistedFinishedLiveScores, shouldRunVisibleTask, FINALIZATION_RETRY_INTERVAL_MS } from "../api/_livePolicy.js";
+import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -2061,7 +2062,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     setSetupGWLoading(true);
     (async()=>{
       try {
-        const cacheKey = setupCompetition === "LL" ? "fixtures:LL:2025" : "fixtures:PL:2025";
+        const cacheKey = `${setupCompetition === "LL" ? "fixtures:LL" : "fixtures:PL"}:${CURRENT_LEAGUE_SEASON}`;
         const globalDoc = await sget(cacheKey);
         const now = new Date();
         if (globalDoc&&(globalDoc.gameweeks||[]).length) {
@@ -2076,7 +2077,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
               : null;
           if (gw!==null&&gw>=1&&gw<=38) setSetupGW(String(gw));
         } else {
-          const resp = await fetch(`/api/fixtures?season=2025&competition=${setupCompetition}`);
+          const resp = await fetch(`/api/fixtures?season=${CURRENT_LEAGUE_SEASON}&competition=${setupCompetition}`);
           if (!resp.ok) return;
           const data = await resp.json();
           const matches = data.matches||[];
@@ -5762,7 +5763,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
             <div>
               <div style={{fontSize:11,color:"var(--text-mid)",marginBottom:8}}>Start a new season</div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <Input value={newSeasonYear} onChange={setNewSeasonYear} placeholder="Year e.g. 2026" style={{width:150}} onKeyDown={e=>e.key==="Enter"&&startNewSeason()}/>
+                <Input value={newSeasonYear} onChange={setNewSeasonYear} placeholder={`Year e.g. ${CURRENT_LEAGUE_SEASON}`} style={{width:150}} onKeyDown={e=>e.key==="Enter"&&startNewSeason()}/>
                 <Btn onClick={startNewSeason} disabled={!newSeasonYear.trim()} small>Start</Btn>
               </div>
               {seasonMsg&&<div style={{fontSize:11,color:seasonMsg.includes("started")?"#22c55e":"#ef4444",marginTop:8}}>{seasonMsg}</div>}

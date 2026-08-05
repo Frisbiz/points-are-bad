@@ -1,3 +1,5 @@
+import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
+
 const FD_COMP_MAP = { PL: "PL", LL: "PD", WC: "WC" };
 
 function fdApiKey(comp) {
@@ -8,10 +10,14 @@ export default async function handler(req, res) {
   const { matchday, season, live, competition } = req.query;
   const comp = competition || "PL";
   const fdComp = FD_COMP_MAP[comp] || comp;
+  const requestedSeason = Number(season);
+  const seasonYear = Number.isFinite(requestedSeason) && requestedSeason > 0
+    ? requestedSeason
+    : (comp === "WC" ? 2026 : CURRENT_LEAGUE_SEASON);
   const apiKey = fdApiKey(comp);
   let url = live === "true"
     ? `https://api.football-data.org/v4/competitions/${fdComp}/matches?status=LIVE`
-    : `https://api.football-data.org/v4/competitions/${fdComp}/matches?season=${season}`;
+    : `https://api.football-data.org/v4/competitions/${fdComp}/matches?season=${seasonYear}`;
   if (!live && matchday) url += `&matchday=${matchday}`;
 
   const response = await fetch(url, {

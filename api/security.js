@@ -4,6 +4,7 @@ import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeG
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
+import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
 
 const FD_COMP_MAP = { PL: 'PL', LL: 'PD', WC: 'WC' };
 function fdApiKey(comp) { return comp === 'LL' ? process.env.FD_API_KEY_LALIGA : process.env.VITE_FD_API_KEY; }
@@ -479,7 +480,7 @@ export default async function handler(req, res) {
     const isWC = competition === 'WC';
     const isLL = competition === 'LL';
     const startGW = Math.max(1, Math.min(38, parseInt(setupGW) || 1));
-    const leagueSeason = 2025;
+    const leagueSeason = CURRENT_LEAGUE_SEASON;
     const baseGroup = { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], currentGW: isWC ? 1 : startGW, apiKey: '', hiddenGWs: [], scoreScope: 'all', draw11Limit: normalizeDraw11Limit(setupLimit, 'unlimited'), mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
     let group;
     if (isWC) {

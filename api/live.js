@@ -2,6 +2,7 @@ import { getValue } from "./_db.js";
 import { normName } from "./_fixtureSync.js";
 import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache, saveFinishedLiveMatchesToCache } from "./_yahooFixtures.js";
 import { setLiveSuccessCacheHeaders } from "./_livePolicy.js";
+import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
 
 function knockoutWinnerPatch(f = {}) {
   const patch = {};
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
   if (!comp) return res.status(400).json({ error: "unsupported competition" });
 
   try {
-    const seas = comp === "WC" ? 2026 : Number(season || 2025);
+    const seas = comp === "WC" ? 2026 : Number(season || CURRENT_LEAGUE_SEASON);
     const dateList = String(dates || "").split(",").map(d => d.trim()).filter(Boolean);
     try {
       const matches = await fetchYahooLiveMatches(comp, Number(week), dateList);
