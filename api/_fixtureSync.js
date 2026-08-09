@@ -588,6 +588,16 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
   return applyFixtureIdRemaps({ ...group, gameweeks: deduped, predictions, lastAutoSync: Date.now() }, remaps);
 }
 
+export function shouldHydrateLeagueSeason(globalDoc = {}, targetGW = 1) {
+  if (globalDoc.fullSeason) return false;
+  const gameweeks = globalDoc.gameweeks || [];
+  const existingGWNums = new Set(gameweeks.map(g => Number(g.gw)).filter(Number.isFinite));
+  const target = Math.max(1, Number(targetGW) || 1);
+  const missingPast = Array.from({ length: target - 1 }, (_, i) => i + 1).some(gw => !existingGWNums.has(gw));
+  const hasFullSchedule = existingGWNums.size >= 38 && gameweeks.every(gw => (gw.fixtures || []).length > 0);
+  return missingPast || !hasFullSchedule;
+}
+
 export function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {
   newFixtures = dedupeFixtures(newFixtures);
   const otherGWs = (globalDoc.gameweeks || []).filter(g => g.gw !== gwNum);

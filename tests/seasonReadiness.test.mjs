@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import fixtureHandler from "../api/fixtures.js";
+import { shouldHydrateLeagueSeason } from "../api/_fixtureSync.js";
 import { CURRENT_LEAGUE_SEASON, getCurrentLeagueSeason } from "../shared/season.js";
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
@@ -44,6 +45,8 @@ test("new group and fixture-cache paths use the current league season", () => {
   assert.match(appSource, /api\/fixtures\?season=\$\{CURRENT_LEAGUE_SEASON\}/);
   assert.match(yahooSource, /season: CURRENT_LEAGUE_SEASON/);
   assert.match(liveSource, /Number\(season \|\| CURRENT_LEAGUE_SEASON\)/);
+  assert.match(securitySource, /shouldHydrateLeagueSeason\(globalDoc, targetGW\)/);
+  assert.match(securitySource, /fullSeason: Object\.keys\(byGW\)\.length >= 38/);
 });
 
 test("legacy groups retain their 2025 fallback when season metadata is absent", () => {
@@ -73,4 +76,10 @@ test("fixture proxy defaults new PL requests to the current season and honors ex
 
   assert.match(requested[0], new RegExp(`season=${CURRENT_LEAGUE_SEASON}`));
   assert.match(requested[1], /season=2025/);
+});
+
+test("partial La Liga caches hydrate the full season before serving placeholder rounds", () => {
+  assert.equal(shouldHydrateLeagueSeason({ season: 2026, gameweeks: [{ gw: 1, fixtures: [] }] }, 1), true);
+  assert.equal(shouldHydrateLeagueSeason({ season: 2026, fullSeason: true, gameweeks: [{ gw: 1, fixtures: [] }] }, 1), false);
+  assert.equal(shouldHydrateLeagueSeason({ season: 2026, gameweeks: Array.from({ length: 38 }, (_, i) => ({ gw: i + 1, fixtures: [{ id: `f${i + 1}` }] })) }, 1), false);
 });

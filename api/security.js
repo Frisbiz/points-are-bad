@@ -1,6 +1,6 @@
 import { db, docKey, getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
-import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeGroupFixtures } from "./_fixtureSync.js";
+import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeGroupFixtures, shouldHydrateLeagueSeason } from "./_fixtureSync.js";
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
@@ -715,17 +715,15 @@ export default async function handler(req, res) {
       if (comp === 'LL') {
         const globalKey = fixtureGlobalKey(comp, seas);
         globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
-        const existingGWNums = new Set((globalDoc.gameweeks || []).map(g => g.gw));
-        const missingPast = Array.from({ length: targetGW - 1 }, (_, i) => i + 1).some(n => !existingGWNums.has(n));
         try {
-          if (missingPast) {
+          if (shouldHydrateLeagueSeason(globalDoc, targetGW)) {
             const allMatches = await fetchFromFD(null, seas, comp);
             if (!allMatches.length) return res.status(200).json({ group, updated: false });
             let updated = { ...globalDoc };
             const byGW = {};
             allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
             Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), comp)); });
-            globalDoc = updated;
+            globalDoc = { ...updated, season: seas, fullSeason: Object.keys(byGW).length >= 38 };
           } else {
             const matches = await fetchFromFD(targetGW, seas, comp);
             if (!matches.length) return res.status(200).json({ group, updated: false });
