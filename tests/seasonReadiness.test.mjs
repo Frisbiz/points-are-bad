@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import fixtureHandler from "../api/fixtures.js";
+import standingsHandler from "../api/standings.js";
 import { shouldHydrateLeagueSeason } from "../api/_fixtureSync.js";
 import { CURRENT_LEAGUE_SEASON, getCurrentLeagueSeason } from "../shared/season.js";
 
@@ -19,6 +20,7 @@ function mockResponse() {
       this.statusCode = code;
       return this;
     },
+    setHeader() {},
     json(value) {
       this.body = value;
       return value;
@@ -45,6 +47,7 @@ test("new group and fixture-cache paths use the current league season", () => {
   assert.match(appSource, /api\/fixtures\?season=\$\{CURRENT_LEAGUE_SEASON\}/);
   assert.match(yahooSource, /season: CURRENT_LEAGUE_SEASON/);
   assert.match(liveSource, /Number\(season \|\| CURRENT_LEAGUE_SEASON\)/);
+  assert.match(appSource, /api\/standings\?competition=\$\{comp\}&season=\$\{activeSeason\}/);
   assert.match(securitySource, /shouldHydrateLeagueSeason\(globalDoc, targetGW\)/);
   assert.match(securitySource, /fullSeason: Object\.keys\(byGW\)\.length >= 38/);
 });
@@ -76,6 +79,46 @@ test("fixture proxy defaults new PL requests to the current season and honors ex
 
   assert.match(requested[0], new RegExp(`season=${CURRENT_LEAGUE_SEASON}`));
   assert.match(requested[1], /season=2025/);
+});
+
+test("standings proxy requests the selected La Liga season", async () => {
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+  globalThis.fetch = async url => {
+    requested.push(String(url));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        standings: [{
+          type: "TOTAL",
+          table: [{
+            position: 1,
+            team: { name: "Alaves" },
+            playedGames: 0,
+            won: 0,
+            draw: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDifference: 0,
+            points: 0,
+          }],
+        }],
+      }),
+    };
+  };
+
+  try {
+    const response = mockResponse();
+    await standingsHandler({ query: { competition: "LL", season: "2026" } }, response);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.table[0].pts, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.match(requested[0], /competitions\/PD\/standings\?season=2026/);
 });
 
 test("partial La Liga caches hydrate the full season before serving placeholder rounds", () => {

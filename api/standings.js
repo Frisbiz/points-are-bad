@@ -1,4 +1,5 @@
 import { normName } from './_fixtureSync.js';
+import { CURRENT_LEAGUE_SEASON } from '../shared/season.js';
 
 const FD_COMP_MAP = { PL: "PL", LL: "PD" };
 
@@ -10,9 +11,11 @@ export default async function handler(req, res) {
   try {
     const comp = req.query.competition || "PL";
     const fdComp = FD_COMP_MAP[comp] || comp;
+    const requestedSeason = Number.parseInt(req.query.season, 10);
+    const season = Number.isInteger(requestedSeason) ? requestedSeason : CURRENT_LEAGUE_SEASON;
     const apiKey = fdApiKey(comp);
     const response = await fetch(
-      `https://api.football-data.org/v4/competitions/${fdComp}/standings`,
+      `https://api.football-data.org/v4/competitions/${fdComp}/standings?season=${season}`,
       { headers: { 'X-Auth-Token': apiKey } }
     );
     if (!response.ok) {

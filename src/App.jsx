@@ -3632,14 +3632,15 @@ function LeagueTab({group,user,names,theme}) {
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
   const comp = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
   const isLeague = comp === "PL" || comp === "LL";
+  const activeSeason = group.season || 2025;
   const [leagueTable, setLeagueTable] = useState(null);
   const [showTable, setShowTable] = useState(false);
   useEffect(() => {
     if (!isLeague) return;
     let c = false;
-    fetch(`/api/standings?competition=${comp}`).then(r=>r.ok?r.json():null).then(d=>{if(!c&&d?.table)setLeagueTable(d.table);}).catch(()=>{});
+    fetch(`/api/standings?competition=${comp}&season=${activeSeason}`).then(r=>r.ok?r.json():null).then(d=>{if(!c&&d?.table)setLeagueTable(d.table);}).catch(()=>{});
     return ()=>{c=true;};
-  }, [comp, isLeague]);
+  }, [comp, isLeague, activeSeason]);
   const zoneColor = pos => pos<=4?"#3b82f6":pos===5?"#f97316":pos===6?"#10b981":pos>=18?"#ef4444":null;
   const tableTitle = comp === "LL" ? "LA LIGA TABLE" : "PREMIER LEAGUE TABLE";
   return (
