@@ -120,6 +120,68 @@ test("mergeGlobalIntoGroup updates stale WC fixture dates while preserving picks
   assert.equal(merged.predictions.faris["wc-gw5-fsoccer-g-13532382"], "2-1");
 });
 
+test("mergeGlobalIntoGroup updates rescheduled La Liga TIMED fixtures while preserving picks", () => {
+  const group = {
+    id: "g1",
+    competition: "LL",
+    season: 2026,
+    predictions: {
+      friend: { "gw1-f564636": "1-0" },
+    },
+    gameweeks: [
+      {
+        gw: 1,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw1-f564636",
+            apiId: 564636,
+            home: "Celta Vigo",
+            away: "Osasuna",
+            status: "SCHEDULED",
+            date: "2026-08-16T19:30:00.000Z",
+            result: null,
+          },
+        ],
+      },
+    ],
+  };
+
+  const globalDoc = {
+    season: 2026,
+    updatedAt: 100,
+    gameweeks: [
+      {
+        gw: 1,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw1-f564636",
+            apiId: 564636,
+            home: "Celta Vigo",
+            away: "Osasuna",
+            status: "TIMED",
+            date: "2026-08-27T18:30:00.000Z",
+            result: null,
+            homeCrest: "celta.png",
+            awayCrest: "osasuna.png",
+          },
+        ],
+      },
+    ],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(fixture.id, "gw1-f564636");
+  assert.equal(fixture.date, "2026-08-27T18:30:00.000Z");
+  assert.equal(fixture.status, "TIMED");
+  assert.equal(fixture.homeCrest, "celta.png");
+  assert.equal(fixture.awayCrest, "osasuna.png");
+  assert.equal(merged.predictions.friend["gw1-f564636"], "1-0");
+});
+
 test("mergeGlobalIntoGroup updates old WC placeholder rows after teams advance", () => {
   const group = {
     id: "g1",
