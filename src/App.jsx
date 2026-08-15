@@ -174,6 +174,30 @@ function formatFixtureDate(value, options = {}) {
   return new Intl.DateTimeFormat("en-GB", formatOptions).format(date).replace(", ", " ");
 }
 
+function matchClockLabel(fixture, liveMatch = null, now = Date.now()) {
+  const explicitElapsed = liveMatch?.elapsed || fixture?.elapsed;
+  if (explicitElapsed) return explicitElapsed;
+
+  const liveStatus = String(liveMatch?.status || "").toLowerCase();
+  const fixtureStatus = String(fixture?.status || "").toUpperCase();
+  if (liveStatus === "halftime" || fixtureStatus === "PAUSED") return "HT";
+
+  const isLive = liveStatus === "in_progress" || fixtureStatus === "IN_PLAY";
+  if (!isLive) return null;
+
+  const kickoff = liveMatch?.startTime || fixture?.date;
+  const kickoffMs = kickoff ? new Date(kickoff).getTime() : NaN;
+  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
+  const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
+  if (!Number.isFinite(kickoffMs) || kickoffMs > safeNowMs) return "LIVE";
+
+  const wallMinutes = Math.floor((safeNowMs - kickoffMs) / 60000);
+  if (wallMinutes < 45) return `~${Math.max(1, wallMinutes + 1)}'`;
+  if (wallMinutes < 60) return "~45'";
+  if (wallMinutes < 105) return `~${Math.min(90, 46 + (wallMinutes - 60))}'`;
+  return "~90+";
+}
+
 function buildNextMatchCardState({ fixtureGameweeks = [], liveScores = {}, myPreds = {}, now = new Date() } = {}) {
   const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime();
   const safeNowMs = Number.isFinite(nowMs) ? nowMs : Date.now();
@@ -196,7 +220,7 @@ function buildNextMatchCardState({ fixtureGameweeks = [], liveScores = {}, myPre
         fixture: f,
         liveMatch: lm || null,
         scoreText: scoreFromLive(lm) || scoreFromFixture(f),
-        secondaryLabel: halftime ? "HT" : (lm?.elapsed || f.elapsed || "LIVE"),
+        secondaryLabel: halftime ? "HT" : (matchClockLabel(f, lm, safeNowMs) || "LIVE"),
         kickoffMs: f.date ? new Date(f.date).getTime() : Number.MAX_SAFE_INTEGER,
       };
     })
@@ -3924,6 +3948,19 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     return da-db;
   });
   const liveScores = useLiveScores(currentGW, gwFixtures, isWC ? "WC" : (fixtureGroup.competition || "PL"), activeSeason, initialLiveScores);
+  const liveClockActive = gwFixtures.some(f => {
+    const lm = liveScores[`${f.home}|${f.away}`];
+    const liveStatus = lm?.status === "in_progress" || lm?.status === "halftime" || f.status === "IN_PLAY" || f.status === "PAUSED";
+    const finalStatus = !!f.result || f.status === "FINISHED" || lm?.status === "finished";
+    return liveStatus && !finalStatus && f.status !== "POSTPONED";
+  });
+  const [matchClockNow, setMatchClockNow] = useState(()=>Date.now());
+  useEffect(()=>{
+    if (!liveClockActive) return;
+    const immediate = setTimeout(()=>setMatchClockNow(Date.now()), 0);
+    const timer = setInterval(()=>setMatchClockNow(Date.now()), 60000);
+    return () => { clearTimeout(immediate); clearInterval(timer); };
+  },[liveClockActive, currentGW]);
   const gwObj = (fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason);
   const firstPicks = useMemo(()=>computeFirstPickGW(fixtureGroup),[fixtureGroup]);
   const userPreJoin = gwObj ? isPreJoinGW(firstPicks, user.username, gwObj, activeSeason) : false;
@@ -4216,7 +4253,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         const storedFinal = !!f.result || f.status==="FINISHED";
         const isLive = (f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooScored) && !yahooFinal && !storedFinal;
         const scoreStr = effResult;
-        const elapsed = yahooScored ? liveMatch.elapsed : (isLive ? f.elapsed : null);
+        const elapsed = isLive ? matchClockLabel(f, liveMatch, matchClockNow) : null;
         const resultDisplay = fixtureResultDisplayParts(f, liveMatch, scoreStr);
         const scoreParts = resultDisplay ? [resultDisplay.homeScore, resultDisplay.awayScore] : null;
         const delayStatus = !scoreParts ? fixtureDelayStatus(f, liveMatch) : null;
@@ -4521,8 +4558,9 @@ function AllPicksTable({group,gwFixtures,isAdmin,adminUser,names,viewedGW,theme,
                   const yScored = !f.result && lm && (lm.status==="in_progress"||lm.status==="halftime"||lm.status==="finished") && lm.homeScore != null && lm.awayScore != null;
                   const liveStr = yScored ? `${lm.homeScore}-${lm.awayScore}` : f.liveScore || null;
                   const finalish = yScored && lm.status==="finished";
+                  const liveLabel = matchClockLabel(f, lm);
                   if (f.result) return f.result;
-                  if (liveStr) return <span style={{color:finalish?"var(--text-bright)":"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:finalish?undefined:"pulse 1.5s infinite",color:finalish?"#22c55e":undefined}}>{finalish?"FT":lm?.elapsed||"LIVE"}</span></span>;
+                  if (liveStr) return <span style={{color:finalish?"var(--text-bright)":"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:finalish?undefined:"pulse 1.5s infinite",color:finalish?"#22c55e":undefined}}>{finalish?"FT":liveLabel||"LIVE"}</span></span>;
                   if (f.status==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
                   return null;
                 })()}</td>

@@ -9,26 +9,30 @@ function loadAppSource() {
 
 function loadAppFunction(name) {
   const source = loadAppSource();
-  const start = source.indexOf(`function ${name}(`);
-  assert.notEqual(start, -1, `${name} should exist in App.jsx`);
-  const signatureEnd = source.indexOf(") {", start);
-  assert.notEqual(signatureEnd, -1, `${name} should have a function signature`);
-  const bodyStart = signatureEnd + 2;
-  assert.notEqual(bodyStart, -1, `${name} should have a body`);
-  let depth = 0;
-  let end = -1;
-  for (let index = bodyStart; index < source.length; index++) {
-    const char = source[index];
-    if (char === "{") depth++;
-    if (char === "}") depth--;
-    if (depth === 0) {
-      end = index + 1;
-      break;
+  const extractFunction = (fnName) => {
+    const start = source.indexOf(`function ${fnName}(`);
+    assert.notEqual(start, -1, `${fnName} should exist in App.jsx`);
+    const signatureEnd = source.indexOf(") {", start);
+    assert.notEqual(signatureEnd, -1, `${fnName} should have a function signature`);
+    const bodyStart = signatureEnd + 2;
+    assert.notEqual(bodyStart, -1, `${fnName} should have a body`);
+    let depth = 0;
+    let end = -1;
+    for (let index = bodyStart; index < source.length; index++) {
+      const char = source[index];
+      if (char === "{") depth++;
+      if (char === "}") depth--;
+      if (depth === 0) {
+        end = index + 1;
+        break;
+      }
     }
-  }
-  assert.notEqual(end, -1, `${name} body should close`);
-  const fnSource = source.slice(start, end);
-  return Function("isWorldCupGroupLike", `${fnSource}; return ${name};`)(isWorldCupGroupLike);
+    assert.notEqual(end, -1, `${fnName} body should close`);
+    return source.slice(start, end);
+  };
+  const dependencies = name === "buildNextMatchCardState" ? [extractFunction("matchClockLabel")] : [];
+  const fnSource = extractFunction(name);
+  return Function("isWorldCupGroupLike", `${dependencies.join("\n")}\n${fnSource}; return ${name};`)(isWorldCupGroupLike);
 }
 
 test("finished Yahoo scores display while the group fixture waits for sync", () => {
@@ -668,6 +672,36 @@ test("picks due card prefers the current live game over the next kickoff", () =>
   assert.equal(state.secondaryLabel, "64'");
   assert.equal(state.scoreText, "0-1");
   assert.equal(state.fixture.id, "wc-gw4-live");
+});
+
+test("picks due card estimates live minute when provider has no elapsed label", () => {
+  const buildNextMatchCardState = loadAppFunction("buildNextMatchCardState");
+  const now = new Date("2026-08-15T20:34:00.000Z");
+
+  const state = buildNextMatchCardState({
+    now,
+    fixtureGameweeks: [
+      {
+        gw: 1,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw1-f564633",
+            home: "Sevilla",
+            away: "Rayo Vallecano",
+            date: "2026-08-15T19:30:00.000Z",
+            status: "IN_PLAY",
+            liveScore: "1-1",
+            result: null,
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(state.mode, "live");
+  assert.equal(state.scoreText, "1-1");
+  assert.equal(state.secondaryLabel, "~50'");
 });
 
 test("picks due card live copy does not add picks locked text", () => {
