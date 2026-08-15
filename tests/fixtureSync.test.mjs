@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { applyFinishedLiveMatchesToGlobalDoc, mergeGlobalIntoGroup } from "../api/_fixtureSync.js";
+import { applyFinishedLiveMatchesToGlobalDoc, mergeGlobalIntoGroup, parseMatchesToFixtures } from "../api/_fixtureSync.js";
 
 test("mergeGlobalIntoGroup updates resolved WC seed fields while preserving picks", () => {
   const group = {
@@ -180,6 +180,32 @@ test("mergeGlobalIntoGroup updates rescheduled La Liga TIMED fixtures while pres
   assert.equal(fixture.homeCrest, "celta.png");
   assert.equal(fixture.awayCrest, "osasuna.png");
   assert.equal(merged.predictions.friend["gw1-f564636"], "1-0");
+});
+
+test("parseMatchesToFixtures turns Football-Data LIVE matches into in-play live scores", () => {
+  const fixtures = parseMatchesToFixtures([
+    {
+      id: 564633,
+      utcDate: "2026-08-15T19:30:00Z",
+      status: "LIVE",
+      homeTeam: { name: "Sevilla FC", crest: "sevilla.png" },
+      awayTeam: { name: "Rayo Vallecano de Madrid", crest: "rayo.png" },
+      score: {
+        winner: "AWAY_TEAM",
+        duration: "REGULAR",
+        fullTime: { home: 0, away: 1 },
+        halfTime: { home: null, away: null },
+      },
+    },
+  ], 1, "LL");
+
+  assert.equal(fixtures[0].status, "IN_PLAY");
+  assert.equal(fixtures[0].liveScore, "0-1");
+  assert.equal(fixtures[0].result, null);
+  assert.equal(fixtures[0].home, "Sevilla");
+  assert.equal(fixtures[0].away, "Rayo Vallecano");
+  assert.equal(fixtures[0].homeCrest, "sevilla.png");
+  assert.equal(fixtures[0].awayCrest, "rayo.png");
 });
 
 test("mergeGlobalIntoGroup updates old WC placeholder rows after teams advance", () => {

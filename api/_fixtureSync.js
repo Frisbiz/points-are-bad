@@ -184,6 +184,7 @@ function fixtureLookupKeys(f) {
 function fixtureStatusRank(status) {
   switch (status) {
     case 'FINISHED': return 5;
+    case 'LIVE': return 4;
     case 'IN_PLAY': return 4;
     case 'PAUSED': return 3;
     case 'POSTPONED': return 2;
@@ -192,6 +193,15 @@ function fixtureStatusRank(status) {
     case 'SCHEDULED': return 1;
     default: return 0;
   }
+}
+
+function normalizeFixtureStatus(status) {
+  return status === 'LIVE' ? 'IN_PLAY' : status;
+}
+
+function isLiveFixtureStatus(status) {
+  const normalized = normalizeFixtureStatus(status);
+  return normalized === 'IN_PLAY' || normalized === 'PAUSED';
 }
 
 function fixtureDataScore(f) {
@@ -273,14 +283,14 @@ function mergeTeamName(keeperValue, duplicateValue, bestValue) {
 
 function mergeFixtureData(keeper, duplicate) {
   const best = betterFixtureData(keeper, duplicate);
-  const liveStatus = best.status === 'IN_PLAY' || best.status === 'PAUSED';
+  const liveStatus = isLiveFixtureStatus(best.status);
   return {
     ...keeper,
     apiId: best.apiId || keeper.apiId || duplicate.apiId,
     home: normName(mergeTeamName(keeper.home, duplicate.home, best.home)),
     away: normName(mergeTeamName(keeper.away, duplicate.away, best.away)),
     result: best.result ?? keeper.result ?? duplicate.result ?? null,
-    status: best.status || keeper.status || duplicate.status,
+    status: normalizeFixtureStatus(best.status || keeper.status || duplicate.status),
     date: best.date || keeper.date || duplicate.date || null,
     liveScore: liveStatus ? (best.liveScore || null) : null,
     yahooDate: best.yahooDate || keeper.yahooDate || duplicate.yahooDate || null,
@@ -499,7 +509,7 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
   return matches.map((m, i) => {
     const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
     const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
-    const status = m.status;
+    const status = normalizeFixtureStatus(m.status);
     let result = null;
     if (status === 'FINISHED') {
       const isKnockout = isWC && m.stage && m.stage !== 'GROUP_STAGE';
@@ -511,7 +521,7 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
     }
     const date = m.utcDate ? new Date(m.utcDate) : null;
     const scoreObj = m.score?.fullTime;
-    const liveScore = (status === 'IN_PLAY' || status === 'PAUSED') && scoreObj?.home != null && scoreObj?.away != null ? `${scoreObj.home}-${scoreObj.away}` : null;
+    const liveScore = isLiveFixtureStatus(status) && scoreObj?.home != null && scoreObj?.away != null ? `${scoreObj.home}-${scoreObj.away}` : null;
     const id = isWC ? `wc-gw${matchday}-f${m.id || i}` : `gw${matchday}-f${m.id || i}`;
     const base = { id, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
     if (competition !== 'PL') {
