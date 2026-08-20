@@ -294,6 +294,35 @@ test("fixture winner side stays empty for draws without shootout metadata", () =
   );
 });
 
+test("completed draw fixtures are flagged for equal team emphasis", () => {
+  const fixtureCompletedDraw = loadAppFunction("fixtureCompletedDraw");
+
+  assert.equal(
+    fixtureCompletedDraw(
+      { home: "Sevilla", away: "Rayo Vallecano", result: "1-1", status: "FINISHED" },
+      null,
+      { homeScore: "1", awayScore: "1", homeShootoutScore: null, awayShootoutScore: null }
+    ),
+    true
+  );
+  assert.equal(
+    fixtureCompletedDraw(
+      { home: "Alaves", away: "Getafe", result: "3-0", status: "FINISHED" },
+      null,
+      { homeScore: "3", awayScore: "0", homeShootoutScore: null, awayShootoutScore: null }
+    ),
+    false
+  );
+  assert.equal(
+    fixtureCompletedDraw(
+      { home: "Germany", away: "Paraguay", result: "1-1", status: "FINISHED" },
+      null,
+      { homeScore: "1", awayScore: "1", homeShootoutScore: "3", awayShootoutScore: "4" }
+    ),
+    false
+  );
+});
+
 test("auto sync still targets finished fixtures missing saved results", () => {
   const autoSyncTargetGW = loadAppFunction("autoSyncTargetGW");
   const group = {
@@ -739,6 +768,24 @@ test("fixture rows use centered status lane with team-attached scores", () => {
   assert.match(fixturesBlock, /const awayScoreBlock = scoreParts\?/);
   assert.match(fixturesBlock, /const resultStatusBlock = scoreParts\?/);
   assert.match(fixturesBlock, /justifyContent:"center"/);
+});
+
+test("mobile fixture rows keep completed scorelines together in the center lane", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+  const mobileBlock = fixturesBlock.slice(
+    fixturesBlock.indexOf("if (mob) return"),
+    fixturesBlock.indexOf("className={`frow", fixturesBlock.indexOf("if (mob) return"))
+  );
+
+  assert.match(fixturesBlock, /const mobileScoreBlock = scoreParts\?/);
+  assert.match(fixturesBlock, /const mobileResultStatusBlock = /);
+  assert.match(mobileBlock, /\{mobileResultStatusBlock\}/);
+  assert.doesNotMatch(mobileBlock, /\{homeScoreSlot\}/);
+  assert.doesNotMatch(mobileBlock, /\{awayScoreSlot\}/);
 });
 
 test("fixture score slots reserve penalty width so normal rows align with shootout rows", () => {
