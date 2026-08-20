@@ -4338,11 +4338,16 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
             </span>
           </span>
         ):null;
+        const mobileScoreMeta = scoreParts?(
+          <>
+            {resultDisplay.statusLabel&&<span style={{position:"absolute",top:19,left:"50%",transform:"translateX(-50%)",fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.65,textAlign:"center",whiteSpace:"nowrap"}}>{resultDisplay.statusLabel}</span>}
+            {isLive&&<span style={{position:"absolute",top:19,left:"50%",transform:"translateX(-50%)",fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite",textAlign:"center",whiteSpace:"nowrap"}}>{elapsed||"LIVE"}</span>}
+          </>
+        ):null;
         const mobileResultStatusBlock = scoreParts?(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",flexShrink:0,minWidth:60,gap:2}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",position:"relative",textAlign:"center",flexShrink:0,minWidth:60}}>
             {mobileScoreBlock}
-            {resultDisplay.statusLabel&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.65,textAlign:"center"}}>{resultDisplay.statusLabel}</span>}
-            {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite",textAlign:"center"}}>{elapsed||"LIVE"}</span>}
+            {mobileScoreMeta}
           </div>
         ):(
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",flexShrink:0,minWidth:60}}>
@@ -4436,7 +4441,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         if (mob) return (
           <div key={f.id} className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",borderRadius:isIndex?20:10,border:"1px solid var(--border3)",padding:"12px 14px",marginBottom:6,transition:"opacity 0.2s"}}>
             {dateStr&&<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:7,letterSpacing:0.3,opacity:mutedOpacity}}>{dateStr}</div>}
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
               <div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0,opacity:homeSideOpacity}}>
                 <TeamBadge team={f.home} crest={f.homeCrest} size={22} />
                 <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.home} style={{fontSize:14,color:homeSideEmphasized?"var(--text-bright)":"var(--text-mid)",fontWeight:homeSideEmphasized?700:400,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortTeamName(f.home)}</a>

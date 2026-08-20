@@ -782,7 +782,10 @@ test("mobile fixture rows keep completed scorelines together in the center lane"
   );
 
   assert.match(fixturesBlock, /const mobileScoreBlock = scoreParts\?/);
+  assert.match(fixturesBlock, /const mobileScoreMeta = scoreParts\?/);
   assert.match(fixturesBlock, /const mobileResultStatusBlock = /);
+  assert.match(fixturesBlock, /position:"relative"/);
+  assert.match(fixturesBlock, /position:"absolute",top:19/);
   assert.match(mobileBlock, /\{mobileResultStatusBlock\}/);
   assert.doesNotMatch(mobileBlock, /\{homeScoreSlot\}/);
   assert.doesNotMatch(mobileBlock, /\{awayScoreSlot\}/);
