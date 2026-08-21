@@ -710,7 +710,7 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL', se
 export function mergeGlobalIntoGroup(globalDoc, g) {
   const groupIsWC = isWorldCupGroupLike(g);
   const globalDocIsWC = isWorldCupGroupLike(globalDoc);
-  if (!groupIsWC && globalDocIsWC) return g;
+  if (groupIsWC !== globalDocIsWC) return g;
 
   const group = groupIsWC ? normalizeWorldCupGroup(g) : g;
   const normalizedGlobalDoc = groupIsWC
