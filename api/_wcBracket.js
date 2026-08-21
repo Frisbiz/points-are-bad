@@ -357,6 +357,7 @@ function isWorldCupFixtureLike(fixture) {
 export function isWorldCupGroupLike(group = {}) {
   const competition = String(group?.competition || "").trim().toUpperCase();
   if (competition === "WC") return true;
+  if (competition) return false;
 
   const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
   const inferredSeason = Number(group?.season || gameweeks.find(gw => gw?.season)?.season || 0);

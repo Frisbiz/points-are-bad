@@ -109,6 +109,9 @@ export const TEAM_NAME_MAP = {
   "Elche CF": "Elche",
   "Real Oviedo": "Oviedo",
   "Racing de Santander": "Racing",
+  "R. Racing Club": "Real Racing Club de Santander",
+  "Racing Santander": "Real Racing Club de Santander",
+  "RC Deportivo": "RC Deportivo La Coruña",
   "Sporting de Gijón": "Sporting Gijon",
   "Real Sporting de Gijón": "Sporting Gijon",
   "SD Huesca": "Huesca",
@@ -154,6 +157,173 @@ function teamKey(n) {
 
 function fixturePairKey(f) {
   return `${teamKey(f.home)}|${teamKey(f.away)}`;
+}
+
+const LA_LIGA_2026_CONFIRMED_KICKOFFS = [
+  // GW1: current confirmed slots. Celta-Osasuna was postponed from Aug 16 to Aug 27.
+  [1, "Alaves", "Getafe", "2026-08-15T17:30:00.000Z"],
+  [1, "Sevilla", "Rayo Vallecano", "2026-08-15T19:30:00.000Z"],
+  [1, "Real Racing Club de Santander", "Villarreal", "2026-08-16T15:00:00.000Z"],
+  [1, "Espanyol", "Levante", "2026-08-16T17:00:00.000Z"],
+  [1, "RC Deportivo La Coruña", "Elche", "2026-08-17T19:00:00.000Z"],
+  [1, "Atletico Madrid", "Málaga CF", "2026-08-19T19:00:00.000Z"],
+  [1, "Valencia", "Real Betis", "2026-08-25T19:00:00.000Z"],
+  [1, "Real Madrid", "Real Sociedad", "2026-08-26T19:00:00.000Z"],
+  [1, "Celta Vigo", "Osasuna", "2026-08-27T18:30:00.000Z"],
+  [1, "Barcelona", "Athletic Bilbao", "2026-08-27T19:00:00.000Z"],
+
+  [2, "Rayo Vallecano", "Alaves", "2026-08-20T19:00:00.000Z"],
+  [2, "Real Betis", "Real Sociedad", "2026-08-21T19:00:00.000Z"],
+  [2, "Athletic Bilbao", "Sevilla", "2026-08-22T15:00:00.000Z"],
+  [2, "Valencia", "Celta Vigo", "2026-08-22T17:30:00.000Z"],
+  [2, "Espanyol", "Real Madrid", "2026-08-22T19:30:00.000Z"],
+  [2, "Atletico Madrid", "Villarreal", "2026-08-23T15:00:00.000Z"],
+  [2, "Getafe", "Real Racing Club de Santander", "2026-08-23T17:30:00.000Z"],
+  [2, "Elche", "Barcelona", "2026-08-23T19:30:00.000Z"],
+  [2, "Osasuna", "Levante", "2026-08-24T17:30:00.000Z"],
+  [2, "Málaga CF", "RC Deportivo La Coruña", "2026-08-24T19:30:00.000Z"],
+
+  [3, "Real Racing Club de Santander", "Elche", "2026-08-28T17:00:00.000Z"],
+  [3, "Alaves", "Villarreal", "2026-08-28T19:30:00.000Z"],
+  [3, "Levante", "Real Betis", "2026-08-29T15:00:00.000Z"],
+  [3, "Real Sociedad", "Espanyol", "2026-08-29T17:00:00.000Z"],
+  [3, "Sevilla", "Atletico Madrid", "2026-08-29T19:30:00.000Z"],
+  [3, "Real Madrid", "Málaga CF", "2026-08-30T15:00:00.000Z"],
+  [3, "RC Deportivo La Coruña", "Valencia", "2026-08-30T17:30:00.000Z"],
+  [3, "Celta Vigo", "Athletic Bilbao", "2026-08-30T19:30:00.000Z"],
+  [3, "Osasuna", "Getafe", "2026-08-31T17:30:00.000Z"],
+  [3, "Barcelona", "Rayo Vallecano", "2026-08-31T19:30:00.000Z"],
+
+  [4, "Real Betis", "Real Madrid", "2026-09-04T19:00:00.000Z"],
+  [4, "Athletic Bilbao", "Atletico Madrid", "2026-09-05T14:15:00.000Z"],
+  [4, "Rayo Vallecano", "Real Racing Club de Santander", "2026-09-05T16:30:00.000Z"],
+  [4, "Villarreal", "RC Deportivo La Coruña", "2026-09-05T19:00:00.000Z"],
+  [4, "Valencia", "Barcelona", "2026-09-06T14:15:00.000Z"],
+  [4, "Alaves", "Osasuna", "2026-09-06T16:30:00.000Z"],
+  [4, "Málaga CF", "Levante", "2026-09-06T16:30:00.000Z"],
+  [4, "Espanyol", "Sevilla", "2026-09-06T19:00:00.000Z"],
+  [4, "Getafe", "Celta Vigo", "2026-09-07T17:00:00.000Z"],
+  [4, "Elche", "Real Sociedad", "2026-09-07T19:30:00.000Z"],
+];
+
+const LA_LIGA_2026_KICKOFF_BY_MATCH = new Map(
+  LA_LIGA_2026_CONFIRMED_KICKOFFS.map(([gw, home, away, date]) => [`${gw}|${teamKey(home)}|${teamKey(away)}`, date])
+);
+
+const LEAGUE_SCHEDULE_REFRESH_MS = 12 * 60 * 60 * 1000;
+
+function confirmedLeagueKickoffDate(fixture, gw, competition, season) {
+  if (competition !== 'LL' || Number(season) !== 2026) return null;
+  return LA_LIGA_2026_KICKOFF_BY_MATCH.get(`${Number(gw)}|${fixturePairKey(fixture)}`) || null;
+}
+
+function isScheduledWithoutResult(fixture) {
+  if (fixture?.result) return false;
+  const status = normalizeFixtureStatus(fixture?.status);
+  return !status || status === 'SCHEDULED' || status === 'TIMED';
+}
+
+function isLikelyFootballDataPlaceholderDate(value) {
+  if (!value) return false;
+  const date = new Date(value);
+  const time = date.getTime();
+  if (!Number.isFinite(time)) return false;
+  return date.getUTCDay() === 0
+    && date.getUTCHours() === 15
+    && date.getUTCMinutes() === 0
+    && date.getUTCSeconds() === 0;
+}
+
+function placeholderDateForGameweek(fixtures = []) {
+  const datedScheduled = fixtures
+    .filter(isScheduledWithoutResult)
+    .map(f => f.date)
+    .filter(Boolean);
+  if (datedScheduled.length < 6) return null;
+  const counts = new Map();
+  datedScheduled.forEach(date => counts.set(date, (counts.get(date) || 0) + 1));
+  const dominant = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (!dominant || dominant[1] < Math.min(6, datedScheduled.length)) return null;
+  return isLikelyFootballDataPlaceholderDate(dominant[0]) ? dominant[0] : null;
+}
+
+function normalizeLeagueGameweekFixtures(fixtures = [], gw, competition = 'PL', season = null) {
+  if (competition !== 'LL' || Number(season) !== 2026) return { fixtures, changed: false };
+  const placeholderDate = placeholderDateForGameweek(fixtures);
+  let changed = false;
+  const normalized = fixtures.map(fixture => {
+    const confirmedDate = confirmedLeagueKickoffDate(fixture, gw, competition, season);
+    if (confirmedDate && fixture.date !== confirmedDate) {
+      changed = true;
+      return { ...fixture, date: confirmedDate };
+    }
+    if (!confirmedDate && placeholderDate && fixture.date === placeholderDate && isScheduledWithoutResult(fixture)) {
+      changed = true;
+      return { ...fixture, date: null, dateTbd: true };
+    }
+    return fixture;
+  });
+  return { fixtures: normalized, changed };
+}
+
+function inferLeagueSeasonFromMatches(matches = []) {
+  const explicit = matches.find(m => m?.season?.startDate)?.season?.startDate;
+  if (explicit) {
+    const year = Number(String(explicit).slice(0, 4));
+    if (Number.isFinite(year)) return year;
+  }
+  const dated = matches.find(m => m?.utcDate)?.utcDate;
+  if (!dated) return null;
+  const date = new Date(dated);
+  const year = date.getUTCFullYear();
+  return Number.isFinite(year) ? year : null;
+}
+
+export function normalizeLeagueFixtureDoc(doc, competition = doc?.competition || 'PL', season = doc?.season || null) {
+  if (!doc || competition !== 'LL' || Number(season) !== 2026 || !Array.isArray(doc.gameweeks)) return doc;
+  let changed = false;
+  const gameweeks = doc.gameweeks.map(gwObj => {
+    const normalized = normalizeLeagueGameweekFixtures(gwObj.fixtures || [], gwObj.gw, competition, gwObj.season || season);
+    if (!normalized.changed) return gwObj;
+    changed = true;
+    return { ...gwObj, fixtures: normalized.fixtures };
+  });
+  return changed ? { ...doc, gameweeks } : doc;
+}
+
+export function normalizeFootballDataMatches(matches = [], matchday = null, competition = 'PL', season = null) {
+  const normalizedSeason = Number(season) || inferLeagueSeasonFromMatches(matches);
+  if (competition !== 'LL' || Number(normalizedSeason) !== 2026 || !Array.isArray(matches) || !matches.length) return matches;
+  const byGW = new Map();
+  matches.forEach((match, index) => {
+    const gw = Number(match.matchday || matchday);
+    if (!Number.isFinite(gw)) return;
+    if (!byGW.has(gw)) byGW.set(gw, []);
+    byGW.get(gw).push({ match, index });
+  });
+  if (!byGW.size) return matches;
+
+  let changed = false;
+  const next = [...matches];
+  byGW.forEach((entries, gw) => {
+    const fixtureRows = entries.map(({ match }) => ({
+      apiId: match.id,
+      home: normName(match.homeTeam?.name || match.homeTeam?.shortName),
+      away: normName(match.awayTeam?.name || match.awayTeam?.shortName),
+      status: normalizeFixtureStatus(match.status),
+      result: null,
+      date: match.utcDate ? new Date(match.utcDate).toISOString() : null,
+    }));
+    const normalized = normalizeLeagueGameweekFixtures(fixtureRows, gw, competition, normalizedSeason);
+    normalized.fixtures.forEach((fixture, entryIndex) => {
+      const { match, index } = entries[entryIndex];
+      const currentDate = match.utcDate ? new Date(match.utcDate).toISOString() : null;
+      if (fixture.date === currentDate) return;
+      changed = true;
+      next[index] = { ...match, utcDate: fixture.date };
+    });
+  });
+  return changed ? next : matches;
 }
 
 function fixtureDateKey(f) {
@@ -504,9 +674,9 @@ export function dedupeGroupFixtures(g) {
   return applyFixtureIdRemaps({ ...g, gameweeks, predictions }, remaps);
 }
 
-export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
+export function parseMatchesToFixtures(matches, matchday, competition = 'PL', season = null) {
   const isWC = competition === 'WC';
-  return matches.map((m, i) => {
+  const fixtures = matches.map((m, i) => {
     const home = normName(m.homeTeam?.name || m.homeTeam?.shortName);
     const away = normName(m.awayTeam?.name || m.awayTeam?.shortName);
     const status = normalizeFixtureStatus(m.status);
@@ -533,13 +703,15 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL') {
     }
     return base;
   });
+  const normalizedSeason = Number(season) || inferLeagueSeasonFromMatches(matches);
+  return normalizeLeagueGameweekFixtures(fixtures, matchday, competition, normalizedSeason).fixtures;
 }
 
 export function mergeGlobalIntoGroup(globalDoc, g) {
   const group = isWorldCupGroupLike(g) ? normalizeWorldCupGroup(g) : g;
   const normalizedGlobalDoc = isWorldCupGroupLike(group)
     ? { ...globalDoc, gameweeks: applyKnownWorldCupKnockoutSchedule(globalDoc.gameweeks || []) }
-    : globalDoc;
+    : normalizeLeagueFixtureDoc(globalDoc, group.competition || 'PL', group.season || globalDoc?.season || 2025);
   const seas = group.season || 2025;
   let predictions = group.predictions || {};
   const remaps = [];
@@ -596,17 +768,35 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
     });
     return { ...gwObj, fixtures: filtered };
   });
-  return applyFixtureIdRemaps({ ...group, gameweeks: deduped, predictions, lastAutoSync: Date.now() }, remaps);
+  const merged = applyFixtureIdRemaps({ ...group, gameweeks: deduped, predictions, lastAutoSync: Date.now() }, remaps);
+  return normalizeLeagueFixtureDoc(merged, merged.competition || 'PL', seas);
 }
 
-export function shouldHydrateLeagueSeason(globalDoc = {}, targetGW = 1) {
-  if (globalDoc.fullSeason) return false;
+function hasUnconfirmedLeagueSchedule(globalDoc = {}, competition = 'PL', season = null) {
+  if (competition !== 'LL' || Number(season || globalDoc.season) !== 2026) return false;
+  return (globalDoc.gameweeks || []).some(gwObj => {
+    const fixtures = gwObj.fixtures || [];
+    if (!fixtures.length) return true;
+    if (placeholderDateForGameweek(fixtures)) return true;
+    return fixtures.some(f => isScheduledWithoutResult(f) && !f.date);
+  });
+}
+
+export function shouldHydrateLeagueSeason(globalDoc = {}, targetGW = 1, options = {}) {
   const gameweeks = globalDoc.gameweeks || [];
   const existingGWNums = new Set(gameweeks.map(g => Number(g.gw)).filter(Number.isFinite));
   const target = Math.max(1, Number(targetGW) || 1);
   const missingPast = Array.from({ length: target - 1 }, (_, i) => i + 1).some(gw => !existingGWNums.has(gw));
   const hasFullSchedule = existingGWNums.size >= 38 && gameweeks.every(gw => (gw.fixtures || []).length > 0);
-  return missingPast || !hasFullSchedule;
+  if (missingPast || !hasFullSchedule) return true;
+  const competition = options.competition || globalDoc.competition || 'PL';
+  const season = options.season || globalDoc.season || null;
+  if (hasUnconfirmedLeagueSchedule(globalDoc, competition, season)) {
+    const now = Number(options.now ?? Date.now());
+    const updatedAt = Number(globalDoc.updatedAt || 0);
+    return !updatedAt || now - updatedAt >= LEAGUE_SCHEDULE_REFRESH_MS;
+  }
+  return false;
 }
 
 export function regroupGlobalDoc(globalDoc, gwNum, newFixtures) {

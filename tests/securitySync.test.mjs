@@ -28,9 +28,12 @@ test("auto sync treats old World Cup groups as WC even without a competition fie
   assert.match(autoSyncBlock, /const comp = isWC \? 'WC' : \(group\.competition \|\| 'PL'\);/);
 });
 
-test("group reads normalize old World Cup groups before returning them", () => {
+test("database reads normalize fixture docs and old World Cup groups before returning them", () => {
   assert.match(dbSource, /normalizeWorldCupGroup/);
-  assert.match(dbSource, /key\.startsWith\("group:"\) \? normalizeWorldCupGroup\(value\) : value/);
+  assert.match(dbSource, /normalizeLeagueFixtureDoc/);
+  assert.match(dbSource, /if \(key\.startsWith\("fixtures:"\)\)/);
+  assert.match(dbSource, /const group = normalizeWorldCupGroup\(value\);/);
+  assert.match(dbSource, /normalizeLeagueFixtureDoc\(group, group\?\.competition \|\| "PL", group\?\.season\)/);
 });
 
 test("finished live score sync merges authoritative global fixtures and skips unchanged writes", () => {

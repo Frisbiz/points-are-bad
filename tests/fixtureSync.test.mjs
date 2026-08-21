@@ -208,6 +208,136 @@ test("parseMatchesToFixtures turns Football-Data LIVE matches into in-play live 
   assert.equal(fixtures[0].awayCrest, "rayo.png");
 });
 
+test("parseMatchesToFixtures replaces La Liga GW4 provider placeholders with confirmed kickoff dates", () => {
+  const placeholderDate = "2026-09-06T15:00:00Z";
+  const matches = [
+    [564658, "Elche CF", "Real Sociedad de Fútbol"],
+    [564659, "Valencia CF", "FC Barcelona"],
+    [564660, "Rayo Vallecano de Madrid", "Real Racing Club de Santander"],
+    [564661, "RCD Espanyol de Barcelona", "Sevilla FC"],
+    [564662, "Villarreal CF", "RC Deportivo La Coruña"],
+    [564663, "Athletic Club", "Club Atlético de Madrid"],
+    [564664, "Deportivo Alavés", "CA Osasuna"],
+    [564665, "Getafe CF", "RC Celta de Vigo"],
+    [564666, "Málaga CF", "Levante UD"],
+    [564667, "Real Betis Balompié", "Real Madrid CF"],
+  ].map(([id, home, away]) => ({
+    id,
+    matchday: 4,
+    utcDate: placeholderDate,
+    status: "SCHEDULED",
+    homeTeam: { name: home },
+    awayTeam: { name: away },
+    score: { fullTime: { home: null, away: null } },
+  }));
+
+  const fixtures = parseMatchesToFixtures(matches, 4, "LL");
+
+  assert.deepEqual(
+    Object.fromEntries(fixtures.map(f => [f.apiId, f.date])),
+    {
+      564658: "2026-09-07T19:30:00.000Z",
+      564659: "2026-09-06T14:15:00.000Z",
+      564660: "2026-09-05T16:30:00.000Z",
+      564661: "2026-09-06T19:00:00.000Z",
+      564662: "2026-09-05T19:00:00.000Z",
+      564663: "2026-09-05T14:15:00.000Z",
+      564664: "2026-09-06T16:30:00.000Z",
+      564665: "2026-09-07T17:00:00.000Z",
+      564666: "2026-09-06T16:30:00.000Z",
+      564667: "2026-09-04T19:00:00.000Z",
+    }
+  );
+});
+
+test("parseMatchesToFixtures marks unconfirmed La Liga placeholder matchdays as TBD", () => {
+  const matches = [
+    [564668, "Getafe CF", "RC Deportivo La Coruña"],
+    [564669, "Sevilla FC", "Valencia CF"],
+    [564670, "Real Racing Club de Santander", "Deportivo Alavés"],
+    [564671, "Villarreal CF", "Real Betis Balompié"],
+    [564672, "RC Celta de Vigo", "Málaga CF"],
+    [564673, "CA Osasuna", "RCD Espanyol de Barcelona"],
+    [564674, "Real Sociedad de Fútbol", "Club Atlético de Madrid"],
+    [564675, "Levante UD", "FC Barcelona"],
+    [564676, "Athletic Club", "Elche CF"],
+    [564677, "Real Madrid CF", "Rayo Vallecano de Madrid"],
+  ].map(([id, home, away]) => ({
+    id,
+    matchday: 5,
+    utcDate: "2026-09-13T15:00:00Z",
+    status: "SCHEDULED",
+    homeTeam: { name: home },
+    awayTeam: { name: away },
+    score: { fullTime: { home: null, away: null } },
+  }));
+
+  const fixtures = parseMatchesToFixtures(matches, 5, "LL");
+
+  assert.equal(fixtures.length, 10);
+  assert.equal(fixtures[0].apiId, 564668);
+  assert.equal(fixtures[0].home, "Getafe");
+  assert.equal(fixtures[0].away, "RC Deportivo La Coruña");
+  assert.ok(fixtures.every(f => f.date === null));
+});
+
+test("mergeGlobalIntoGroup normalizes stale La Liga placeholder dates while preserving picks", () => {
+  const group = {
+    id: "g1",
+    competition: "LL",
+    season: 2026,
+    predictions: {
+      friend: { "gw4-f564667": "1-2" },
+    },
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw4-f564667",
+            apiId: 564667,
+            home: "Real Betis",
+            away: "Real Madrid",
+            status: "SCHEDULED",
+            date: "2026-09-06T15:00:00.000Z",
+            result: null,
+          },
+        ],
+      },
+    ],
+  };
+
+  const globalDoc = {
+    season: 2026,
+    fullSeason: true,
+    updatedAt: 100,
+    gameweeks: [
+      {
+        gw: 4,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw4-f564667",
+            apiId: 564667,
+            home: "Real Betis",
+            away: "Real Madrid",
+            status: "SCHEDULED",
+            date: "2026-09-06T15:00:00.000Z",
+            result: null,
+          },
+        ],
+      },
+    ],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(fixture.date, "2026-09-04T19:00:00.000Z");
+  assert.equal(merged.predictions.friend["gw4-f564667"], "1-2");
+});
+
 test("mergeGlobalIntoGroup updates old WC placeholder rows after teams advance", () => {
   const group = {
     id: "g1",

@@ -1,4 +1,5 @@
 import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
+import { normalizeFootballDataMatches } from "./_fixtureSync.js";
 
 const FD_COMP_MAP = { PL: "PL", LL: "PD", WC: "WC" };
 
@@ -29,5 +30,8 @@ export default async function handler(req, res) {
   }
 
   const data = await response.json();
+  if (Array.isArray(data.matches)) {
+    data.matches = normalizeFootballDataMatches(data.matches, matchday, comp, seasonYear);
+  }
   res.status(200).json(data);
 }

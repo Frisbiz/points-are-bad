@@ -48,7 +48,7 @@ test("new group and fixture-cache paths use the current league season", () => {
   assert.match(yahooSource, /season: CURRENT_LEAGUE_SEASON/);
   assert.match(liveSource, /Number\(season \|\| CURRENT_LEAGUE_SEASON\)/);
   assert.match(appSource, /api\/standings\?competition=\$\{comp\}&season=\$\{activeSeason\}/);
-  assert.match(securitySource, /shouldHydrateLeagueSeason\(globalDoc, targetGW\)/);
+  assert.match(securitySource, /shouldHydrateLeagueSeason\(globalDoc, targetGW, \{ competition: comp, season: seas \}\)/);
   assert.match(securitySource, /fullSeason: Object\.keys\(byGW\)\.length >= 38/);
 });
 
@@ -79,6 +79,51 @@ test("fixture proxy defaults new PL requests to the current season and honors ex
 
   assert.match(requested[0], new RegExp(`season=${CURRENT_LEAGUE_SEASON}`));
   assert.match(requested[1], /season=2025/);
+});
+
+test("fixture proxy normalizes unconfirmed La Liga placeholder dates before setup uses them", async () => {
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+  globalThis.fetch = async url => {
+    requested.push(String(url));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        matches: [
+          [564668, "Getafe CF", "RC Deportivo La Coruña"],
+          [564669, "Sevilla FC", "Valencia CF"],
+          [564670, "Real Racing Club de Santander", "Deportivo Alavés"],
+          [564671, "Villarreal CF", "Real Betis Balompié"],
+          [564672, "RC Celta de Vigo", "Málaga CF"],
+          [564673, "CA Osasuna", "RCD Espanyol de Barcelona"],
+          [564674, "Real Sociedad de Fútbol", "Club Atlético de Madrid"],
+          [564675, "Levante UD", "FC Barcelona"],
+          [564676, "Athletic Club", "Elche CF"],
+          [564677, "Real Madrid CF", "Rayo Vallecano de Madrid"],
+        ].map(([id, home, away]) => ({
+          id,
+          matchday: 5,
+          utcDate: "2026-09-13T15:00:00Z",
+          status: "SCHEDULED",
+          homeTeam: { name: home },
+          awayTeam: { name: away },
+          score: { fullTime: { home: null, away: null } },
+        })),
+      }),
+    };
+  };
+
+  try {
+    const response = mockResponse();
+    await fixtureHandler({ query: { competition: "LL", season: "2026", matchday: "5" } }, response);
+    assert.equal(response.statusCode, 200);
+    assert.ok(response.body.matches.every(match => match.utcDate === null));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.match(requested[0], /competitions\/PD\/matches\?season=2026&matchday=5/);
 });
 
 test("standings proxy requests the selected La Liga season", async () => {
@@ -123,6 +168,32 @@ test("standings proxy requests the selected La Liga season", async () => {
 
 test("partial La Liga caches hydrate the full season before serving placeholder rounds", () => {
   assert.equal(shouldHydrateLeagueSeason({ season: 2026, gameweeks: [{ gw: 1, fixtures: [] }] }, 1), true);
-  assert.equal(shouldHydrateLeagueSeason({ season: 2026, fullSeason: true, gameweeks: [{ gw: 1, fixtures: [] }] }, 1), false);
+  assert.equal(shouldHydrateLeagueSeason({ season: 2026, fullSeason: true, gameweeks: [{ gw: 1, fixtures: [] }] }, 1), true);
   assert.equal(shouldHydrateLeagueSeason({ season: 2026, gameweeks: Array.from({ length: 38 }, (_, i) => ({ gw: i + 1, fixtures: [{ id: `f${i + 1}` }] })) }, 1), false);
+  assert.equal(
+    shouldHydrateLeagueSeason({
+      competition: "LL",
+      season: 2026,
+      fullSeason: true,
+      updatedAt: 0,
+      gameweeks: Array.from({ length: 38 }, (_, i) => ({
+        gw: i + 1,
+        fixtures: [{ id: `f${i + 1}`, home: "A", away: "B", status: "SCHEDULED", date: i >= 4 ? null : "2026-08-15T17:30:00.000Z" }],
+      })),
+    }, 1, { competition: "LL", season: 2026, now: 13 * 60 * 60 * 1000 }),
+    true
+  );
+  assert.equal(
+    shouldHydrateLeagueSeason({
+      competition: "LL",
+      season: 2026,
+      fullSeason: true,
+      updatedAt: 12 * 60 * 60 * 1000,
+      gameweeks: Array.from({ length: 38 }, (_, i) => ({
+        gw: i + 1,
+        fixtures: [{ id: `f${i + 1}`, home: "A", away: "B", status: "SCHEDULED", date: i >= 4 ? null : "2026-08-15T17:30:00.000Z" }],
+      })),
+    }, 1, { competition: "LL", season: 2026, now: 13 * 60 * 60 * 1000 }),
+    false
+  );
 });

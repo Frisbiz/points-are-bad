@@ -1,6 +1,7 @@
 import { db, docKey } from "./_db.js";
 import { getSession, readSessionToken } from "./_auth.js";
 import { normalizeWorldCupGroup } from "./_wcBracket.js";
+import { normalizeLeagueFixtureDoc } from "./_fixtureSync.js";
 
 // fixtures: are public (no sensitive data, needed for fixture display)
 // group: and groupcode: require a valid session - group docs contain all member picks
@@ -12,6 +13,18 @@ const ALLOWED_READ_PREFIXES = [...PUBLIC_READ_PREFIXES, ...AUTH_READ_PREFIXES];
 
 function validKeyFor(key, prefixes) {
   return typeof key === "string" && key.length <= 200 && prefixes.some(p => key.startsWith(p));
+}
+
+function normalizeReadValue(key, value) {
+  if (key.startsWith("fixtures:")) {
+    const [, competition, rawSeason] = key.split(":");
+    return normalizeLeagueFixtureDoc(value, competition, Number(rawSeason) || value?.season);
+  }
+  if (key.startsWith("group:")) {
+    const group = normalizeWorldCupGroup(value);
+    return normalizeLeagueFixtureDoc(group, group?.competition || "PL", group?.season);
+  }
+  return value;
 }
 
 export default async function handler(req, res) {
@@ -29,7 +42,7 @@ export default async function handler(req, res) {
     try {
       const snap = await db.collection("data").doc(docKey(key)).get();
       const value = snap.exists ? snap.data().value : null;
-      return res.status(200).json({ value: key.startsWith("group:") ? normalizeWorldCupGroup(value) : value });
+      return res.status(200).json({ value: normalizeReadValue(key, value) });
     } catch (e) {
       console.error("db GET error", key, e);
       return res.status(500).json({ error: "Read failed" });

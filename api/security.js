@@ -1,6 +1,6 @@
 import { db, docKey, getValue, setValue, deleteValue } from "./_db.js";
 import { normalizeUsername, normalizeEmail, validEmail, validUsername, hashPassword, verifyPassword, safeUser, createSession, getSession, destroySession, readSessionToken, setSessionCookie, clearSessionCookie } from "./_auth.js";
-import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeGroupFixtures, shouldHydrateLeagueSeason } from "./_fixtureSync.js";
+import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeGroupFixtures, shouldHydrateLeagueSeason, normalizeLeagueFixtureDoc, normName } from "./_fixtureSync.js";
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
@@ -716,18 +716,18 @@ export default async function handler(req, res) {
         const globalKey = fixtureGlobalKey(comp, seas);
         globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
         try {
-          if (shouldHydrateLeagueSeason(globalDoc, targetGW)) {
+          if (shouldHydrateLeagueSeason(globalDoc, targetGW, { competition: comp, season: seas })) {
             const allMatches = await fetchFromFD(null, seas, comp);
             if (!allMatches.length) return res.status(200).json({ group, updated: false });
             let updated = { ...globalDoc };
             const byGW = {};
             allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-            Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), comp)); });
-            globalDoc = { ...updated, season: seas, fullSeason: Object.keys(byGW).length >= 38 };
+            Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), comp, seas)); });
+            globalDoc = normalizeLeagueFixtureDoc({ ...updated, season: seas, fullSeason: Object.keys(byGW).length >= 38 }, comp, seas);
           } else {
             const matches = await fetchFromFD(targetGW, seas, comp);
             if (!matches.length) return res.status(200).json({ group, updated: false });
-            globalDoc = regroupGlobalDoc(globalDoc, targetGW, parseMatchesToFixtures(matches, targetGW, comp));
+            globalDoc = normalizeLeagueFixtureDoc(regroupGlobalDoc(globalDoc, targetGW, parseMatchesToFixtures(matches, targetGW, comp, seas)), comp, seas);
           }
         } catch (e) { return bad(res, e.status || 500, e.message); }
         await setValue(globalKey, globalDoc);
@@ -993,10 +993,16 @@ export default async function handler(req, res) {
       catch (e) { return bad(res, e.status || 500, e.message); }
       if (!matches.length) return res.status(200).json({ group, updated: 0 });
       const dateByTeams = {};
+      const byGW = {};
       matches.forEach(m => {
-        const home = String(m.homeTeam?.name || m.homeTeam?.shortName || '').trim();
-        const away = String(m.awayTeam?.name || m.awayTeam?.shortName || '').trim();
-        if (m.utcDate && home && away) dateByTeams[`${home}|${away}`] = new Date(m.utcDate).toISOString();
+        const gw = m.matchday;
+        if (!byGW[gw]) byGW[gw] = [];
+        byGW[gw].push(m);
+      });
+      Object.entries(byGW).forEach(([gw, ms]) => {
+        parseMatchesToFixtures(ms, Number(gw), comp, seas).forEach(f => {
+          if (f.date && f.home && f.away) dateByTeams[`${f.home}|${f.away}`] = f.date;
+        });
       });
       let updated = 0;
       const next = {
@@ -1005,7 +1011,7 @@ export default async function handler(req, res) {
           ...gw,
           fixtures: (gw.fixtures || []).map(f => {
             if (f.date) return f;
-            const d = dateByTeams[`${f.home}|${f.away}`];
+            const d = dateByTeams[`${normName(f.home)}|${normName(f.away)}`];
             if (d) { updated++; return { ...f, date: d }; }
             return f;
           })
@@ -1077,10 +1083,10 @@ export default async function handler(req, res) {
         try { matches = await fetchFromFD(currentGW, seas, comp); }
         catch (e) { return bad(res, e.status || 500, e.message); }
         if (!matches.length) return bad(res, 404, 'No matches found for this round.');
-        apiFixtures = parseMatchesToFixtures(matches, currentGW, comp);
+        apiFixtures = parseMatchesToFixtures(matches, currentGW, comp, seas);
         const globalKey = fixtureGlobalKey(comp, seas);
         const existingGlobal = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
-        updatedGlobal = regroupGlobalDoc(existingGlobal, currentGW, apiFixtures);
+        updatedGlobal = normalizeLeagueFixtureDoc(regroupGlobalDoc(existingGlobal, currentGW, apiFixtures), comp, seas);
         await setValue(globalKey, updatedGlobal);
       }
       if (!apiFixtures.length) return bad(res, 404, 'No matches found for this round.');
