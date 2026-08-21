@@ -66,6 +66,38 @@ test("old 2026 World Cup groups without a competition flag are detected and norm
   );
 });
 
+test("Premier League shaped 2026 groups are not treated as World Cup even if competition is stale", () => {
+  const group = {
+    id: "pl-2026",
+    name: "PREMIER LEAGUE 26/27",
+    competition: "WC",
+    season: 2026,
+    gameweeks: Array.from({ length: 38 }, (_, index) => ({
+      gw: index + 1,
+      season: 2026,
+      fixtures: index === 0
+        ? [
+            {
+              id: "gw1-fsoccer-g-13595837",
+              apiId: "soccer.g.13595837",
+              home: "Arsenal",
+              away: "Coventry",
+              status: "FINISHED",
+              date: "2026-08-21T19:00:00.000Z",
+              result: "3-0",
+            },
+          ]
+        : [],
+    })),
+  };
+
+  const normalized = normalizeWorldCupGroup(group);
+
+  assert.equal(isWorldCupGroupLike(group), false);
+  assert.equal(normalized.competition, "WC");
+  assert.equal(normalized.gameweeks.length, 38);
+});
+
 test("legacy World Cup normalization collapses duplicate placeholder rows into the real fixture", () => {
   const group = {
     id: "old-wc",

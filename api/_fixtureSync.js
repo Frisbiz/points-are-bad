@@ -708,8 +708,12 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL', se
 }
 
 export function mergeGlobalIntoGroup(globalDoc, g) {
-  const group = isWorldCupGroupLike(g) ? normalizeWorldCupGroup(g) : g;
-  const normalizedGlobalDoc = isWorldCupGroupLike(group)
+  const groupIsWC = isWorldCupGroupLike(g);
+  const globalDocIsWC = isWorldCupGroupLike(globalDoc);
+  if (!groupIsWC && globalDocIsWC) return g;
+
+  const group = groupIsWC ? normalizeWorldCupGroup(g) : g;
+  const normalizedGlobalDoc = groupIsWC
     ? { ...globalDoc, gameweeks: applyKnownWorldCupKnockoutSchedule(globalDoc.gameweeks || []) }
     : normalizeLeagueFixtureDoc(globalDoc, group.competition || 'PL', group.season || globalDoc?.season || 2025);
   const seas = group.season || 2025;

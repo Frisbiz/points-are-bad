@@ -488,7 +488,7 @@ export default async function handler(req, res) {
     } else if (isLL) {
       group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason, competition: 'LL' };
     } else {
-      group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason };
+      group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason, competition: 'PL' };
     }
     const globalCacheKey = isWC ? 'fixtures:WC:2026' : isLL ? `fixtures:LL:${leagueSeason}` : `fixtures:PL:${leagueSeason}`;
     try {

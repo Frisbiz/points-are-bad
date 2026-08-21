@@ -354,20 +354,29 @@ function isWorldCupFixtureLike(fixture) {
   return WORLD_CUP_KNOWN_TEAM_GAME_IDS.some(({ home, away }) => pairKey === fixtureTeamPairKey({ home, away }));
 }
 
+function isLeagueSeasonShape(group = {}) {
+  const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
+  const gwNums = gameweeks.map(gw => Number(gw?.gw)).filter(Number.isFinite);
+  if (gwNums.some(gw => gw > 8) || gwNums.length > 8) return true;
+
+  return gameweeks.flatMap(gw => gw?.fixtures || []).some(fixture => {
+    const id = String(fixture?.id || "");
+    return /^gw\d+-f/i.test(id) || /^\d{4}-gw\d+-f/i.test(id);
+  });
+}
+
 export function isWorldCupGroupLike(group = {}) {
   const competition = String(group?.competition || "").trim().toUpperCase();
-  if (competition === "WC") return true;
+  if (competition === "WC") return !isLeagueSeasonShape(group);
   if (competition) return false;
 
   const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
   const inferredSeason = Number(group?.season || gameweeks.find(gw => gw?.season)?.season || 0);
   if (inferredSeason !== 2026) return false;
 
-  const gwNums = gameweeks.map(gw => Number(gw?.gw)).filter(Number.isFinite);
-  const hasWorldCupRoundShape = gwNums.length > 0 && gwNums.length <= 8 && gwNums.every(gw => gw >= 1 && gw <= 8);
   const fixtures = gameweeks.flatMap(gw => gw?.fixtures || []);
 
-  return fixtures.some(isWorldCupFixtureLike) || hasWorldCupRoundShape;
+  return fixtures.some(isWorldCupFixtureLike);
 }
 
 export function isUnresolvedWorldCupTeamSlot(value) {

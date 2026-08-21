@@ -42,6 +42,7 @@ test("new group and fixture-cache paths use the current league season", () => {
 
   assert.match(createGroupBlock, /const leagueSeason = CURRENT_LEAGUE_SEASON;/);
   assert.match(createGroupBlock, /`fixtures:PL:\$\{leagueSeason\}`/);
+  assert.match(createGroupBlock, /competition: 'PL'/);
   assert.match(appSource, /setupCompetition === "LL" \? "fixtures:LL" : "fixtures:PL"/);
   assert.match(appSource, /:\$\{CURRENT_LEAGUE_SEASON\}/);
   assert.match(appSource, /api\/fixtures\?season=\$\{CURRENT_LEAGUE_SEASON\}/);
