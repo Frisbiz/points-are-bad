@@ -360,16 +360,30 @@ function fixtureDateKeys(fixture) {
     .filter(Boolean);
 }
 
+function isWorldCupDateKey(dateKey) {
+  return dateKey >= WORLD_CUP_DATE_START && dateKey <= WORLD_CUP_DATE_END;
+}
+
 function isWorldCupTournamentDate(fixture) {
-  return fixtureDateKeys(fixture).some(dateKey => (
-    dateKey >= WORLD_CUP_DATE_START && dateKey <= WORLD_CUP_DATE_END
-  ));
+  return fixtureDateKeys(fixture).some(isWorldCupDateKey);
+}
+
+function hasNonWorldCupTournamentDate(fixture) {
+  const dateKeys = fixtureDateKeys(fixture);
+  return dateKeys.length > 0 && !dateKeys.some(isWorldCupDateKey);
+}
+
+function hasTrustedWorldCupFixtureId(fixture) {
+  if (yahooGameIdKey(fixture)) return true;
+  if (/^wc[-_]/i.test(String(fixture?.id || ""))) return true;
+  const source = [fixture?.apiId, fixture?.gameid, fixture?.id].filter(Boolean).join(" ");
+  return /(?:^|[^\d])537\d{3}(?:$|[^\d])/.test(source);
 }
 
 function isWorldCupFixtureLike(fixture) {
   if (!fixture) return false;
-  if (yahooGameIdKey(fixture)) return true;
-  if (/^wc[-_]/i.test(String(fixture.id || ""))) return true;
+  if (hasTrustedWorldCupFixtureId(fixture)) return true;
+  if (hasNonWorldCupTournamentDate(fixture)) return false;
   if (isWorldCupStage(fixture.stage)) return true;
   if (isWinnerLoserSlot(fixture.home) || isWinnerLoserSlot(fixture.away)) return true;
   if (isWorldCupTournamentDate(fixture)) return true;

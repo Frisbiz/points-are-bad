@@ -135,6 +135,7 @@ test("mixed 8-round World Cup groups stay World Cup and drop leaked league fixtu
               home: "Hull",
               away: "Man Utd",
               status: "SCHEDULED",
+              stage: "FINAL",
               date: "2026-08-22T11:30:00.000Z",
               result: null,
             },
