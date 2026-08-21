@@ -396,6 +396,66 @@ test("mergeGlobalIntoGroup refuses World Cup fixture docs for Premier League gro
   assert.equal(merged.predictions.faris["gw1-fsoccer-g-13595837"], "3-0");
 });
 
+test("mergeGlobalIntoGroup accepts league-shaped PL fixture caches with stray stage metadata", () => {
+  const group = {
+    id: "pl-2026",
+    name: "PREMIER LEAGUE 26/27",
+    competition: "PL",
+    season: 2026,
+    predictions: {
+      faris: { "gw1-old-arsenal-coventry": "2-0" },
+    },
+    gameweeks: [
+      {
+        gw: 1,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw1-old-arsenal-coventry",
+            apiId: "soccer.g.999999",
+            home: "Arsenal",
+            away: "Coventry",
+            status: "SCHEDULED",
+            date: "2026-08-21T19:00:00.000Z",
+            result: null,
+          },
+        ],
+      },
+    ],
+  };
+  const premierLeagueGlobalDoc = {
+    season: 2026,
+    updatedAt: 123,
+    gameweeks: Array.from({ length: 38 }, (_, index) => ({
+      gw: index + 1,
+      season: 2026,
+      fixtures: index === 0
+        ? [
+            {
+              id: "gw1-fsoccer-g-999999",
+              apiId: "soccer.g.999999",
+              home: "Arsenal",
+              away: "Coventry",
+              status: "FINISHED",
+              date: "2026-08-21T19:00:00.000Z",
+              result: "2-0",
+              stage: "FINAL",
+            },
+          ]
+        : [],
+    })),
+  };
+
+  const merged = mergeGlobalIntoGroup(premierLeagueGlobalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(merged.competition, "PL");
+  assert.equal(fixture.id, "gw1-old-arsenal-coventry");
+  assert.equal(fixture.status, "FINISHED");
+  assert.equal(fixture.result, "2-0");
+  assert.equal(merged.predictions.faris["gw1-old-arsenal-coventry"], "2-0");
+});
+
 test("mergeGlobalIntoGroup updates old WC placeholder rows after teams advance", () => {
   const group = {
     id: "g1",
