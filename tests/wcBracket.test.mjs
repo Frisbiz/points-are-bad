@@ -98,6 +98,67 @@ test("Premier League shaped 2026 groups are not treated as World Cup even if com
   assert.equal(normalized.gameweeks.length, 38);
 });
 
+test("mixed 8-round World Cup groups stay World Cup and drop leaked league fixtures", () => {
+  const group = {
+    id: "wcup",
+    name: "WCUP",
+    competition: "WC",
+    season: 2026,
+    predictions: {
+      faris: {
+        "gw1-f537387": "3-0",
+        "gw1-fsoccer-g-13595838": "1-0",
+      },
+    },
+    hiddenFixtures: ["gw1-fsoccer-g-13595838"],
+    dibsSkips: {
+      "gw1-f537387": ["damon"],
+      "gw1-fsoccer-g-13595838": ["faris"],
+    },
+    gameweeks: Array.from({ length: 8 }, (_, index) => ({
+      gw: index + 1,
+      season: 2026,
+      fixtures: index === 0
+        ? [
+            {
+              id: "gw1-f537387",
+              apiId: 537387,
+              home: "Mexico",
+              away: "South Africa",
+              status: "FINISHED",
+              date: "2026-06-11T19:00:00.000Z",
+              result: "2-0",
+            },
+            {
+              id: "gw1-fsoccer-g-13595838",
+              apiId: "soccer.g.13595838",
+              home: "Hull",
+              away: "Man Utd",
+              status: "SCHEDULED",
+              date: "2026-08-22T11:30:00.000Z",
+              result: null,
+            },
+          ]
+        : [],
+    })),
+  };
+
+  const normalized = normalizeWorldCupGroup(group);
+
+  assert.equal(isWorldCupGroupLike(group), true);
+  assert.equal(normalized.competition, "WC");
+  assert.deepEqual(normalized.gameweeks[0].fixtures.map(f => [f.id, f.home, f.away]), [
+    ["gw1-f537387", "Mexico", "South Africa"],
+  ]);
+  assert.deepEqual(normalized.predictions.faris, {
+    "gw1-f537387": "3-0",
+  });
+  assert.deepEqual(normalized.hiddenFixtures, []);
+  assert.deepEqual(normalized.dibsSkips, {
+    "gw1-f537387": ["damon"],
+  });
+});
+
 test("legacy World Cup normalization collapses duplicate placeholder rows into the real fixture", () => {
   const group = {
     id: "old-wc",

@@ -55,7 +55,10 @@ test("new group and fixture-cache paths use the current league season", () => {
 
 test("legacy groups retain their 2025 fallback when season metadata is absent", () => {
   assert.match(appSource, /const activeSeason = group\.season \|\| 2025;/);
-  assert.match(securitySource, /const seas = isWC \? 2026 : \(group\.season \|\| 2025\);/);
+  assert.match(
+    securitySource,
+    /function resolvedGroupSeason\(group, competition\) \{[\s\S]*return competition === 'WC' \? 2026 : \(group\?\.season \|\| 2025\);/
+  );
 });
 
 test("fixture proxy defaults new PL requests to the current season and honors explicit history", async () => {

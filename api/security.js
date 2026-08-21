@@ -82,6 +82,16 @@ function draw11LimitPeriod(group) {
   return isWorldCupGroupLike(group) ? 'round' : 'gameweek';
 }
 
+function resolvedGroupCompetition(group, isWC = isWorldCupGroupLike(group)) {
+  if (isWC) return 'WC';
+  const competition = String(group?.competition || '').trim().toUpperCase();
+  return competition === 'LL' ? 'LL' : 'PL';
+}
+
+function resolvedGroupSeason(group, competition) {
+  return competition === 'WC' ? 2026 : (group?.season || 2025);
+}
+
 function findFixtureGW(group, fixtureId) {
   for (const gw of group.gameweeks || []) {
     const fixture = (gw.fixtures || []).find(f => f.id === fixtureId);
@@ -692,8 +702,8 @@ export default async function handler(req, res) {
 
     if (payload.type === 'sync-finished-live-scores') {
       const isWC = isWorldCupGroupLike(group);
-      const comp = isWC ? 'WC' : (group.competition || 'PL');
-      const seas = isWC ? 2026 : (group.season || 2025);
+      const comp = resolvedGroupCompetition(group, isWC);
+      const seas = resolvedGroupSeason(group, comp);
       const globalDoc = await getValue(fixtureGlobalKey(comp, seas));
       const cleanedGroup = dedupeGroupFixtures(group);
       const merged = globalDoc ? mergeGlobalIntoGroup(globalDoc, cleanedGroup) : null;
@@ -708,8 +718,8 @@ export default async function handler(req, res) {
     if (payload.type === 'auto-sync-fixtures') {
       const targetGW = Number(payload.gw || group.currentGW || 1);
       const isWC = isWorldCupGroupLike(group);
-      const comp = isWC ? 'WC' : (group.competition || 'PL');
-      const seas = isWC ? 2026 : (group.season || 2025);
+      const comp = resolvedGroupCompetition(group, isWC);
+      const seas = resolvedGroupSeason(group, comp);
       let globalDoc;
       let syncInfo = { fetched: false, reason: 'cached' };
       if (comp === 'LL') {
@@ -734,7 +744,7 @@ export default async function handler(req, res) {
         syncInfo = { fetched: true, source: 'football-data' };
       } else {
         try {
-          syncInfo = await refreshYahooFixtureCache({ competition: isWC ? 'WC' : 'PL', season: isWC ? 2026 : seas, targetGW });
+          syncInfo = await refreshYahooFixtureCache({ competition: comp === 'WC' ? 'WC' : 'PL', season: seas, targetGW });
           globalDoc = syncInfo.globalDoc;
         } catch (e) {
           return bad(res, e.status || 500, e.message);
@@ -986,8 +996,8 @@ export default async function handler(req, res) {
       // resolves from inside a Vercel serverless function. Call the Football-Data API
       // directly like every other handler in this file does.
       const isWC = isWorldCupGroupLike(group);
-      const comp = isWC ? 'WC' : (group.competition || 'PL');
-      const seas = isWC ? 2026 : (group.season || 2025);
+      const comp = resolvedGroupCompetition(group, isWC);
+      const seas = resolvedGroupSeason(group, comp);
       let matches;
       try { matches = await fetchFromFD(null, seas, comp); }
       catch (e) { return bad(res, e.status || 500, e.message); }
@@ -1063,15 +1073,15 @@ export default async function handler(req, res) {
     if (payload.type === 'sync-fixtures') {
       const currentGW = Number(payload.gw || group.currentGW || 1);
       const isWC = isWorldCupGroupLike(group);
-      const comp = isWC ? 'WC' : (group.competition || 'PL');
-      const seas = isWC ? 2026 : (group.season || 2025);
+      const comp = resolvedGroupCompetition(group, isWC);
+      const seas = resolvedGroupSeason(group, comp);
       let updatedGlobal;
       let apiFixtures = [];
       let source = 'football-data';
       if (comp === 'PL' || comp === 'WC') {
         let syncInfo;
         try {
-          syncInfo = await refreshYahooFixtureCache({ competition: isWC ? 'WC' : 'PL', season: isWC ? 2026 : seas, targetGW: currentGW, force: true });
+          syncInfo = await refreshYahooFixtureCache({ competition: comp === 'WC' ? 'WC' : 'PL', season: seas, targetGW: currentGW, force: true });
         } catch (e) {
           return bad(res, e.status || 500, e.message);
         }

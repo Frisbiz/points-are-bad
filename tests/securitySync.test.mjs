@@ -24,8 +24,13 @@ test("auto sync treats old World Cup groups as WC even without a competition fie
   );
 
   assert.match(securitySource, /isWorldCupGroupLike/);
+  assert.match(
+    securitySource,
+    /function resolvedGroupCompetition\(group, isWC = isWorldCupGroupLike\(group\)\) \{[\s\S]*return competition === 'LL' \? 'LL' : 'PL';/
+  );
   assert.match(autoSyncBlock, /const isWC = isWorldCupGroupLike\(group\);/);
-  assert.match(autoSyncBlock, /const comp = isWC \? 'WC' : \(group\.competition \|\| 'PL'\);/);
+  assert.match(autoSyncBlock, /const comp = resolvedGroupCompetition\(group, isWC\);/);
+  assert.match(autoSyncBlock, /refreshYahooFixtureCache\(\{ competition: comp === 'WC' \? 'WC' : 'PL'/);
 });
 
 test("database reads normalize fixture docs and old World Cup groups before returning them", () => {

@@ -1,4 +1,6 @@
 const GROUP_LETTERS = "ABCDEFGHIJKL";
+const WORLD_CUP_DATE_START = "2026-06-11";
+const WORLD_CUP_DATE_END = "2026-07-20";
 
 const TEAM_DISPLAY_MAP = {
   "Bosnia and Herzegovina": "Bosnia-Herzegovina",
@@ -343,12 +345,34 @@ function isWorldCupStage(value) {
   ].includes(String(value || "").trim().toUpperCase());
 }
 
+function fixtureDateKey(value) {
+  if (!value) return null;
+  const raw = String(value || "").trim();
+  const explicit = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (explicit) return explicit[1];
+  const time = new Date(raw).getTime();
+  return Number.isFinite(time) ? new Date(time).toISOString().slice(0, 10) : null;
+}
+
+function fixtureDateKeys(fixture) {
+  return [fixture?.yahooDate, fixture?.date]
+    .map(fixtureDateKey)
+    .filter(Boolean);
+}
+
+function isWorldCupTournamentDate(fixture) {
+  return fixtureDateKeys(fixture).some(dateKey => (
+    dateKey >= WORLD_CUP_DATE_START && dateKey <= WORLD_CUP_DATE_END
+  ));
+}
+
 function isWorldCupFixtureLike(fixture) {
   if (!fixture) return false;
   if (yahooGameIdKey(fixture)) return true;
   if (/^wc[-_]/i.test(String(fixture.id || ""))) return true;
   if (isWorldCupStage(fixture.stage)) return true;
   if (isWinnerLoserSlot(fixture.home) || isWinnerLoserSlot(fixture.away)) return true;
+  if (isWorldCupTournamentDate(fixture)) return true;
 
   const pairKey = fixtureTeamPairKey(fixture);
   return WORLD_CUP_KNOWN_TEAM_GAME_IDS.some(({ home, away }) => pairKey === fixtureTeamPairKey({ home, away }));
@@ -360,22 +384,16 @@ function hasFullLeagueSeasonShape(group = {}) {
   return gwNums.some(gw => gw > 8) || gwNums.length > 8;
 }
 
-function isLeagueSeasonShape(group = {}) {
-  if (hasFullLeagueSeasonShape(group)) return true;
-
-  const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
-  return gameweeks.flatMap(gw => gw?.fixtures || []).some(fixture => {
-    const id = String(fixture?.id || "");
-    return /^gw\d+-f/i.test(id) || /^\d{4}-gw\d+-f/i.test(id);
-  });
-}
-
 export function isWorldCupGroupLike(group = {}) {
+  const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
   const competition = String(group?.competition || "").trim().toUpperCase();
-  if (competition === "WC") return !isLeagueSeasonShape(group);
+  if (competition === "WC") {
+    if (hasFullLeagueSeasonShape(group)) return false;
+    const inferredSeason = Number(group?.season || gameweeks.find(gw => gw?.season)?.season || 2026);
+    return inferredSeason === 2026;
+  }
   if (competition) return false;
 
-  const gameweeks = Array.isArray(group?.gameweeks) ? group.gameweeks : [];
   if (hasFullLeagueSeasonShape(group)) return false;
 
   const inferredSeason = Number(group?.season || gameweeks.find(gw => gw?.season)?.season || 0);
@@ -848,19 +866,62 @@ function collapseDuplicateWorldCupFixtures(group = {}) {
   return applyWorldCupFixtureIdRemaps({ ...group, predictions, gameweeks }, remaps);
 }
 
+function pruneWorldCupFixtureRows(gameweeks = []) {
+  return (gameweeks || []).map(gwObj => ({
+    ...gwObj,
+    fixtures: (gwObj.fixtures || []).filter(isWorldCupFixtureLike),
+  }));
+}
+
+function worldCupFixtureIds(gameweeks = []) {
+  return new Set((gameweeks || [])
+    .flatMap(gwObj => gwObj?.fixtures || [])
+    .map(fixture => fixture?.id)
+    .filter(Boolean));
+}
+
+function keepOnlyKnownWorldCupFixtureRefs(group = {}) {
+  const fixtureIds = worldCupFixtureIds(group.gameweeks || []);
+  const next = { ...group };
+
+  if (group.predictions) {
+    next.predictions = Object.entries(group.predictions || {}).reduce((acc, [username, picks]) => {
+      acc[username] = Object.entries(picks || {}).reduce((kept, [fixtureId, pick]) => {
+        if (fixtureIds.has(fixtureId)) kept[fixtureId] = pick;
+        return kept;
+      }, {});
+      return acc;
+    }, {});
+  }
+
+  if (Array.isArray(group.hiddenFixtures)) {
+    next.hiddenFixtures = Array.from(new Set(group.hiddenFixtures.filter(fixtureId => fixtureIds.has(fixtureId))));
+  }
+
+  if (group.dibsSkips) {
+    next.dibsSkips = Object.entries(group.dibsSkips || {}).reduce((acc, [fixtureId, skips]) => {
+      if (fixtureIds.has(fixtureId)) acc[fixtureId] = Array.from(new Set(skips || []));
+      return acc;
+    }, {});
+  }
+
+  return next;
+}
+
 export function normalizeWorldCupGroup(group = {}) {
   if (!isWorldCupGroupLike(group)) return group;
   const season = Number(group.season) || 2026;
-  const gameweeks = resolveWorldCupBracketAdvancement(group.gameweeks || []).map(gwObj => ({
+  const prunedGameweeks = pruneWorldCupFixtureRows(group.gameweeks || []);
+  const gameweeks = resolveWorldCupBracketAdvancement(prunedGameweeks).map(gwObj => ({
     ...gwObj,
     season: gwObj.season || season,
   }));
-  return collapseDuplicateWorldCupFixtures({
+  return keepOnlyKnownWorldCupFixtureRefs(collapseDuplicateWorldCupFixtures({
     ...group,
     competition: "WC",
     season,
     gameweeks,
-  });
+  }));
 }
 
 function teamKey(value) {
