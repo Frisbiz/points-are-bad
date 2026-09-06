@@ -1,4 +1,5 @@
 import { applyKnownWorldCupKnockoutSchedule, isWorldCupGroupLike, normalizeWorldCupGroup } from "./_wcBracket.js";
+import { competitionRoundCount } from "../shared/season.js";
 
 export const TEAM_NAME_MAP = {
   // Premier League - with and without FC suffix (API returns both forms)
@@ -118,10 +119,36 @@ export const TEAM_NAME_MAP = {
   "CD Tenerife": "Tenerife",
   "Deportivo de La Coruña": "Deportivo",
   // European clubs
+  "Paris Saint-Germain FC": "PSG",
   "Paris Saint-Germain": "PSG",
+  "FC Bayern München": "Bayern",
   "Internazionale": "Inter",
+  "FC Internazionale Milano": "Inter",
   "Inter Milan": "Inter",
   "Bayern München": "Bayern",
+  "Borussia Dortmund": "Borussia Dortmund",
+  "BV Borussia 09 Dortmund": "Borussia Dortmund",
+  "AS Roma": "Roma",
+  "Sporting Clube de Portugal": "Sporting CP",
+  "FC Porto": "Porto",
+  "Club Brugge KV": "Club Brugge",
+  "PSV Eindhoven": "PSV",
+  "Feyenoord Rotterdam": "Feyenoord",
+  "Lille OSC": "Lille",
+  "FK Bodø/Glimt": "Bodø/Glimt",
+  "RB Leipzig": "Leipzig",
+  "Fenerbahce SK": "Fenerbahçe",
+  "Fenerbahçe SK": "Fenerbahçe",
+  "FC Shakhtar Donetsk": "Shakhtar",
+  "Galatasaray SK": "Galatasaray",
+  "SK Slavia Praha": "Slavia Praha",
+  "ŠK Slovan Bratislava": "S. Bratislava",
+  "Slovan Bratislava": "S. Bratislava",
+  "AEK Athens FC": "AEK Athens",
+  "Como 1907": "Como",
+  "RC Lens": "Lens",
+  "Viking FK": "Viking",
+  "Sabah FK": "Sabah",
   "Borussia Mönchengladbach": "Gladbach",
   // International aliases
   "Bosnia and Herzegovina": "Bosnia-Herzegovina",
@@ -711,6 +738,11 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
   const groupIsWC = isWorldCupGroupLike(g);
   const globalDocIsWC = isWorldCupGroupLike(globalDoc);
   if (groupIsWC !== globalDocIsWC) return g;
+  if (!groupIsWC) {
+    const groupCompetition = String(g?.competition || 'PL').trim().toUpperCase();
+    const globalCompetition = String(globalDoc?.competition || '').trim().toUpperCase();
+    if (globalCompetition && globalCompetition !== groupCompetition) return g;
+  }
 
   const group = groupIsWC ? normalizeWorldCupGroup(g) : g;
   const normalizedGlobalDoc = groupIsWC
@@ -789,11 +821,15 @@ function hasUnconfirmedLeagueSchedule(globalDoc = {}, competition = 'PL', season
 export function shouldHydrateLeagueSeason(globalDoc = {}, targetGW = 1, options = {}) {
   const gameweeks = globalDoc.gameweeks || [];
   const existingGWNums = new Set(gameweeks.map(g => Number(g.gw)).filter(Number.isFinite));
-  const target = Math.max(1, Number(targetGW) || 1);
-  const missingPast = Array.from({ length: target - 1 }, (_, i) => i + 1).some(gw => !existingGWNums.has(gw));
-  const hasFullSchedule = existingGWNums.size >= 38 && gameweeks.every(gw => (gw.fixtures || []).length > 0);
-  if (missingPast || !hasFullSchedule) return true;
   const competition = options.competition || globalDoc.competition || 'PL';
+  const totalRounds = competitionRoundCount(competition);
+  const target = Math.max(1, Math.min(totalRounds, Number(targetGW) || 1));
+  const missingPast = Array.from({ length: target - 1 }, (_, i) => i + 1).some(gw => !existingGWNums.has(gw));
+  const hasFullSchedule = Array.from({ length: totalRounds }, (_, i) => i + 1).every(gw => {
+    const gwObj = gameweeks.find(g => Number(g.gw) === gw);
+    return gwObj && (gwObj.fixtures || []).length > 0;
+  });
+  if (missingPast || !hasFullSchedule) return true;
   const season = options.season || globalDoc.season || null;
   if (hasUnconfirmedLeagueSchedule(globalDoc, competition, season)) {
     const now = Number(options.now ?? Date.now());

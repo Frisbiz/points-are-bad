@@ -1,10 +1,10 @@
 import { normName } from './_fixtureSync.js';
 import { CURRENT_LEAGUE_SEASON } from '../shared/season.js';
 
-const FD_COMP_MAP = { PL: "PL", LL: "PD" };
+const FD_COMP_MAP = { PL: "PL", LL: "PD", CL: "CL" };
 
 function fdApiKey(comp) {
-  return comp === "LL" ? process.env.FD_API_KEY_LALIGA : process.env.VITE_FD_API_KEY;
+  return comp === "LL" ? (process.env.FD_API_KEY_LALIGA || process.env.VITE_FD_API_KEY) : (process.env.VITE_FD_API_KEY || process.env.FD_API_KEY_LALIGA);
 }
 
 export default async function handler(req, res) {

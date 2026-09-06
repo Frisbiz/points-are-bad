@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import fixtureHandler from "../api/fixtures.js";
 import standingsHandler from "../api/standings.js";
 import { shouldHydrateLeagueSeason } from "../api/_fixtureSync.js";
-import { CURRENT_LEAGUE_SEASON, getCurrentLeagueSeason } from "../shared/season.js";
+import { CURRENT_LEAGUE_SEASON, competitionRoundCount, getCurrentLeagueSeason } from "../shared/season.js";
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 const securitySource = readFileSync(new URL("../api/security.js", import.meta.url), "utf8");
@@ -41,16 +41,18 @@ test("new group and fixture-cache paths use the current league season", () => {
   const createGroupBlock = securitySource.slice(createGroupStart, createGroupEnd);
 
   assert.match(createGroupBlock, /const leagueSeason = CURRENT_LEAGUE_SEASON;/);
-  assert.match(createGroupBlock, /`fixtures:PL:\$\{leagueSeason\}`/);
-  assert.match(createGroupBlock, /competition: 'PL'/);
-  assert.match(appSource, /setupCompetition === "LL" \? "fixtures:LL" : "fixtures:PL"/);
+  assert.match(createGroupBlock, /const leagueCompetition = requestedCompetition === 'LL' \|\| requestedCompetition === 'CL' \? requestedCompetition : 'PL';/);
+  assert.match(createGroupBlock, /makeLeagueGameweeks\(startGW, leagueSeason, leagueCompetition\)/);
+  assert.match(createGroupBlock, /const globalCacheKey = fixtureGlobalKey\(group\.competition, group\.season\);/);
+  assert.match(appSource, /`fixtures:\$\{setupCompetition\}:\$\{CURRENT_LEAGUE_SEASON\}`/);
   assert.match(appSource, /:\$\{CURRENT_LEAGUE_SEASON\}/);
   assert.match(appSource, /api\/fixtures\?season=\$\{CURRENT_LEAGUE_SEASON\}/);
   assert.match(yahooSource, /season: CURRENT_LEAGUE_SEASON/);
   assert.match(liveSource, /Number\(season \|\| CURRENT_LEAGUE_SEASON\)/);
   assert.match(appSource, /api\/standings\?competition=\$\{comp\}&season=\$\{activeSeason\}/);
   assert.match(securitySource, /shouldHydrateLeagueSeason\(globalDoc, targetGW, \{ competition: comp, season: seas \}\)/);
-  assert.match(securitySource, /fullSeason: Object\.keys\(byGW\)\.length >= 38/);
+  assert.match(securitySource, /fullSeason: Object\.keys\(byGW\)\.length >= competitionRoundCount\(competition\)/);
+  assert.equal(competitionRoundCount("CL"), 8);
 });
 
 test("legacy groups retain their 2025 fallback when season metadata is absent", () => {

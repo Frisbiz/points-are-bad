@@ -4,7 +4,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Eye, EyeOff, Flash, Star, EditLine, Lock, LogOut, User } from "griddy-icons";
 import { formatWorldCupBracketMatchMeta, formatWorldCupBracketTeamName, getWorldCupKnockoutPlaceholderLabel, isUnresolvedWorldCupTeamSlot, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement, sortWorldCupBracketFixturesForDisplay, winnerSideForWorldCupFixture } from "../api/_wcBracket.js";
 import { LIVE_POLL_INTERVAL_MS, SCHEDULE_SYNC_INTERVAL_MS, hasUnpersistedFinishedLiveScores, shouldRunVisibleTask, FINALIZATION_RETRY_INTERVAL_MS } from "../api/_livePolicy.js";
-import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
+import { CURRENT_LEAGUE_SEASON, competitionFixtureCount, competitionRoundCount } from "../shared/season.js";
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -584,17 +584,23 @@ function TeamBadge({ team, crest, size = 22, style = {} }) {
 
 const PL_CLUBS = ["Arsenal","Aston Villa","Bournemouth","Brentford","Brighton","Chelsea","Crystal Palace","Everton","Fulham","Ipswich","Leicester","Liverpool","Man City","Man Utd","Newcastle","Nott'm Forest","Southampton","Spurs","West Ham","Wolves"];
 const LL_CLUBS = ["Real Madrid","Barcelona","Atletico Madrid","Girona","Athletic Bilbao","Real Sociedad","Real Betis","Villarreal","Valencia","Getafe","Osasuna","Sevilla","Celta Vigo","Mallorca","Las Palmas","Rayo Vallecano","Espanyol","Leganes","Valladolid","Alaves"];
+const CL_CLUBS = ["PSG","Bayern","Real Madrid","Liverpool","Inter","Man City","Arsenal","Barcelona","Atletico Madrid","Borussia Dortmund","Roma","Sporting CP","Aston Villa","Porto","Man Utd","Club Brugge","Real Betis","PSV","Feyenoord","Lille","Bodø/Glimt","Napoli","Leipzig","Villarreal","Fenerbahçe","Shakhtar","Galatasaray","Slavia Praha","S. Bratislava","Stuttgart","AEK Athens","LASK","Como","Lens","Viking","Sabah"];
+function clubsForCompetition(competition) {
+  if (competition === "LL") return LL_CLUBS;
+  if (competition === "CL") return CL_CLUBS;
+  return PL_CLUBS;
+}
 function makeFixturesFallback(gw, season, competition) {
-  const CLUBS = competition === "LL" ? LL_CLUBS : PL_CLUBS;
+  const CLUBS = clubsForCompetition(competition);
   const seed = gw * 9301 + 49297;
   const rng = (n) => { let s = seed+n; s=((s>>16)^s)*0x45d9f3b; s=((s>>16)^s)*0x45d9f3b; return ((s>>16)^s)>>>0; };
   const arr = [...CLUBS];
   for (let i = arr.length-1; i > 0; i--) { const j = rng(i)%(i+1); [arr[i],arr[j]]=[arr[j],arr[i]]; }
   const prefix = season && season !== 2025 ? `${season}-` : "";
-  return Array.from({length:10}, (_,i) => ({ id:`${prefix}gw${gw}-f${i}`, home:arr[i*2], away:arr[i*2+1], result:null, status:"SCHEDULED" }));
+  return Array.from({length:competitionFixtureCount(competition)}, (_,i) => ({ id:`${prefix}gw${gw}-f${i}`, home:arr[i*2]||"TBD", away:arr[i*2+1]||"TBD", result:null, status:"SCHEDULED" }));
 }
 function makeAllGWs(season, competition) {
-  return Array.from({length:38}, (_,i) => ({gw:i+1, season, fixtures:makeFixturesFallback(i+1, season, competition)}));
+  return Array.from({length:competitionRoundCount(competition)}, (_,i) => ({gw:i+1, season, fixtures:makeFixturesFallback(i+1, season, competition)}));
 }
 
 function makeWCRounds() {
@@ -618,10 +624,21 @@ function stageLabel(stage, matchday) {
 function gwLabel(group, gwNum) {
   const comp = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
   if (comp === "PL" || comp === "LL") return `GW${gwNum}`;
+  if (comp === "CL") return `Matchday ${gwNum}`;
   const gwObj = (group.gameweeks || []).find(g => g.gw === gwNum);
   const stages = (gwObj?.fixtures || []).map(f => f.stage).filter(Boolean);
   const stage = gwNum === 8 && stages.includes("FINAL") ? "FINAL" : stages[0];
   return stageLabel(stage, gwNum);
+}
+
+function competitionLabel(groupOrCompetition, compact = false) {
+  const comp = typeof groupOrCompetition === "string"
+    ? groupOrCompetition
+    : isWorldCupGroupLike(groupOrCompetition) ? "WC" : (groupOrCompetition?.competition || "PL");
+  if (comp === "WC") return compact ? "WC 2026" : "World Cup 2026";
+  if (comp === "LL") return "La Liga";
+  if (comp === "CL") return compact ? "UCL" : "Champions League";
+  return compact ? "PL" : "Premier League";
 }
 
 function autoSyncTargetGW(group, now = Date.now()) {
@@ -676,7 +693,8 @@ function draw11LimitMax(value) {
 
 function draw11LimitPeriod(groupOrCompetition) {
   const comp = typeof groupOrCompetition === "string" ? groupOrCompetition : (groupOrCompetition?.competition || "PL");
-  return (typeof groupOrCompetition === "string" ? comp === "WC" : isWorldCupGroupLike(groupOrCompetition)) ? "round" : "gameweek";
+  if (typeof groupOrCompetition === "string" ? comp === "WC" : isWorldCupGroupLike(groupOrCompetition)) return "round";
+  return comp === "CL" ? "matchday" : "gameweek";
 }
 
 function draw11LimitLabel(group) {
@@ -863,7 +881,7 @@ function shouldFetchLiveScores(fixtures = [], now = Date.now()) {
   });
 }
 
-// Poll Yahoo Sports API for live scores during active match windows
+// Poll the competition's live-score API during active match windows.
 function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialLiveScores = EMPTY_LIVE_SCORES) {
   const cacheKey = liveScoreCacheKey(gw, fixtures, competition, season);
   const [liveData, setLiveData] = useState(() => mergeLiveScoreMaps(LIVE_SCORE_CACHE.get(cacheKey), initialLiveScores));
@@ -876,7 +894,7 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
   }, [cacheKey, initialLiveScores]);
 
   useEffect(() => {
-    if (!gw || (competition !== "PL" && competition !== "WC")) {
+    if (!gw || (competition !== "PL" && competition !== "LL" && competition !== "CL" && competition !== "WC")) {
       setLiveData({});
       return;
     }
@@ -1267,13 +1285,13 @@ function LandingPage({onContinue, onDemo, onAreBadTap, theme, onOpenWhatsNew=()=
         <section className={isIndex?"hero-glow land-hero":"land-hero"} style={{padding:isIndex?"36px 0 72px":"80px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:isIndex?56:64,alignItems:"center"}}>
           <div className="fade">
             {isIndex&&<div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1.6,marginBottom:8}}>pab.wtf</div>}
-            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.6:4,textTransform:isIndex?"none":"uppercase",marginBottom:28}}>Premier League score predictions</div>
+            <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:isIndex?1.6:4,textTransform:isIndex?"none":"uppercase",marginBottom:28}}>Football score predictions</div>
             <h1 style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:isIndex?"clamp(2.2rem,5vw,3.75rem)":"clamp(2.8rem,5vw,4rem)",color:"var(--text-bright)",letterSpacing:isIndex?"-0.025em":-2,lineHeight:isIndex?1.08:1.05,marginBottom:10,maxWidth:isIndex?560:undefined}}>
               {isIndex?<>Join one group.</>:<>Predict every goal.</>}
             </h1>
             {isIndex&&<div style={{fontFamily:"Inter,system-ui,sans-serif",fontWeight:800,fontSize:"clamp(2.2rem,5vw,3.75rem)",lineHeight:1.08,letterSpacing:"-0.025em",marginBottom:20,color:"var(--text-bright)"}}>Make <span style={{WebkitTextStroke:"1px rgba(0,0,0,.22)",color:"transparent"}}>real picks</span>.</div>}
             <p style={{fontSize:isIndex?15:12,color:"var(--text-mid)",lineHeight:isIndex?1.7:1.8,maxWidth:isIndex?420:380,marginBottom:36,letterSpacing:0.1}}>
-              Predict exact scores for every Premier League game. Every goal off costs a point. Lowest total wins.
+              Predict exact scores for Premier League, La Liga, Champions League, and World Cup games. Every goal off costs a point. Lowest total wins.
             </p>
             <div className="land-hero-btns" style={{display:"flex",gap:isIndex?20:10,flexWrap:"wrap",alignItems:"center"}}>
               <button onClick={onContinue} style={{background:"var(--btn-bg)",color:"var(--btn-text)",fontSize:isIndex?13:11,letterSpacing:isIndex?0.1:2,textTransform:isIndex?"none":"uppercase",padding:isIndex?"12px 20px":"12px 28px",borderRadius:isIndex?0:8,fontWeight:600,fontFamily:"inherit",border:"none",cursor:"pointer"}}>{isIndex?"Sign in / up":"Create Group"}</button>
@@ -1588,7 +1606,7 @@ function AuthScreen({ onLogin, onBack, successMsg, joinCode=null, theme="dark" }
         {onBack&&<div style={{textAlign:"center",marginTop:16}}>
           <button onClick={onBack} style={{background:"none",border:"none",color:"var(--text-dim2)",cursor:"pointer",fontSize:11,letterSpacing:1,fontFamily:"inherit",padding:0}}>← Back</button>
         </div>}
-        <div style={{textAlign:isIndex?"left":"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:isIndex?0.2:1}}>PL &amp; World Cup 2026 Predictions</div>
+        <div style={{textAlign:isIndex?"left":"center",marginTop:16,color:"var(--border2)",fontSize:11,letterSpacing:isIndex?0.2:1}}>PL, La Liga, UCL &amp; World Cup 2026 Predictions</div>
       </div>
     </div>
   );
@@ -2069,6 +2087,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const [setupCustomLimit,setSetupCustomLimit]=useState("");
   const [setupGWLoading,setSetupGWLoading]=useState(false);
   const [setupPickMode,setSetupPickMode]=useState("open");
+  const setupMaxGW = competitionRoundCount(setupCompetition);
 
   useEffect(()=>{
     setGroups(initialGroups);
@@ -2113,7 +2132,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     setSetupGWLoading(true);
     (async()=>{
       try {
-        const cacheKey = `${setupCompetition === "LL" ? "fixtures:LL" : "fixtures:PL"}:${CURRENT_LEAGUE_SEASON}`;
+        const cacheKey = `fixtures:${setupCompetition}:${CURRENT_LEAGUE_SEASON}`;
         const globalDoc = await sget(cacheKey);
         const now = new Date();
         if (globalDoc&&(globalDoc.gameweeks||[]).length) {
@@ -2126,7 +2145,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
             : allFixtures.length
               ? Math.max(...allFixtures.map(f=>f.matchday))
               : null;
-          if (gw!==null&&gw>=1&&gw<=38) setSetupGW(String(gw));
+          if (gw!==null&&gw>=1&&gw<=setupMaxGW) setSetupGW(String(gw));
         } else {
           const resp = await fetch(`/api/fixtures?season=${CURRENT_LEAGUE_SEASON}&competition=${setupCompetition}`);
           if (!resp.ok) return;
@@ -2135,13 +2154,13 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
           if (!matches.length) return;
           const upcoming = matches.filter(m=>m.status!=="FINISHED"&&m.utcDate&&new Date(m.utcDate)>=now);
           const gw = upcoming.length ? Math.min(...upcoming.map(m=>m.matchday)) : Math.max(...matches.map(m=>m.matchday));
-          if (gw>=1&&gw<=38) setSetupGW(String(gw));
+          if (gw>=1&&gw<=setupMaxGW) setSetupGW(String(gw));
         }
       } catch{} finally {
         setSetupGWLoading(false);
       }
     })();
-  },[setupMode, setupCompetition]);
+  },[setupMode, setupCompetition, setupMaxGW]);
 
   const loadGroups = async (usernameArg = user?.username) => {
     if (!usernameArg) { setGroups([]); setLoading(false); return; }
@@ -2223,7 +2242,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.7,marginBottom:20}}>You've been invited to join this group with code <span style={{color:"var(--text-bright)"}}>{inviteGroup.code}</span>.</div>
       <div style={{background:"var(--surface)",border:"1px solid var(--border3)",borderRadius:10,padding:"12px 14px",marginBottom:20,fontSize:11,color:"var(--text-mid)",lineHeight:1.8}}>
         <div>{inviteGroup.members?.length||0} member{inviteGroup.members?.length===1?"":"s"}</div>
-        <div>{isWorldCupGroupLike(inviteGroup)?"World Cup 2026":(inviteGroup.competition||"PL")==="LL"?"La Liga":"Premier League"}</div>
+        <div>{competitionLabel(inviteGroup)}</div>
         <div>{(inviteGroup.mode||"open").toUpperCase()} mode</div>
       </div>
       <div style={{display:"flex",gap:10}}>
@@ -2325,7 +2344,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
                 onMouseEnter={e=>e.currentTarget.style.borderColor="var(--text-dim)"} onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border2)"}>
                 <div>
                   <div style={{fontSize:16,color:"var(--text-bright)",marginBottom:4}}>{g.name}</div>
-                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{(g.competition||"PL")==="WC"?"WC 2026 · ":""}{(g.members||[]).length} MEMBER{(g.members||[]).length!==1?"S":""} · {(()=>{const seas=g.season||2025;const next=(g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).sort((a,b)=>a.gw-b.gw).find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));const gwNum=next?.gw||g.currentGW;return gwLabel(g,gwNum);})()} · {(g.mode||"open").toUpperCase()}</div>
+                  <div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:1}}>{competitionLabel(g,true)} · {(g.members||[]).length} MEMBER{(g.members||[]).length!==1?"S":""} · {(()=>{const seas=g.season||2025;const next=(g.gameweeks||[]).filter(gw=>(gw.season||seas)===seas).sort((a,b)=>a.gw-b.gw).find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));const gwNum=next?.gw||g.currentGW;return gwLabel(g,gwNum);})()} · {(g.mode||"open").toUpperCase()}</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   {g.creatorUsername===user.username&&<span style={{fontSize:10,color:"#f59e0b",letterSpacing:2,background:"#f59e0b15",border:"1px solid #f59e0b30",borderRadius:4,padding:"2px 8px"}}>CREATOR</span>}
@@ -2348,15 +2367,15 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
                 <div style={{fontSize:13,color:"var(--text-bright)",fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontWeight:700,marginBottom:2}}>{createName}</div>
                 <div>
                   <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>COMPETITION</div>
-                  <div style={{display:"flex",gap:5}}>
-                    {[["PL","Premier League"],["LL","La Liga"],["WC","World Cup 2026"]].map(([val,label])=>(
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    {[["PL","Premier League"],["LL","La Liga"],["CL","Champions League"],["WC","World Cup 2026"]].map(([val,label])=>(
                       <button key={val} onClick={()=>setSetupCompetition(val)} style={{background:setupCompetition===val?"var(--btn-bg)":"var(--card)",color:setupCompetition===val?"var(--btn-text)":"var(--text-dim2)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"inherit",letterSpacing:1,transition:"all 0.15s"}}>{label}</button>
                     ))}
                   </div>
                 </div>
-                {(setupCompetition === "PL" || setupCompetition === "LL") && (
+                {(setupCompetition === "PL" || setupCompetition === "LL" || setupCompetition === "CL") && (
                 <div>
-                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING GW{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
+                  <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>STARTING {setupCompetition==="CL"?"MATCHDAY":"GW"}{setupGWLoading&&<span style={{color:"var(--text-dim3)",letterSpacing:0,marginLeft:6,textTransform:"none"}}>detecting...</span>}</div>
                   <Input value={setupGW} onChange={setSetupGW} placeholder="1" style={{width:80}} />
                 </div>
                 )}
@@ -3682,7 +3701,7 @@ function LeagueTab({group,user,names,theme}) {
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
   const comp = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
-  const isLeague = comp === "PL" || comp === "LL";
+  const isLeague = comp === "PL" || comp === "LL" || comp === "CL";
   const activeSeason = group.season || 2025;
   const [leagueTable, setLeagueTable] = useState(null);
   const [showTable, setShowTable] = useState(false);
@@ -3692,8 +3711,13 @@ function LeagueTab({group,user,names,theme}) {
     fetch(`/api/standings?competition=${comp}&season=${activeSeason}`).then(r=>r.ok?r.json():null).then(d=>{if(!c&&d?.table)setLeagueTable(d.table);}).catch(()=>{});
     return ()=>{c=true;};
   }, [comp, isLeague, activeSeason]);
-  const zoneColor = pos => pos<=4?"#3b82f6":pos===5?"#f97316":pos===6?"#10b981":pos>=18?"#ef4444":null;
-  const tableTitle = comp === "LL" ? "LA LIGA TABLE" : "PREMIER LEAGUE TABLE";
+  const zoneColor = pos => comp === "CL"
+    ? pos<=8?"#3b82f6":pos<=24?"#f97316":"#ef4444"
+    : pos<=4?"#3b82f6":pos===5?"#f97316":pos===6?"#10b981":pos>=18?"#ef4444":null;
+  const tableTitle = comp === "LL" ? "LA LIGA TABLE" : comp === "CL" ? "CHAMPIONS LEAGUE TABLE" : "PREMIER LEAGUE TABLE";
+  const tableLegend = comp === "CL"
+    ? [["#3b82f6","TOP 8"],["#f97316","PLAY-OFF"],["#ef4444","OUT"]]
+    : [["#3b82f6","UCL"],["#f97316","UEL"],["#10b981","UECL"],["#ef4444","REL"]];
   return (
     <div>
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:32,padding:isIndex?"26px 28px":"0",borderRadius:isIndex?28:0}}>
@@ -3764,10 +3788,9 @@ function LeagueTab({group,user,names,theme}) {
                 );
               })}
               <div style={{display:"flex",gap:16,padding:"10px 12px",fontSize:10,color:"var(--text-dim2)",background:"var(--surface)",borderTop:"1px solid var(--border)",flexWrap:"wrap"}}>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#3b82f6",marginRight:4,verticalAlign:"middle"}}/>UCL</span>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#f97316",marginRight:4,verticalAlign:"middle"}}/>UEL</span>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#10b981",marginRight:4,verticalAlign:"middle"}}/>UECL</span>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"#ef4444",marginRight:4,verticalAlign:"middle"}}/>REL</span>
+                {tableLegend.map(([color,label])=>(
+                  <span key={label}><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:color,marginRight:4,verticalAlign:"middle"}}/>{label}</span>
+                ))}
               </div>
             </div>
           )}
@@ -3946,6 +3969,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
   const isWC = isWorldCupGroupLike(group);
   const activeSeason = isWC ? (group.season||2026) : (group.season||2025);
   const fixtureGroup = useMemo(()=>isWC?normalizeWorldCupGroup(group):group,[isWC,group]);
+  const fixtureCompetition = isWC ? "WC" : (fixtureGroup.competition || "PL");
   const fixtureGameweeks = fixtureGroup.gameweeks||[];
   const [viewGW, setViewGW] = useState(()=>{
     const seas = activeSeason;
@@ -3974,7 +3998,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
     const db=b.date?new Date(b.date).getTime():Infinity;
     return da-db;
   });
-  const liveScores = useLiveScores(currentGW, gwFixtures, isWC ? "WC" : (fixtureGroup.competition || "PL"), activeSeason, initialLiveScores);
+  const liveScores = useLiveScores(currentGW, gwFixtures, fixtureCompetition, activeSeason, initialLiveScores);
   const liveClockActive = gwFixtures.some(f => {
     const lm = liveScores[`${f.home}|${f.away}`];
     const liveStatus = lm?.status === "in_progress" || lm?.status === "halftime" || f.status === "IN_PLAY" || f.status === "PAUSED";
@@ -4175,7 +4199,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
       )}
       <div className={isIndex?"liquid-card":undefined} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:12,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <div>
-          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{isWC ? gwLabel(fixtureGroup,currentGW) : `Gameweek ${currentGW}`}</h1>
+          <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:isIndex?34:34,fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1}}>{fixtureCompetition === "CL" || isWC ? gwLabel(fixtureGroup,currentGW) : `Gameweek ${currentGW}`}</h1>
           {isIndex&&<div style={{fontSize:12,color:"var(--text-dim)",marginTop:6}}>Set your picks before the whistle.</div>}
         </div>
         <div className="gw-outer" style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
@@ -4245,7 +4269,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,initialLiveScores=
         </div>
       </div>
 
-      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={isWC ? "WC" : (fixtureGroup.competition || "PL")} season={activeSeason} initialLiveScores={initialLiveScores} />
+      <NextMatchCountdown fixtureGameweeks={fixtureGameweeks} myPreds={myPreds} competition={fixtureCompetition} season={activeSeason} initialLiveScores={initialLiveScores} />
 
       {gwAdminLocked && (
         <div style={{background:"#ef444410",border:"1px solid #ef444430",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:11,color:"#ef4444",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
@@ -5542,12 +5566,12 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   };
   const backfillGWs = async () => {
     const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'backfill-gws'}});
-    if(ok&&data.group){setGroup(data.group);setBackfillMsg("Backfilled missing gameweeks.");}else{setBackfillMsg(data.error||"Backfill failed.");}
+    if(ok&&data.group){setGroup(data.group);setBackfillMsg(`Backfilled missing ${roundNoun.toLowerCase()}.`);}else{setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const backfillAllGWs = async () => {
     const{ok,data}=await callAPI('group-admin',{groupId:group.id,payload:{type:'backfill-all-gws'}});
-    if(ok&&data.group){setGroup(data.group);setBackfillMsg("Rebuilt all gameweeks.");}else{setBackfillMsg(data.error||"Backfill failed.");}
+    if(ok&&data.group){setGroup(data.group);setBackfillMsg(`Rebuilt all ${roundNoun.toLowerCase()}.`);}else{setBackfillMsg(data.error||"Backfill failed.");}
     setTimeout(()=>setBackfillMsg(""),3000);
   };
   const syncAllDates = async () => {
@@ -5642,6 +5666,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
   const drawLimitPeriod = draw11LimitPeriod(group);
   const custom11LimitActive = !DRAW_11_LIMIT_PRESETS.some(([val])=>val===currentDraw11Limit);
   const scopeLabel = (group.scoreScope||"all")==="all"?"All seasons":"Current only";
+  const groupCompetition = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
+  const roundNoun = groupCompetition === "CL" ? "Matchdays" : "Gameweeks";
 
   const sections = [
     {
@@ -5676,7 +5702,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
           <div>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>INFO</div>
             <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--card)",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:2.2}}>
-              {[["Members",group.members?.length],["Gameweeks",(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["Fixture Data","Automatic"],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
+              {[["Members",group.members?.length],[roundNoun,(group.gameweeks||[]).filter(g=>(g.season||group.season||2025)===(group.season||2025)).length],["Fixture Data","Automatic"],["Competition",competitionLabel(group)],["Active Season",group.season||2025],["Score Scope",(group.scoreScope||"all")==="all"?"All Seasons":"Current Season"],["Your role",isCreator?"Creator":isAdmin?"Admin":"Member"]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",borderBottom:"1px solid var(--border3)",paddingBottom:4}}>
                   <span style={{color:"var(--text-dim)"}}>{l}</span>
                   <span style={{color:l==="Fixture Data"?"#22c55e":l==="Your role"?(isCreator?"#f59e0b":isAdmin?"#60a5fa":"var(--text-dim2)"):"inherit"}}>{v}</span>
@@ -5754,7 +5780,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
       )
     },
     {
-      id:"gameweeks", title:"Gameweeks", admin:true, hidden:!isAdmin,
+      id:"gameweeks", title:roundNoun, admin:true, hidden:!isAdmin,
       content:(
         <div style={{display:"flex",flexDirection:"column",gap:18}}>
           {/* GW visibility */}
@@ -5806,8 +5832,8 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
           <div>
             <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:10}}>MANAGE</div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <Btn variant="muted" small onClick={backfillGWs}>Create future GWs</Btn>
-              <Btn variant="muted" small onClick={backfillAllGWs}>Create all GWs</Btn>
+              <Btn variant="muted" small onClick={backfillGWs}>Create future {roundNoun}</Btn>
+              <Btn variant="muted" small onClick={backfillAllGWs}>Create all {roundNoun}</Btn>
               {backfillMsg&&<span style={{fontSize:11,color:"#22c55e"}}>{backfillMsg}</span>}
             </div>
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginTop:8}}>
@@ -5824,7 +5850,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
                 <span style={{color:"#22c55e",fontSize:13,fontWeight:500,letterSpacing:0.5}}>Automatic Results Active</span>
               </div>
               <div style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.9}}>
-                Premier League and World Cup scores refresh from the shared fixture cache. La Liga still uses the date tools above.
+                Premier League and World Cup refresh from the shared fixture cache. La Liga and Champions League sync through Football-Data.
               </div>
               <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border3)"}}>
                 <div style={{fontSize:10,color:"var(--text-dim2)",letterSpacing:2,marginBottom:8}}>SEASON YEAR</div>
@@ -5839,7 +5865,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,setTh
       )
     },
     {
-      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||isWorldCupGroupLike(group)||((group.competition||"PL")!=="PL"&&(group.competition||"PL")!=="LL"), summary:`Season ${activeSeason}`,
+      id:"seasons", title:"Seasons", admin:true, hidden:!isAdmin||isWorldCupGroupLike(group)||((group.competition||"PL")!=="PL"&&(group.competition||"PL")!=="LL"&&(group.competition||"PL")!=="CL"), summary:`Season ${activeSeason}`,
       content:(()=>{
         const allSeasons=[...new Set((group.gameweeks||[]).map(g=>g.season||activeSeason))].sort((a,b)=>a-b);
         return (

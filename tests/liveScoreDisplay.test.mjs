@@ -511,7 +511,7 @@ test("fixtures tab is seeded with live scores already loaded by the game shell",
   );
   assert.match(
     source,
-    /useLiveScores\(currentGW, gwFixtures, isWC \? "WC" : \(fixtureGroup\.competition \|\| "PL"\), activeSeason, initialLiveScores\)/,
+    /useLiveScores\(currentGW, gwFixtures, fixtureCompetition, activeSeason, initialLiveScores\)/,
     "FixturesTab should seed its live-score hook from initial live scores"
   );
   assert.match(
@@ -590,9 +590,10 @@ test("world cup fixture rendering uses the WC detector for old groups", () => {
   assert.match(source, /isWorldCupGroupLike/);
   assert.match(gameBlock, /const isWCGroup = isWorldCupGroupLike\(group\);/);
   assert.match(fixturesBlock, /const isWC = isWorldCupGroupLike\(group\);/);
+  assert.match(fixturesBlock, /const fixtureCompetition = isWC \? "WC" : \(fixtureGroup\.competition \|\| "PL"\);/);
   assert.match(
     fixturesBlock,
-    /useLiveScores\(currentGW, gwFixtures, isWC \? "WC" : \(fixtureGroup\.competition \|\| "PL"\), activeSeason, initialLiveScores\)/
+    /useLiveScores\(currentGW, gwFixtures, fixtureCompetition, activeSeason, initialLiveScores\)/
   );
 });
 
@@ -629,7 +630,7 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
   );
   assert.match(
     fixturesBlock,
-    /<NextMatchCountdown[^>]*fixtureGameweeks=\{fixtureGameweeks\}[^>]*myPreds=\{myPreds\}[^>]*competition=\{isWC \? "WC" : \(fixtureGroup\.competition \|\| "PL"\)\}[^>]*season=\{activeSeason\}[^>]*initialLiveScores=\{initialLiveScores\}[^>]*\/>/
+    /<NextMatchCountdown[^>]*fixtureGameweeks=\{fixtureGameweeks\}[^>]*myPreds=\{myPreds\}[^>]*competition=\{fixtureCompetition\}[^>]*season=\{activeSeason\}[^>]*initialLiveScores=\{initialLiveScores\}[^>]*\/>/
   );
 });
 

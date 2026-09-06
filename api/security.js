@@ -4,10 +4,10 @@ import { parseMatchesToFixtures, mergeGlobalIntoGroup, regroupGlobalDoc, dedupeG
 import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
-import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
+import { CURRENT_LEAGUE_SEASON, competitionFixtureCount, competitionRoundCount } from "../shared/season.js";
 
-const FD_COMP_MAP = { PL: 'PL', LL: 'PD', WC: 'WC' };
-function fdApiKey(comp) { return comp === 'LL' ? process.env.FD_API_KEY_LALIGA : process.env.VITE_FD_API_KEY; }
+const FD_COMP_MAP = { PL: 'PL', LL: 'PD', CL: 'CL', WC: 'WC' };
+function fdApiKey(comp) { return comp === 'LL' ? (process.env.FD_API_KEY_LALIGA || process.env.VITE_FD_API_KEY) : (process.env.VITE_FD_API_KEY || process.env.FD_API_KEY_LALIGA); }
 
 async function fetchFromFD(matchday, season, competition = 'PL') {
   const fdComp = FD_COMP_MAP[competition] || competition;
@@ -79,13 +79,14 @@ function draw11LimitMax(value) {
 }
 
 function draw11LimitPeriod(group) {
-  return isWorldCupGroupLike(group) ? 'round' : 'gameweek';
+  if (isWorldCupGroupLike(group)) return 'round';
+  return resolvedGroupCompetition(group, false) === 'CL' ? 'matchday' : 'gameweek';
 }
 
 function resolvedGroupCompetition(group, isWC = isWorldCupGroupLike(group)) {
   if (isWC) return 'WC';
   const competition = String(group?.competition || '').trim().toUpperCase();
-  return competition === 'LL' ? 'LL' : 'PL';
+  return competition === 'LL' || competition === 'CL' ? competition : 'PL';
 }
 
 function resolvedGroupSeason(group, competition) {
@@ -100,9 +101,9 @@ function findFixtureGW(group, fixtureId) {
   return null;
 }
 
-function makeFixturesFallback(gw, season = 2025) {
+function makeFixturesFallback(gw, season = 2025, competition = 'PL') {
   const prefix = season !== 2025 ? `${season}-` : '';
-  return Array.from({ length: 10 }, (_, i) => ({ id: `${prefix}gw${gw}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
+  return Array.from({ length: competitionFixtureCount(competition) }, (_, i) => ({ id: `${prefix}gw${gw}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
 }
 
 function makeWCRounds() {
@@ -116,6 +117,47 @@ function makeWCRounds() {
     { gw: 7, season: 2026, fixtures: [] },
     { gw: 8, season: 2026, fixtures: [] },
   ];
+}
+
+function makeLeagueGameweeks(startGW, season, competition = 'PL') {
+  const totalRounds = competitionRoundCount(competition);
+  return Array.from({ length: Math.max(0, totalRounds - startGW + 1) }, (_, i) => ({
+    gw: startGW + i,
+    season,
+    fixtures: makeFixturesFallback(startGW + i, season, competition),
+  }));
+}
+
+function footballDataMatchesByGameweek(matches = []) {
+  const byGW = {};
+  matches.forEach(m => {
+    const gw = Number(m.matchday);
+    if (!gw) return;
+    if (!byGW[gw]) byGW[gw] = [];
+    byGW[gw].push(m);
+  });
+  return byGW;
+}
+
+function mergeFootballDataSeason(globalDoc, matches, competition, season) {
+  const byGW = footballDataMatchesByGameweek(matches);
+  let updated = { ...(globalDoc || {}), competition, season, source: 'football-data', gameweeks: globalDoc?.gameweeks || [] };
+  Object.entries(byGW).forEach(([gw, ms]) => {
+    updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), competition, season));
+  });
+  return normalizeLeagueFixtureDoc({
+    ...updated,
+    competition,
+    season,
+    source: 'football-data',
+    fullSeason: Object.keys(byGW).length >= competitionRoundCount(competition),
+  }, competition, season);
+}
+
+async function hydrateFootballDataSeasonCache(globalDoc, season, competition) {
+  const matches = await fetchFromFD(null, season, competition);
+  if (!matches.length) return null;
+  return mergeFootballDataSeason(globalDoc, matches, competition, season);
 }
 
 function getFixtureSeasonIndex(group, fixtureId) {
@@ -487,22 +529,28 @@ export default async function handler(req, res) {
       }
     }
     if (!code) return bad(res, 500, 'Failed to generate group code');
-    const isWC = competition === 'WC';
-    const isLL = competition === 'LL';
-    const startGW = Math.max(1, Math.min(38, parseInt(setupGW) || 1));
+    const requestedCompetition = String(competition || 'PL').trim().toUpperCase();
+    const isWC = requestedCompetition === 'WC';
+    const leagueCompetition = requestedCompetition === 'LL' || requestedCompetition === 'CL' ? requestedCompetition : 'PL';
+    const startGW = Math.max(1, Math.min(competitionRoundCount(isWC ? 'WC' : leagueCompetition), parseInt(setupGW) || 1));
     const leagueSeason = CURRENT_LEAGUE_SEASON;
     const baseGroup = { id, name: trimmedName, code, creatorUsername: username, members: [username], admins: [username], currentGW: isWC ? 1 : startGW, apiKey: '', hiddenGWs: [], scoreScope: 'all', draw11Limit: normalizeDraw11Limit(setupLimit, 'unlimited'), mode: setupPickMode || 'open', memberOrder: [username], dibsSkips: {}, hiddenFixtures: [], adminLog: [] };
     let group;
     if (isWC) {
       group = { ...baseGroup, gameweeks: makeWCRounds(), season: 2026, competition: 'WC' };
-    } else if (isLL) {
-      group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason, competition: 'LL' };
     } else {
-      group = { ...baseGroup, gameweeks: Array.from({ length: 38 - startGW + 1 }, (_, i) => ({ gw: startGW + i, season: leagueSeason, fixtures: makeFixturesFallback(startGW + i, leagueSeason) })), season: leagueSeason, competition: 'PL' };
+      group = { ...baseGroup, gameweeks: makeLeagueGameweeks(startGW, leagueSeason, leagueCompetition), season: leagueSeason, competition: leagueCompetition };
     }
-    const globalCacheKey = isWC ? 'fixtures:WC:2026' : isLL ? `fixtures:LL:${leagueSeason}` : `fixtures:PL:${leagueSeason}`;
+    const globalCacheKey = fixtureGlobalKey(group.competition, group.season);
     try {
-      const globalDoc = await getValue(globalCacheKey);
+      let globalDoc = await getValue(globalCacheKey);
+      if (!isWC && (group.competition === 'LL' || group.competition === 'CL') && shouldHydrateLeagueSeason(globalDoc || { competition: group.competition, season: group.season, gameweeks: [] }, startGW, { competition: group.competition, season: group.season })) {
+        const hydrated = await hydrateFootballDataSeasonCache(globalDoc || { competition: group.competition, season: group.season, gameweeks: [] }, group.season, group.competition);
+        if (hydrated) {
+          globalDoc = hydrated;
+          await setValue(globalCacheKey, globalDoc);
+        }
+      }
       if (globalDoc && (globalDoc.gameweeks || []).length) group = mergeGlobalIntoGroup(globalDoc, group);
     } catch (_) {
       // Group creation can continue without a warmed global fixture cache.
@@ -722,18 +770,14 @@ export default async function handler(req, res) {
       const seas = resolvedGroupSeason(group, comp);
       let globalDoc;
       let syncInfo = { fetched: false, reason: 'cached' };
-      if (comp === 'LL') {
+      if (comp === 'LL' || comp === 'CL') {
         const globalKey = fixtureGlobalKey(comp, seas);
-        globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
+        globalDoc = await getValue(globalKey) || { competition: comp, season: seas, updatedAt: 0, gameweeks: [] };
         try {
           if (shouldHydrateLeagueSeason(globalDoc, targetGW, { competition: comp, season: seas })) {
-            const allMatches = await fetchFromFD(null, seas, comp);
-            if (!allMatches.length) return res.status(200).json({ group, updated: false });
-            let updated = { ...globalDoc };
-            const byGW = {};
-            allMatches.forEach(m => { const gw = m.matchday; if (!byGW[gw]) byGW[gw] = []; byGW[gw].push(m); });
-            Object.entries(byGW).forEach(([gw, ms]) => { updated = regroupGlobalDoc(updated, Number(gw), parseMatchesToFixtures(ms, Number(gw), comp, seas)); });
-            globalDoc = normalizeLeagueFixtureDoc({ ...updated, season: seas, fullSeason: Object.keys(byGW).length >= 38 }, comp, seas);
+            const hydrated = await hydrateFootballDataSeasonCache(globalDoc, seas, comp);
+            if (!hydrated) return res.status(200).json({ group, updated: false });
+            globalDoc = hydrated;
           } else {
             const matches = await fetchFromFD(targetGW, seas, comp);
             if (!matches.length) return res.status(200).json({ group, updated: false });
@@ -975,8 +1019,10 @@ export default async function handler(req, res) {
     if (payload.type === 'backfill-gws') {
       const existing = group.gameweeks || [];
       const season = group.season || 2025;
+      const comp = resolvedGroupCompetition(group);
+      const totalRounds = competitionRoundCount(comp);
       const maxGw = existing.reduce((m,g)=>Math.max(m,g.gw||0),0);
-      const toAdd = Array.from({ length: Math.max(0, 38 - maxGw) }, (_,i)=>({ gw:maxGw+i+1, season, fixtures:[] }));
+      const toAdd = Array.from({ length: Math.max(0, totalRounds - maxGw) }, (_,i)=>({ gw:maxGw+i+1, season, fixtures:[] }));
       const next = { ...group, gameweeks: [...existing, ...toAdd] };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
@@ -984,8 +1030,10 @@ export default async function handler(req, res) {
 
     if (payload.type === 'backfill-all-gws') {
       const season = group.season || 2025;
+      const comp = resolvedGroupCompetition(group);
+      const totalRounds = competitionRoundCount(comp);
       const existing = new Map((group.gameweeks || []).map(g => [g.gw, g]));
-      const gameweeks = Array.from({ length: 38 }, (_,i)=> existing.get(i+1) || ({ gw:i+1, season, fixtures:[] }));
+      const gameweeks = Array.from({ length: totalRounds }, (_,i)=> existing.get(i+1) || ({ gw:i+1, season, fixtures:[] }));
       const next = { ...group, gameweeks };
       await setValue(groupKey, next);
       return res.status(200).json({ group: next });
@@ -1038,8 +1086,9 @@ export default async function handler(req, res) {
       const gwObj = (group.gameweeks || []).find(gw => gw.gw === gwToClear && (gw.season || seas) === seas);
       const fixtureIds = new Set((gwObj?.fixtures || []).map(f => f.id));
       const isWC = isWorldCupGroupLike(group);
+      const comp = resolvedGroupCompetition(group, isWC);
       const prefix = isWC ? 'wc-' : seas !== 2025 ? `${seas}-` : '';
-      const freshFixtures = isWC ? [] : Array.from({ length: 10 }, (_, i) => ({ id: `${prefix}gw${gwToClear}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
+      const freshFixtures = isWC ? [] : Array.from({ length: competitionFixtureCount(comp) }, (_, i) => ({ id: `${prefix}gw${gwToClear}-f${i}`, home: 'TBD', away: 'TBD', result: null, status: 'SCHEDULED' }));
       const preds = { ...(group.predictions || {}) };
       Object.keys(preds).forEach(u => {
         const up = { ...preds[u] };
@@ -1095,8 +1144,8 @@ export default async function handler(req, res) {
         if (!matches.length) return bad(res, 404, 'No matches found for this round.');
         apiFixtures = parseMatchesToFixtures(matches, currentGW, comp, seas);
         const globalKey = fixtureGlobalKey(comp, seas);
-        const existingGlobal = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [] };
-        updatedGlobal = normalizeLeagueFixtureDoc(regroupGlobalDoc(existingGlobal, currentGW, apiFixtures), comp, seas);
+        const existingGlobal = await getValue(globalKey) || { competition: comp, season: seas, source: 'football-data', updatedAt: 0, gameweeks: [] };
+        updatedGlobal = normalizeLeagueFixtureDoc({ ...regroupGlobalDoc(existingGlobal, currentGW, apiFixtures), competition: comp, season: seas, source: 'football-data' }, comp, seas);
         await setValue(globalKey, updatedGlobal);
       }
       if (!apiFixtures.length) return bad(res, 404, 'No matches found for this round.');

@@ -26,7 +26,7 @@ test("auto sync treats old World Cup groups as WC even without a competition fie
   assert.match(securitySource, /isWorldCupGroupLike/);
   assert.match(
     securitySource,
-    /function resolvedGroupCompetition\(group, isWC = isWorldCupGroupLike\(group\)\) \{[\s\S]*return competition === 'LL' \? 'LL' : 'PL';/
+    /function resolvedGroupCompetition\(group, isWC = isWorldCupGroupLike\(group\)\) \{[\s\S]*return competition === 'LL' \|\| competition === 'CL' \? competition : 'PL';/
   );
   assert.match(autoSyncBlock, /const isWC = isWorldCupGroupLike\(group\);/);
   assert.match(autoSyncBlock, /const comp = resolvedGroupCompetition\(group, isWC\);/);

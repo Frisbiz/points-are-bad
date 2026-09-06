@@ -2,7 +2,7 @@ import { db, docKey, getValue, setValue } from "./_db.js";
 import { applyFinishedLiveMatchesToGlobalDoc, dedupeFixtures, normName, regroupGlobalDoc } from "./_fixtureSync.js";
 import { parseYahooWorldCupStandings } from "./wc-standings.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
-import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
+import { CURRENT_LEAGUE_SEASON, competitionFixtureCacheKey } from "../shared/season.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const YAHOO_WC_TEAMS_URL = "https://api-secure.sports.yahoo.com/v1/editorial/league/soccer.l.fbwcup/teams";
@@ -73,8 +73,7 @@ const STAGE_MAP = [
 ];
 
 export function fixtureGlobalKey(competition = "PL", season = CURRENT_LEAGUE_SEASON) {
-  const comp = competition === "WC" ? "WC" : competition === "LL" ? "LL" : "PL";
-  return comp === "WC" ? "fixtures:WC:2026" : `fixtures:${comp}:${season || COMP_CONFIG[comp]?.season || CURRENT_LEAGUE_SEASON}`;
+  return competitionFixtureCacheKey(competition, season);
 }
 
 function toInt(value) {
