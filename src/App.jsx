@@ -2094,7 +2094,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
         <div className="group-dashboard-heading">
           <div>
             <h1 style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="index"?36:32,fontWeight:theme==="index"?800:900,color:"var(--text-bright)",letterSpacing:theme==="index"?-1.4:-1,marginBottom:7}}>Your groups</h1>
-            <p style={{color:"var(--text-dim)",fontSize:theme==="index"?13:11,letterSpacing:theme==="index"?0:1,lineHeight:1.5}}>{groups.length?"Deadlines, picks and position — all in one place.":"Create or join a group to start predicting."}</p>
+            <p style={{color:"var(--text-dim)",fontSize:theme==="index"?13:11,letterSpacing:theme==="index"?0:1,lineHeight:1.5}}>{groups.length?"Picks, deadlines and standings at a glance.":"Create or join a group to start predicting."}</p>
           </div>
           {groups.length>0&&<div className="group-dashboard-count" style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:theme==="index"?0:1,textAlign:"right"}}>{groups.length} group{groups.length===1?"":"s"}</div>}
         </div>
