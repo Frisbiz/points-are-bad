@@ -1,5 +1,6 @@
 import { applyKnownWorldCupKnockoutSchedule, isWorldCupGroupLike, normalizeWorldCupGroup } from "./_wcBracket.js";
 import { competitionRoundCount } from "../shared/season.js";
+import { fixtureBelongsToSeason } from "../shared/groupLifecycle.js";
 
 export const TEAM_NAME_MAP = {
   // Premier League - with and without FC suffix (API returns both forms)
@@ -752,7 +753,8 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
   let predictions = group.predictions || {};
   const remaps = [];
   const globalGWMap = {};
-  (normalizedGlobalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = dedupeFixtures(gwObj.fixtures || []); });
+  if (globalDoc.season && Number(globalDoc.season) !== Number(seas)) return g;
+  (normalizedGlobalDoc.gameweeks || []).filter(gwObj => (gwObj.season || seas) === seas).forEach(gwObj => { globalGWMap[gwObj.gw] = dedupeFixtures((gwObj.fixtures || []).filter(f => fixtureBelongsToSeason(f, group.competition || 'PL', seas))); });
   const hasPick = id => Object.values(predictions).some(up => up[id] !== undefined);
   const updatedGameweeks = (group.gameweeks || []).map(gwObj => {
     if ((gwObj.season || seas) !== seas) return gwObj;

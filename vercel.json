@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/join/:code", "destination": "/?join=:code" }
+    { "source": "/join/:code", "destination": "/?join=:code" },
+    { "source": "/signin", "destination": "/" },
+    { "source": "/dashboard", "destination": "/" },
+    { "source": "/groups/:id", "destination": "/" }
   ]
 }

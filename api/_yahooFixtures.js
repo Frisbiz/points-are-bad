@@ -3,6 +3,7 @@ import { applyFinishedLiveMatchesToGlobalDoc, dedupeFixtures, normName, regroupG
 import { parseYahooWorldCupStandings } from "./wc-standings.js";
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, fixtureHasWorldCupSeedPlaceholder, formatWorldCupFixtureSeedPlaceholders, formatWorldCupGlobalDocSeedPlaceholders, resolveWorldCupGlobalDocSeeds, resolveWorldCupKnockoutSeeds } from "./_wcBracket.js";
 import { CURRENT_LEAGUE_SEASON, competitionFixtureCacheKey } from "../shared/season.js";
+import { fixtureBelongsToSeason } from "../shared/groupLifecycle.js";
 
 const YAHOO_BASE = "https://api-secure.sports.yahoo.com/v1/editorial/s/scoreboard";
 const YAHOO_WC_TEAMS_URL = "https://api-secure.sports.yahoo.com/v1/editorial/league/soccer.l.fbwcup/teams";
@@ -377,7 +378,7 @@ export async function fetchYahooFixturesForWeek(competition, week) {
   const scoreboard = await fetchScoreboard({ competition, week });
   const gameweeks = normalizeGames(scoreboard, competition, week);
   const target = gameweeks.find(gw => gw.gw === Number(week));
-  return target?.fixtures || [];
+  return (target?.fixtures || []).filter(f => fixtureBelongsToSeason(f, competition, COMP_CONFIG[competition].season));
 }
 
 async function fetchYahooWCRoundByDates(dates, targetGW) {
@@ -590,6 +591,10 @@ export async function refreshYahooFixtureCache({ competition = "PL", season = nu
   const seas = comp === "WC" ? 2026 : (season || COMP_CONFIG.PL.season);
   const globalKey = fixtureGlobalKey(comp, seas);
   let globalDoc = await getValue(globalKey) || { season: seas, updatedAt: 0, gameweeks: [], source: "yahoo" };
+  // Yahoo's week endpoint is current-season only. Never relabel it as history.
+  if (comp === 'PL' && Number(seas) !== CURRENT_LEAGUE_SEASON) {
+    return { globalDoc, fetched:false, reason:'historical-season', intervalMs:0 };
+  }
   if (comp === "WC") {
     const resolvedCache = await resolveCachedWCGlobalDocSeeds(globalDoc);
     if (resolvedCache.changed) {

@@ -25,6 +25,15 @@ dist-ssr
 
 .vercel
 .worktrees/
+.superpowers/
+.claude/
+.playwright-cli/
+.playwright-mcp/
+output/
+points-are-bad/
+points-are-bad-latest/
+.impeccable.md
+AGENTS.md
 .env
 CLAUDE.md
 seed.js

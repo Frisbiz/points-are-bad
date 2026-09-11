@@ -7,7 +7,7 @@ const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8
 test("live score polling uses the shared interval and pauses with page visibility", () => {
   assert.match(
     appSource,
-    /import \{[^}]*LIVE_POLL_INTERVAL_MS[^}]*SCHEDULE_SYNC_INTERVAL_MS[^}]*hasUnpersistedFinishedLiveScores[^}]*shouldRunVisibleTask[^}]*\} from "\.\.\/api\/_livePolicy\.js";/s
+    /import \{[^}]*LIVE_POLL_INTERVAL_MS[^}]*SCHEDULE_SYNC_INTERVAL_MS[^}]*hasUnpersistedFinishedLiveScores[^}]*shouldRunVisibleTask[^}]*\} from "\.\.\/shared\/livePolicy\.js";/s
   );
   assert.match(appSource, /document\.addEventListener\("visibilitychange", onLiveVisibilityChange\)/);
   assert.match(appSource, /schedulePoll\(LIVE_POLL_INTERVAL_MS\)/);

@@ -2,6 +2,7 @@ import { db, docKey } from "./_db.js";
 import { getSession, readSessionToken } from "./_auth.js";
 import { normalizeWorldCupGroup } from "./_wcBracket.js";
 import { normalizeLeagueFixtureDoc } from "./_fixtureSync.js";
+import { sanitizeGroupForViewer, sanitizeGroupPreview } from "../shared/groupAccess.js";
 
 // fixtures: are public (no sensitive data, needed for fixture display)
 // group: and groupcode: require a valid session - group docs contain all member picks
@@ -15,14 +16,17 @@ function validKeyFor(key, prefixes) {
   return typeof key === "string" && key.length <= 200 && prefixes.some(p => key.startsWith(p));
 }
 
-function normalizeReadValue(key, value) {
+function normalizeReadValue(key, value, username) {
   if (key.startsWith("fixtures:")) {
     const [, competition, rawSeason] = key.split(":");
     return normalizeLeagueFixtureDoc(value, competition, Number(rawSeason) || value?.season);
   }
   if (key.startsWith("group:")) {
     const group = normalizeWorldCupGroup(value);
-    return normalizeLeagueFixtureDoc(group, group?.competition || "PL", group?.season);
+    const normalized = normalizeLeagueFixtureDoc(group, group?.competition || "PL", group?.season);
+    return (normalized?.members || []).includes(username)
+      ? sanitizeGroupForViewer(normalized, username)
+      : sanitizeGroupPreview(normalized);
   }
   return value;
 }
@@ -30,19 +34,20 @@ function normalizeReadValue(key, value) {
 export default async function handler(req, res) {
   if (req.method === "GET") {
     const { key } = req.query;
+    let session = null;
     if (!validKeyFor(key, ALLOWED_READ_PREFIXES)) return res.status(403).json({ error: "Forbidden" });
 
     // group: and groupcode: reads require a valid session
     if (validKeyFor(key, AUTH_READ_PREFIXES)) {
       const token = readSessionToken(req);
-      const session = await getSession(token);
+      session = await getSession(token);
       if (!session?.username) return res.status(401).json({ error: "Unauthorized" });
     }
 
     try {
       const snap = await db.collection("data").doc(docKey(key)).get();
       const value = snap.exists ? snap.data().value : null;
-      return res.status(200).json({ value: normalizeReadValue(key, value) });
+      return res.status(200).json({ value: normalizeReadValue(key, value, session?.username) });
     } catch (e) {
       console.error("db GET error", key, e);
       return res.status(500).json({ error: "Read failed" });

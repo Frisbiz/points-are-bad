@@ -5,6 +5,9 @@ import { fixtureGlobalKey, refreshYahooFixtureCache } from "./_yahooFixtures.js"
 import { applyKnownWorldCupKnockoutSchedule, buildWorldCupKnockoutScheduleFixtures, isWorldCupGroupLike, normalizeWorldCupGroup, resolveWorldCupBracketAdvancement } from "./_wcBracket.js";
 import { DEMO_GROUP_CODE, DEMO_WC_GROUP_CODE, DEMO_SHARED_USERNAME, DEMO_MEMBERS, makeDemoPick } from "./_demo.js";
 import { CURRENT_LEAGUE_SEASON, competitionFixtureCount, competitionRoundCount } from "../shared/season.js";
+import { isPastGroup, fixtureBelongsToSeason } from "../shared/groupLifecycle.js";
+import { loadBootstrapData } from "./_bootstrap.js";
+import { canAdminGroup, isDeveloper, sanitizeGroupForViewer } from "../shared/groupAccess.js";
 
 const FD_COMP_MAP = { PL: 'PL', LL: 'PD', CL: 'CL', WC: 'WC' };
 function fdApiKey(comp) { return comp === 'LL' ? (process.env.FD_API_KEY_LALIGA || process.env.VITE_FD_API_KEY) : (process.env.VITE_FD_API_KEY || process.env.FD_API_KEY_LALIGA); }
@@ -19,7 +22,6 @@ async function fetchFromFD(matchday, season, competition = 'PL') {
   return data.matches || [];
 }
 
-const OWNER_USERNAME = "faris";
 const SITE_DEFAULTS = { defaultTheme: "dark", landingTheme: null };
 
 // ── Rate limiting (Firestore-backed, reliable across serverless instances) ───
@@ -53,6 +55,18 @@ async function checkRateLimit(key, max) {
 
 function bad(res, code, error) {
   return res.status(code).json({ error });
+}
+
+function secureGroupResponses(res) {
+  const sendJson = res.json.bind(res);
+  res.json = payload => {
+    if (!payload?.group || !res._pabViewerUsername) return sendJson(payload);
+    const isMember = (payload.group.members || []).includes(res._pabViewerUsername);
+    return sendJson({
+      ...payload,
+      group: isMember ? sanitizeGroupForViewer(payload.group, res._pabViewerUsername) : null,
+    });
+  };
 }
 
 function genCode() {
@@ -278,6 +292,7 @@ async function requireUser(req, res) {
     bad(res, 401, "Unauthorized");
     return null;
   }
+  res._pabViewerUsername = session.username;
   return session.username;
 }
 
@@ -289,9 +304,7 @@ async function requireAdmin(req, res, groupId) {
     bad(res, 404, "Group not found");
     return null;
   }
-  const isCreator = group.creatorUsername === username;
-  const isAdmin = (group.admins || []).includes(username);
-  if (!isCreator && !isAdmin) {
+  if (!canAdminGroup(group, username)) {
     bad(res, 403, "Forbidden");
     return null;
   }
@@ -299,8 +312,29 @@ async function requireAdmin(req, res, groupId) {
 }
 
 export default async function handler(req, res) {
+  secureGroupResponses(res);
   const action = req.method === 'GET' ? req.query.action : req.body?.action;
   if (!action) return bad(res, 400, "Missing action");
+
+  if (action === 'bootstrap' && req.method === 'GET') {
+    try {
+      const payload = await loadBootstrapData({
+        token: readSessionToken(req),
+        getSession,
+        getValue,
+        safeUser,
+        normalizeGroup: group => {
+          const normalized = normalizeWorldCupGroup(group);
+          return normalizeLeagueFixtureDoc(normalized, normalized?.competition || 'PL', normalized?.season);
+        },
+        prepareGroupForViewer: sanitizeGroupForViewer,
+      });
+      return res.status(200).json(payload);
+    } catch (error) {
+      console.error('bootstrap failed', error);
+      return bad(res, 500, 'Failed to load app');
+    }
+  }
 
   if (action === 'auth-session' && req.method === 'GET') {
     const token = readSessionToken(req);
@@ -499,7 +533,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const username = await requireUser(req, res);
       if (!username) return;
-      if (username !== OWNER_USERNAME) return bad(res, 403, 'Forbidden');
+      if (!isDeveloper(username)) return bad(res, 403, 'Forbidden');
       const incoming = req.body || {};
       const next = {
         defaultTheme: typeof incoming.defaultTheme === 'string' ? incoming.defaultTheme : SITE_DEFAULTS.defaultTheme,
@@ -702,11 +736,13 @@ export default async function handler(req, res) {
     const groupKey = `group:${groupId}`;
 
     if (payload.type === 'save-prediction') {
+      if (isPastGroup(group)) return bad(res, 400, 'This season has ended. Picks are closed.');
       const fixtureId = payload.fixtureId;
       const value = String(payload.value || '');
       if (!fixtureId || !/^\d+-\d+$/.test(value)) return bad(res, 400, 'Invalid prediction');
       const target = findFixtureGW(group, fixtureId);
       if (!target) return bad(res, 400, 'Fixture not found');
+      if (!fixtureBelongsToSeason(target.fixture, group.competition || 'PL', group.season || 2025)) return bad(res, 400, 'Fixture does not belong to this season.');
       const fixtureLocked = !!(target.fixture.result || target.fixture.status === 'FINISHED' || target.fixture.status === 'IN_PLAY' || target.fixture.status === 'PAUSED' || target.fixture.status === 'POSTPONED' || (target.fixture.date && new Date(target.fixture.date) <= new Date()));
       if (fixtureLocked) return bad(res, 400, 'Fixture is locked');
       if (group.mode === 'dibs') {
@@ -749,6 +785,7 @@ export default async function handler(req, res) {
     }
 
     if (payload.type === 'sync-finished-live-scores') {
+      if (isPastGroup(group)) return res.status(200).json({group,updated:false,reason:'past-season'});
       const isWC = isWorldCupGroupLike(group);
       const comp = resolvedGroupCompetition(group, isWC);
       const seas = resolvedGroupSeason(group, comp);
@@ -764,6 +801,7 @@ export default async function handler(req, res) {
     }
 
     if (payload.type === 'auto-sync-fixtures') {
+      if (isPastGroup(group)) return res.status(200).json({group,updated:false,reason:'past-season'});
       const targetGW = Number(payload.gw || group.currentGW || 1);
       const isWC = isWorldCupGroupLike(group);
       const comp = resolvedGroupCompetition(group, isWC);
@@ -1009,11 +1047,7 @@ export default async function handler(req, res) {
     }
 
     if (payload.type === 'start-new-season') {
-      const season = Number(payload.season);
-      if (!season) return bad(res, 400, 'Missing season');
-      const next = { ...group, season, gameweeks: [], hiddenGWs: [], hiddenFixtures: [], predictions: {}, results: {} };
-      await setValue(groupKey, next);
-      return res.status(200).json({ group: next });
+      return bad(res, 400, 'Create a new group for the new season to preserve this group’s history.');
     }
 
     if (payload.type === 'backfill-gws') {

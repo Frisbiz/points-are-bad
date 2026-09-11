@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getSession, readSessionToken } from "./_auth.js";
+import { isDeveloper } from "../shared/groupAccess.js";
 
 if (!getApps().length) {
   initializeApp({
@@ -13,7 +14,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
-const OWNER_USERNAME = "faris";
 const COLLECTION = "changelog";
 
 function bad(res, code, error) {
@@ -27,7 +27,7 @@ async function requireOwner(req, res) {
     bad(res, 401, "Unauthorized");
     return null;
   }
-  if (session.username !== OWNER_USERNAME) {
+  if (!isDeveloper(session.username)) {
     bad(res, 403, "Forbidden");
     return null;
   }

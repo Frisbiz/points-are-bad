@@ -2,6 +2,8 @@ import { Resend } from "resend";
 import { emailHtml } from "./email-template.js";
 import { getValue } from "./_db.js";
 import { getSession, readSessionToken } from "./_auth.js";
+import { isPastGroup, fixtureBelongsToSeason } from "../shared/groupLifecycle.js";
+import { canAdminGroup } from "../shared/groupAccess.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -17,9 +19,7 @@ async function requireAdmin(req, res, groupId) {
     res.status(404).json({ error: "Group not found" });
     return null;
   }
-  const isCreator = group.creatorUsername === session.username;
-  const isAdmin = (group.admins || []).includes(session.username);
-  if (!isCreator && !isAdmin) {
+  if (!canAdminGroup(group, session.username)) {
     res.status(403).json({ error: "Forbidden" });
     return null;
   }
@@ -34,10 +34,13 @@ export default async function handler(req, res) {
 
   const group = await requireAdmin(req, res, groupId);
   if (!group) return;
+  if (isPastGroup(group)) return res.status(200).json({sent:0,reason:'This season has ended'});
   const gwObj = (group.gameweeks || []).find(g => g.gw === gw && (g.season || group.season || 2025) === season);
   if (!gwObj) return res.status(404).json({ error: "Gameweek not found" });
 
   const openFixtures = (gwObj.fixtures || []).filter(f =>
+    fixtureBelongsToSeason(f, group.competition || 'PL', season) &&
+    Number.isFinite(Date.parse(f.date)) && Date.parse(f.date) > Date.now() &&
     !f.result &&
     f.status !== "FINISHED" &&
     f.status !== "IN_PLAY" &&

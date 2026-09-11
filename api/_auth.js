@@ -31,7 +31,7 @@ export async function verifyPassword(password, hash) {
 
 export function safeUser(user) {
   if (!user) return null;
-  const { password, passwordHash, ...rest } = user;
+  const { password: _password, passwordHash: _passwordHash, ...rest } = user;
   return rest;
 }
 

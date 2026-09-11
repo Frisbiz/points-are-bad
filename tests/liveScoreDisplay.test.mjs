@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { isWorldCupGroupLike } from "../api/_wcBracket.js";
+import { isPastGroup } from "../shared/groupLifecycle.js";
 
 function loadAppSource() {
   return fs.readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
@@ -32,7 +33,7 @@ function loadAppFunction(name) {
   };
   const dependencies = name === "buildNextMatchCardState" ? [extractFunction("matchClockLabel")] : [];
   const fnSource = extractFunction(name);
-  return Function("isWorldCupGroupLike", `${dependencies.join("\n")}\n${fnSource}; return ${name};`)(isWorldCupGroupLike);
+  return Function("isWorldCupGroupLike", "isPastGroup", `${dependencies.join("\n")}\n${fnSource}; return ${name};`)(isWorldCupGroupLike, isPastGroup);
 }
 
 test("finished Yahoo scores display while the group fixture waits for sync", () => {
@@ -506,7 +507,7 @@ test("fixtures tab is seeded with live scores already loaded by the game shell",
 
   assert.match(
     source,
-    /function FixturesTab\(\{[^}]*initialLiveScores=\{\}/s,
+    /function FixturesTab\(\{[^}]*initialLiveScores=EMPTY_LIVE_SCORES/s,
     "FixturesTab should accept initial live scores"
   );
   assert.match(
@@ -559,11 +560,11 @@ test("world cup fixtures tab normalizes knockout advancement and duplicate rows 
   );
   assert.match(
     fixturesBlock,
-    /const myPreds = fixtureGroup\.predictions\?\.\[user\.username\]\|\|\{\};/
+    /const myPreds = fixtureGroup\.predictions\?\.\[user\.username\]\|\|EMPTY_LIVE_SCORES;/
   );
   assert.match(
     fixturesBlock,
-    /const gwFixtures = \(\(fixtureGameweeks\|\|\[\]\)\.find\(g=>g\.gw===currentGW&&\(g\.season\|\|activeSeason\)===activeSeason\)\?\.fixtures\|\|\[\]\)\.slice\(\)\.sort/
+    /const gwFixtures = useMemo\(\(\)=>\(\(fixtureGameweeks\|\|\[\]\)\.find\(g=>g\.gw===currentGW&&\(g\.season\|\|activeSeason\)===activeSeason\)\?\.fixtures\|\|\[\]\)\.slice\(\)\.sort/
   );
   assert.match(
     fixturesBlock,
@@ -610,7 +611,7 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
 
   assert.match(
     countdownBlock,
-    /function NextMatchCountdown\(\{ fixtureGameweeks = \[\], myPreds = \{\}, competition = "PL", season = 2025, initialLiveScores = \{\} \}\)/
+    /function NextMatchCountdown\(\{ fixtureGameweeks = \[\], myPreds = EMPTY_LIVE_SCORES, competition = "PL", season = 2025, initialLiveScores = EMPTY_LIVE_SCORES \}\)/
   );
   assert.match(
     countdownBlock,

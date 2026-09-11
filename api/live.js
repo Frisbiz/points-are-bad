@@ -3,6 +3,7 @@ import { normName, parseMatchesToFixtures } from "./_fixtureSync.js";
 import { fetchYahooLiveMatches, fixtureGlobalKey, refreshYahooFixtureCache, saveFinishedLiveMatchesToCache } from "./_yahooFixtures.js";
 import { setLiveSuccessCacheHeaders } from "./_livePolicy.js";
 import { CURRENT_LEAGUE_SEASON } from "../shared/season.js";
+import { isPastGroup } from "../shared/groupLifecycle.js";
 
 const FD_COMP_MAP = { LL: "PD", CL: "CL" };
 
@@ -66,6 +67,12 @@ export default async function handler(req, res) {
 
   try {
     const seas = comp === "WC" ? 2026 : Number(season || CURRENT_LEAGUE_SEASON);
+    if (isPastGroup({competition:comp,season:seas})) {
+      const cached = await getValue(fixtureGlobalKey(comp,seas));
+      const fixtures = (cached?.gameweeks || []).find(w=>Number(w.gw)===Number(week))?.fixtures || [];
+      setLiveSuccessCacheHeaders(res);
+      return res.status(200).json({matches:liveMatchesFromFixtures(fixtures)});
+    }
     if (comp === "LL" || comp === "CL") {
       try {
         const matches = await fetchFootballDataLiveMatches(comp, Number(week), seas);
