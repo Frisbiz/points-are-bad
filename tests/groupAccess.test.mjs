@@ -135,6 +135,14 @@ test("client standings use the authoritative privacy-safe totals", () => {
   assert.match(appSource, /Array\.isArray\(group\?\.standingsStats\) \? group\.standingsStats : computeGroupStats\(group\)/);
 });
 
+test("dashboard and standings display authoritative shared ranks", () => {
+  assert.match(appSource, /rank:playerStats\?\.rank\?\?null/);
+  assert.match(appSource, /const myRank = stats\.find\(s => s\.username === user\.username\)\?\.rank \|\| 0/);
+  assert.match(appSource, /const place=p\.rank\?\?i\+1/);
+  assert.match(appSource, /const seasonWinners = seasonStats\.filter\(player=>player\.rank===1\)/);
+  assert.match(appSource, /\{seasonWinnerNames\}/);
+});
+
 test("dibs mode keeps claimed scorelines visible to members", () => {
   const group = makeGroup({ mode: "dibs" });
   const view = access.sanitizeGroupForViewer(group, "sam", new Date("2026-09-10T12:00:00Z"));

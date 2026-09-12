@@ -58,6 +58,7 @@ export function computeGroupStats(group) {
     let ownTotal = 0;
     let ownScored = 0;
     let perfects = 0;
+    let missed = 0;
 
     sortedGameweeks.forEach(gameweek => {
       if (isPreJoinGW(firstPicks, username, gameweek, activeSeason)) {
@@ -78,12 +79,13 @@ export function computeGroupStats(group) {
           ownTotal += MISSED_PICK_PTS;
           ownScored += 1;
           gameweekPoints += MISSED_PICK_PTS;
+          missed += 1;
         }
       });
       realGameweekPoints[username][gameweekKey(gameweek)] = gameweekPoints;
     });
 
-    ownTotals[username] = { ownTotal, ownScored, perfects };
+    ownTotals[username] = { ownTotal, ownScored, perfects, missed };
   });
 
   // New members begin level with the worst active player's cumulative score.
@@ -137,7 +139,7 @@ export function computeGroupStats(group) {
     if (bonuses[username] === null) bonuses[username] = worstActive;
   });
 
-  return members.map(username => {
+  const standings = members.map(username => {
     const own = ownTotals[username];
     const startingBonus = bonuses[username] || 0;
     return {
@@ -145,6 +147,7 @@ export function computeGroupStats(group) {
       total: startingBonus + own.ownTotal,
       scored: own.ownScored,
       perfects: own.perfects,
+      missed: own.missed,
       avg: own.ownScored > 0 ? (own.ownTotal / own.ownScored).toFixed(2) : "–",
       gwTotals: sortedGameweeks.map(gameweek => ({
         gw: gameweek.gw,
@@ -154,8 +157,19 @@ export function computeGroupStats(group) {
       neverPicked: !firstPicks[username],
       startingBonus,
     };
-  }).sort((a, b) => {
+  });
+
+  const compareRank = (a, b) => {
     if (a.neverPicked !== b.neverPicked) return a.neverPicked ? 1 : -1;
-    return a.total - b.total;
+    return (a.total - b.total) || (b.perfects - a.perfects) || (a.missed - b.missed);
+  };
+  standings.sort(compareRank);
+
+  let previous = null;
+  let rank = 0;
+  return standings.map((player, index) => {
+    if (!previous || compareRank(previous, player) !== 0) rank = index + 1;
+    previous = player;
+    return { ...player, rank };
   });
 }

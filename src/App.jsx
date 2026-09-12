@@ -1840,10 +1840,11 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     const state = buildGroupDashboardState(group,user.username,dashboardNow);
     const standings = getGroupStats(group);
     const rankIndex = standings.findIndex(player=>player.username===user.username);
+    const playerStats = rankIndex>=0?standings[rankIndex]:null;
     return {
       ...state,
-      rank:rankIndex>=0?rankIndex+1:null,
-      points:rankIndex>=0?standings[rankIndex].total:null,
+      rank:playerStats?.rank??null,
+      points:playerStats?.total??null,
     };
   })),[groups,user.username,dashboardNow]);
   const attentionItems = dashboardItems.filter(item=>item.mode==="picks-due");
@@ -3020,7 +3021,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
   }, [group, standingsLiveScores, setGroup]);
   const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, standingsLiveScores),[group, standingsLiveScores]);
   const stats = useMemo(()=>getGroupStats(scoringGroup),[scoringGroup]);
-  const myRank = stats.findIndex(s => s.username === user.username) + 1;
+  const myRank = stats.find(s => s.username === user.username)?.rank || 0;
   const completedGWs = (scoringGroup.gameweeks || [])
     .filter(g => (g.season || activeSeason) === activeSeason && (g.fixtures || []).length > 0 && (g.fixtures || []).every(f => f.result || f.status === "POSTPONED"));
   const recapGW = completedGWs.length > 0 ? completedGWs.reduce((a, b) => a.gw > b.gw ? a : b) : null;
@@ -3524,14 +3525,15 @@ function LeagueTab({group,user,names,theme}) {
       {stats.length===0?<div style={{textAlign:"center",padding:"60px 0",color:"var(--text-dim)"}}>No members yet.</div>:(
         <div style={{display:"flex",flexDirection:"column",gap:3}}>
           {stats.map((p,i)=>{
+            const place=p.rank??i+1;
             const title = titles[p.username];
             const pointsMeta = getPointsLabelMeta(p.total, theme);
             const pointsLabelClass = pointsMeta.effect === "glitch" ? "pts-label-glitch" : pointsMeta.effect === "pulse" ? "pts-label-pulse" : pointsMeta.effect === "shimmer" ? "pts-label-shimmer" : "";
             return (
             <div key={p.username} className={isIndex?"liquid-card":undefined} style={{display:"grid",gridTemplateColumns:mob?"40px 1fr 80px":"52px 1fr 80px 80px 90px",alignItems:"center",gap:mob?8:12,padding:mob?"12px 14px":"16px 20px",background:isIndex?undefined:(p.username===user.username?"var(--card-hi)":"var(--card)"),borderRadius:isIndex?22:10,border:`1px solid ${p.username===user.username?"var(--border2)":"var(--border3)"}`}}>
               <div style={{textAlign:"center"}}>
-                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:i<3?(mob?18:22):(mob?13:16),fontWeight:theme==="index"?800:900,color:i===0?"#fbbf24":i===1?"#9ca3af":i===2?"#b45309":"var(--text-dim)"}}>
-                  {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
+                <span style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:place<=3?(mob?18:22):(mob?13:16),fontWeight:theme==="index"?800:900,color:place===1?"#fbbf24":place===2?"#9ca3af":place===3?"#b45309":"var(--text-dim)"}}>
+                  {place===1?"🥇":place===2?"🥈":place===3?"🥉":place}
                 </span>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:mob?8:12,minWidth:0}}>
@@ -3543,7 +3545,7 @@ function LeagueTab({group,user,names,theme}) {
               </div>
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>PERFECT</div><div style={{color:"#22c55e",fontWeight:700}}>{p.perfects}</div></div>}
               {!mob&&<div style={{textAlign:"center"}}><div style={{fontSize:11,color:"var(--text-dim)",letterSpacing:2,marginBottom:3}}>AVG</div><div style={{color:"var(--text-mid)"}}>{p.avg}</div></div>}
-              <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:11,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:theme==="index"?800:900,color:p.total===666?"#ef4444":i===0?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
+              <div style={{textAlign:"right"}}><div className={pointsLabelClass} style={{fontSize:11,color:pointsMeta.color,letterSpacing:2,marginBottom:3,textShadow:pointsMeta.glow==="none"?"none":pointsMeta.glow}}>{pointsMeta.label.toUpperCase()}</div><div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:mob?22:28,fontWeight:theme==="index"?800:900,color:p.total===666?"#ef4444":place===1?"#fbbf24":"var(--text-bright)",lineHeight:1,textShadow:p.total===666?"0 0 10px rgba(239,68,68,.45)":p.total===1000?"0 0 10px rgba(250,204,21,.28)":"none"}}>{p.total}</div></div>
             </div>
           )})}
         </div>
@@ -5364,11 +5366,14 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,names
 
   const activeSeason=group.season||2025;
   const seasonStats = useMemo(()=>getGroupStats(group),[group]);
+  const seasonWinners = seasonStats.filter(player=>player.rank===1);
+  const seasonWinner = seasonWinners[0] || null;
+  const seasonWinnerNames = new Intl.ListFormat("en", { style:"long", type:"conjunction" })
+    .format(seasonWinners.map(player=>names[player.username]||player.username));
   const seasonComplete = useMemo(()=>{
     const scoped = (group.gameweeks||[]).filter(gw=>(gw.season||activeSeason)===activeSeason);
     return scoped.length > 0 && scoped.every(gw => (gw.fixtures||[]).every(f => f.result || f.status === "POSTPONED"));
   },[group.gameweeks,activeSeason]);
-  const seasonWinner = seasonStats[0] || null;
   const reminderTargetGW=useMemo(()=>{
     const seasonGWs=(group.gameweeks||[]).filter(gw=>(gw.season||activeSeason)===activeSeason).sort((a,b)=>a.gw-b.gw);
     const gw=seasonGWs.find(gw=>(gw.fixtures||[]).some(f=>!f.result&&f.status!=="FINISHED"&&f.status!=="IN_PLAY"&&f.status!=="PAUSED"&&f.status!=="POSTPONED"));
@@ -5788,7 +5793,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,names
       {seasonComplete && seasonWinner && (
         <div style={{marginBottom:16}}>
           <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"linear-gradient(180deg, var(--card), var(--surface))",border:"1px solid var(--border3)",borderRadius:isIndex?24:10,padding:"16px 20px",fontSize:12,color:"var(--text-mid)",lineHeight:1.9}}>
-            <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>&#127942; {names[seasonWinner.username]||seasonWinner.username}</div>
+            <div style={{fontFamily:theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:18,color:"var(--text-bright)",marginBottom:8}}>&#127942; {seasonWinnerNames}</div>
             <div style={{marginBottom:6}}>Official title: <span style={{color:"#fbbf24"}}>The Standard</span></div>
             <div style={{marginBottom:6}}>Finished on <span style={{color:"var(--text-bright)"}}>{seasonWinner.total} pts</span> with <span style={{color:"#22c55e"}}>{seasonWinner.perfects} perfect</span> pick{seasonWinner.perfects===1?"":"s"}.</div>
             <div style={{color:"var(--text-dim)"}}>A completely meaningless honour. Naturally everyone will care a lot.</div>
