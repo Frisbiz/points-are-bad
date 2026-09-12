@@ -13,6 +13,13 @@ import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
+import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats } from "../shared/scoring.js";
+
+// Server responses carry standings calculated before private picks are removed.
+// Demo/local groups without an aggregate can still be scored in the browser.
+function getGroupStats(group) {
+  return Array.isArray(group?.standingsStats) ? group.standingsStats : computeGroupStats(group);
+}
 
 // ─── DB HELPERS ──────────────────────────────────────────────────────────────
 async function sget(key, timeoutMs = 8000) {
@@ -73,27 +80,6 @@ function ldel(key) {
   try { localStorage.removeItem(key); } catch { /* Storage may be unavailable in private browsing. */ }
 }
 
-const MISSED_PICK_PTS = 4;
-// Find each member's first-ever GW where they made a prediction (chronological)
-function computeFirstPickGW(group) {
-  const preds = group.predictions || {};
-  const as = group.season || 2025;
-  const gws = [...(group.gameweeks || [])].sort((a, b) => ((a.season||as)-(b.season||as)) || (a.gw-b.gw));
-  const out = {};
-  for (const u of (group.members || [])) {
-    for (const g of gws) {
-      if ((g.fixtures||[]).some(f => preds[u]?.[f.id])) { out[u] = { gw: g.gw, season: g.season||as }; break; }
-    }
-  }
-  return out;
-}
-// Is this GW before the member's first pick?
-function isPreJoinGW(firstPicks, username, gw, activeSeason) {
-  const fp = firstPicks[username];
-  if (!fp) return true;
-  const gs = gw.season || activeSeason;
-  return gs < fp.season || (gs === fp.season && gw.gw < fp.gw);
-}
 const DEMO_GROUP_CODE = "M65Y4R";
 const DEMO_WC_GROUP_CODE = "WCDEM0";
 const DEMO_SHARED_USERNAME = "demo";
@@ -104,14 +90,6 @@ const DEMO_MEMBERS = [
   { username: "valldemo",  displayName: "Vall"  },
   { username: "aamerdemo", displayName: "Aamer" },
 ];
-
-function calcPts(pred, result) {
-  if (!pred || !result) return null;
-  const [ph, pa] = pred.split("-").map(Number);
-  const [rh, ra] = result.split("-").map(Number);
-  if (isNaN(ph)||isNaN(pa)||isNaN(rh)||isNaN(ra)) return null;
-  return Math.abs(ph - rh) + Math.abs(pa - ra);
-}
 
 const TEAM_DISPLAY_LIMIT = 13;
 function shortTeamName(name, max = TEAM_DISPLAY_LIMIT) {
@@ -239,7 +217,7 @@ function findNextMatchLiveScoreTarget(fixtureGameweeks = [], now = new Date()) {
 
 // Best-available scoreline for RENDERING/DISPLAY purposes only.
 // Prefers the final result, then a cached live score, then the Yahoo live feed.
-// DO NOT use this in computeStats or any Trends/standings aggregation — those
+// DO NOT use this in getGroupStats or any Trends/standings aggregation — those
 // must stay locked to f.result only so season totals, rankings, and charts
 // don't flip mid-match.
 function effectiveFixtureResult(fixture, liveScores) {
@@ -1118,87 +1096,6 @@ const CSS = `
   @keyframes spotifyPulse{0%,100%{box-shadow:0 0 0 0 rgba(30,215,96,0.35);}50%{box-shadow:0 0 0 8px rgba(30,215,96,0);}}
 `;
 
-function computeStats(group) {
-  const preds = group.predictions||{};
-  const members = group.members||[];
-  const activeSeason = group.season || 2025;
-  const scope = group.scoreScope || "all";
-  const filteredGWs = (group.gameweeks||[]).filter(g => scope === "all" || (g.season || activeSeason) === activeSeason);
-  const sortedGWs = [...filteredGWs].sort((a,b)=>((a.season||activeSeason)-(b.season||activeSeason))||(a.gw-b.gw));
-  const firstPicks = computeFirstPickGW(group);
-  const gk = g => `${g.gw}-${g.season||activeSeason}`;
-
-  // First pass: real per-GW points from each member's first pick onwards
-  const realGwPts = {}, ownTotals = {};
-  members.forEach(u => {
-    realGwPts[u] = {};
-    let ownTotal=0, ownScored=0, perfects=0;
-    sortedGWs.forEach(g => {
-      if (isPreJoinGW(firstPicks, u, g, activeSeason)) { realGwPts[u][gk(g)] = null; return; }
-      let gwPts = 0;
-      (g.fixtures||[]).forEach(f => {
-        if (!f.result) return;
-        const pts = calcPts(preds[u]?.[f.id], f.result);
-        if (pts !== null) { ownTotal+=pts; ownScored++; gwPts+=pts; if(pts===0)perfects++; }
-        else { ownTotal+=MISSED_PICK_PTS; ownScored++; gwPts+=MISSED_PICK_PTS; }
-      });
-      realGwPts[u][gk(g)] = gwPts;
-    });
-    ownTotals[u] = { ownTotal, ownScored, perfects };
-  });
-
-  // Second pass: bonus = worst (highest) active player's cumulative total at join point
-  const bonuses = {};
-  const byJoin = [...members].sort((a,b) => {
-    const fa=firstPicks[a], fb=firstPicks[b];
-    if(!fa&&!fb) return 0; if(!fa) return 1; if(!fb) return -1;
-    return (fa.season-fb.season)||(fa.gw-fb.gw);
-  });
-  byJoin.forEach(u => {
-    const fp = firstPicks[u];
-    if (!fp) { bonuses[u] = null; return; }
-    const joinIdx = sortedGWs.findIndex(g => (g.season||activeSeason)===fp.season && g.gw===fp.gw);
-    if (joinIdx <= 0) { bonuses[u] = 0; return; }
-    let worst = -1;
-    members.forEach(other => {
-      if (other === u) return;
-      const ofp = firstPicks[other];
-      if (!ofp) return;
-      if (ofp.season > fp.season || (ofp.season===fp.season && ofp.gw >= fp.gw)) return;
-      let t = bonuses[other] || 0;
-      for (let i = 0; i < joinIdx; i++) {
-        const p = realGwPts[other][gk(sortedGWs[i])];
-        if (p !== null) t += p;
-      }
-      if (t > worst) worst = t;
-    });
-    bonuses[u] = worst >= 0 ? worst : 0;
-  });
-  // Never-picked users: match worst active player's current total
-  const activeTotals = members.filter(u => firstPicks[u]).map(u => (bonuses[u]||0) + ownTotals[u].ownTotal);
-  const worstActive = activeTotals.length > 0 ? Math.max(...activeTotals) : 0;
-  members.forEach(u => { if (bonuses[u] === null) bonuses[u] = worstActive; });
-
-  return members.map(u => {
-    const r = ownTotals[u];
-    const bonus = bonuses[u] || 0;
-    const neverPicked = !firstPicks[u];
-    return {
-      username: u,
-      total: bonus + r.ownTotal,
-      scored: r.ownScored,
-      perfects: r.perfects,
-      avg: r.ownScored > 0 ? (r.ownTotal / r.ownScored).toFixed(2) : "–",
-      gwTotals: sortedGWs.map(g => ({ gw:g.gw, season:g.season||activeSeason, points:realGwPts[u][gk(g)] })),
-      neverPicked,
-      startingBonus: bonus,
-    };
-  }).sort((a,b) => {
-    if (a.neverPicked !== b.neverPicked) return a.neverPicked ? 1 : -1;
-    return a.total - b.total;
-  });
-}
-
 /* ── AUTH ─────────────────────────────────────────── */
 /* ── LANDING PAGE ─────────────────────────────────── */
 
@@ -1941,7 +1838,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const setupCustomActive = !DRAW_11_LIMIT_PRESETS.some(([val]) => val === normalizedSetupLimit);
   const dashboardItems = useMemo(()=>sortGroupDashboardItems(groups.map(group=>{
     const state = buildGroupDashboardState(group,user.username,dashboardNow);
-    const standings = computeStats(group);
+    const standings = getGroupStats(group);
     const rankIndex = standings.findIndex(player=>player.username===user.username);
     return {
       ...state,
@@ -3122,7 +3019,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     return () => { cancelled = true; };
   }, [group, standingsLiveScores, setGroup]);
   const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, standingsLiveScores),[group, standingsLiveScores]);
-  const stats = useMemo(()=>computeStats(scoringGroup),[scoringGroup]);
+  const stats = useMemo(()=>getGroupStats(scoringGroup),[scoringGroup]);
   const myRank = stats.findIndex(s => s.username === user.username) + 1;
   const completedGWs = (scoringGroup.gameweeks || [])
     .filter(g => (g.season || activeSeason) === activeSeason && (g.fixtures || []).length > 0 && (g.fixtures || []).every(f => f.result || f.status === "POSTPONED"));
@@ -3595,7 +3492,7 @@ function WCKnockoutStage({ group, theme="dark", embedded=false }) {
 function LeagueTab({group,user,names,theme}) {
   const mob = useMobile();
   const isIndex = theme === "index";
-  const stats = useMemo(()=>computeStats(group),[group]);
+  const stats = useMemo(()=>getGroupStats(group),[group]);
   const titles = useMemo(()=>computeGroupRelativeTitles(group, stats),[group, stats]);
   const totalResults = (group.gameweeks||[]).reduce((a,g)=>a+(g.fixtures||[]).filter(f=>f.result).length,0);
   const comp = isWorldCupGroupLike(group) ? "WC" : (group.competition || "PL");
@@ -4478,7 +4375,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
   const preds = group.predictions||{};
   // "scored" here means "has an effective scoreline to project against" — final result
   // OR current live score. Trends/standings keep filtering on f.result only; this
-  // inclusive filter is a display-only thing and never reaches computeStats.
+  // inclusive filter is a display-only thing and never reaches getGroupStats.
   const effResults = useMemo(()=>{const m={};gwFixtures.forEach(f=>{m[f.id]=effectiveFixtureResult(f,liveScores);});return m;},[gwFixtures,liveScores]);
   const scored = gwFixtures.filter(f=>effResults[f.id]);
   const gwObj = (group.gameweeks||[]).find(g=>g.gw===(viewedGW??group.currentGW)&&(g.fixtures||[]).some(f=>gwFixtures.some(gf=>gf.id===f.id)));
@@ -4671,7 +4568,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
 function TrendsTab({group,names,theme}) {
   const mob = useMobile();
   const isIndex = theme === "index";
-  const stats = useMemo(()=>computeStats(group),[group]);
+  const stats = useMemo(()=>getGroupStats(group),[group]);
   const members = group.members||[];
   const AUTO_PALETTE = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ec4899", "#eab308", "#06b6d4", "#ef4444"];
   const memberColor = u => isIndex ? AUTO_PALETTE[members.indexOf(u)%AUTO_PALETTE.length] : PALETTE[members.indexOf(u)%PALETTE.length];
@@ -5466,7 +5363,7 @@ function GroupTab({group,user,isAdmin,isCreator,onLeave,onUpdateUser,theme,names
   },[currentDraw11Limit]);
 
   const activeSeason=group.season||2025;
-  const seasonStats = useMemo(()=>computeStats(group),[group]);
+  const seasonStats = useMemo(()=>getGroupStats(group),[group]);
   const seasonComplete = useMemo(()=>{
     const scoped = (group.gameweeks||[]).filter(gw=>(gw.season||activeSeason)===activeSeason);
     return scoped.length > 0 && scoped.every(gw => (gw.fixtures||[]).every(f => f.result || f.status === "POSTPONED"));

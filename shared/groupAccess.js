@@ -1,3 +1,5 @@
+import { computeGroupStats } from "./scoring.js";
+
 export const DEVELOPER_USERNAME = "faris";
 
 function normalizedUsername(username) {
@@ -103,6 +105,7 @@ export function sanitizeGroupForViewer(group, username, now = new Date()) {
     ...group,
     predictions,
     picksLocked: ownLocked ? { [username]: ownLocked } : {},
+    standingsStats: computeGroupStats(group),
   };
   if (canAdminGroup(group, viewer)) view.pickCompletion = buildPickCompletion(group);
   else delete view.pickCompletion;

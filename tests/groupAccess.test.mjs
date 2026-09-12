@@ -102,6 +102,39 @@ test("missing an already-started fixture does not keep later picks hidden", () =
   assert.deepEqual(view.predictions.sam, group.predictions.sam);
 });
 
+test("standings totals are identical for every viewer while hidden picks remain private", () => {
+  const group = makeGroup({
+    gameweeks: [{
+      gw: 1,
+      season: 2026,
+      fixtures: [
+        { id: "one", home: "Real Sociedad", away: "Celta Vigo", date: "2026-09-10T18:00:00Z", status: "FINISHED", result: "0-0" },
+        { id: "two", home: "Arsenal", away: "Everton", date: "2026-09-13T15:00:00Z", status: "SCHEDULED" },
+      ],
+    }],
+    predictions: {
+      alex: { one: "2-1", two: "1-0" },
+      faris: { one: "0-0" },
+      sam: {},
+    },
+  });
+
+  const farisView = access.sanitizeGroupForViewer(group, "faris", new Date("2026-09-11T05:00:00Z"));
+  const samView = access.sanitizeGroupForViewer(group, "sam", new Date("2026-09-11T05:00:00Z"));
+
+  assert.deepEqual(farisView.standingsStats, samView.standingsStats);
+  assert.equal(farisView.standingsStats.find(row => row.username === "alex").total, 3);
+  assert.deepEqual(farisView.predictions.alex, {});
+  assert.deepEqual(samView.predictions.alex, {});
+  assert.doesNotMatch(JSON.stringify(farisView.standingsStats), /2-1|1-0/);
+});
+
+test("client standings use the authoritative privacy-safe totals", () => {
+  assert.match(appSource, /import \{[^}]*computeGroupStats[^}]*\} from "\.\.\/shared\/scoring\.js"/);
+  assert.doesNotMatch(appSource, /function computeStats\(group\)/);
+  assert.match(appSource, /Array\.isArray\(group\?\.standingsStats\) \? group\.standingsStats : computeGroupStats\(group\)/);
+});
+
 test("dibs mode keeps claimed scorelines visible to members", () => {
   const group = makeGroup({ mode: "dibs" });
   const view = access.sanitizeGroupForViewer(group, "sam", new Date("2026-09-10T12:00:00Z"));
