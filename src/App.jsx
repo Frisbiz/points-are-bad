@@ -12,6 +12,7 @@ import LoadingSkeleton from './LoadingSkeleton.jsx';
 import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
+import { observeSelectedGameweek } from './gameweekSelector.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
 import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, computeTrendStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
@@ -3991,13 +3992,8 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
 
   useEffect(()=>{
     if (!gwStripRef.current) return;
-    const seas = activeSeason;
-    const seasonGWs = (fixtureGameweeks||[]).filter(g=>(g.season||seas)===seas).sort((a,b)=>a.gw-b.gw);
-    const targetGW = activeGW || viewGW; const idx = seasonGWs.findIndex(g=>g.gw===targetGW);
-    if (idx<0) return;
-    const pos = idx*57 - gwStripRef.current.clientWidth/2 + 27;
-    gwStripRef.current.scrollLeft = Math.max(0, pos);
-  },[fixtureGameweeks, activeSeason, activeGW, viewGW]);
+    return observeSelectedGameweek(gwStripRef.current, viewGW);
+  },[fixtureGameweeks, activeSeason, viewGW]);
 
   useEffect(()=>{
     if (lget(wizardKey)===currentGW) return;
@@ -4090,7 +4086,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
               {(fixtureGameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason).sort((a,b)=>a.gw-b.gw).map(g=>{
                 const adminHidden = !isAdmin && (fixtureGroup.hiddenGWs||[]).includes(g.gw);
                 return (
-                  <button key={g.gw} onClick={()=>setGW(g.gw)} style={{
+                  <button key={g.gw} data-gameweek={g.gw} onClick={()=>setGW(g.gw)} style={{
                     background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
                     color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
                     border:g.gw===activeGW&&currentGW!==g.gw?"1.5px solid var(--text-dim)":"1px solid var(--border)",
