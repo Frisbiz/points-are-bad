@@ -2678,7 +2678,11 @@ export default function App() {
         }
       }else{
         setGroup(null);
-        if(requestedRoute.page!=="dashboard"&&requestedRoute.page!=="home"){
+        if(requestedRoute.page==="home"){
+          window.history.replaceState({pab:true},"","/dashboard");
+          setRoute({page:"dashboard"});
+          setShowLanding(false);
+        }else if(requestedRoute.page!=="dashboard"){
           window.history.replaceState({pab:true},"","/dashboard");
           setRoute({page:"dashboard"});
         }
@@ -2705,7 +2709,8 @@ export default function App() {
     }
     if(route.page==="home"){
       setGroup(null);
-      setShowLanding(true);
+      setShowLanding(false);
+      navigateTo({page:"dashboard"},{replace:true});
       return;
     }
     if(route.page==="group"){

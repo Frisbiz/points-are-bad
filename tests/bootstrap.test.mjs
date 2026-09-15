@@ -91,6 +91,16 @@ test("initial app boot uses the bundled endpoint without reloading each group", 
   assert.doesNotMatch(bootBlock, /await fetchGroupNames/);
 });
 
+test("signed-in visitors opening the root route land on the dashboard", () => {
+  const start = appSource.indexOf("const runBoot=useCallback");
+  const end = appSource.indexOf("useEffect(()=>{runBoot();},[]);", start);
+  const bootBlock = appSource.slice(start, end);
+
+  assert.match(bootBlock, /requestedRoute\.page==="home"/);
+  assert.match(bootBlock, /window\.history\.replaceState\(\{pab:true\},"","\/dashboard"\)/);
+  assert.match(bootBlock, /setRoute\(\{page:"dashboard"\}\)/);
+});
+
 test("the dashboard trusts the groups supplied by app boot, including an empty list", () => {
   const start = appSource.indexOf("function GroupLobby");
   const end = appSource.indexOf("function ", start + 20);
