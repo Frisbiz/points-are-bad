@@ -2579,11 +2579,13 @@ export default function App() {
     if (!available.includes(theme)) setTheme(fallback);
   },[theme,user,sitePrefs,boot]);
 
-  // Public pages and authentication share Index; preserve the account's app theme.
-  const effectiveTheme = user ? theme : "index";
+  // Keep the saved theme while session status is unknown so dark users never
+  // receive a light loading frame. Confirmed signed-out pages use Index.
+  const effectiveTheme = !boot ? theme : user ? theme : "index";
 
   useEffect(()=>{
     document.documentElement.setAttribute("data-theme",effectiveTheme);
+    document.documentElement.style.background="var(--bg)";
     localStorage.setItem("theme",theme);
   },[theme,effectiveTheme]);
 

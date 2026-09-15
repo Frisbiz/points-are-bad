@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-      body { margin: 0; background: #080810; }
+      html, body { margin: 0; background: #080810; min-height: 100%; }
       #splash {
         display: flex;
         flex-direction: column;
@@ -95,7 +95,7 @@
         if (t && valid.includes(t)) {
           document.documentElement.setAttribute("data-theme", t);
           var c = themes[t] || {bg:"#080810",text:"#e8e4d9",accent:"#6c5eff"};
-          document.body.style.background = c.bg;
+          document.documentElement.style.background = c.bg;
           document.documentElement.style.setProperty("--sp-text", c.text);
           document.documentElement.style.setProperty("--sp-accent", c.accent);
         }

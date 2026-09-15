@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 const polishSource = readFileSync(new URL("../src/app-polish.css", import.meta.url), "utf8");
+const htmlSource = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 test("Index theme keeps its neutral gray palette instead of the later olive override", () => {
   const indexVariables = polishSource.match(/html\[data-theme="index"\]\{([^}]*)\}/)?.[1] || "";
@@ -27,4 +28,14 @@ test("group navigation paints the selected tab before deferring expensive tab co
   assert.match(gameUi, /tab===t/);
   assert.match(gameUi, /selectedTab===t/);
   assert.match(gameUi, /aria-busy=\{isTabPending\|\|selectedTab!==tab\}/);
+});
+
+test("session bootstrap preserves the saved theme instead of flashing Index", () => {
+  assert.match(appSource, /const effectiveTheme = !boot \? theme : user \? theme : "index"/);
+});
+
+test("the static document paints a dark root canvas before React loads", () => {
+  assert.match(htmlSource, /html, body \{ margin: 0; background: #080810;/);
+  assert.match(htmlSource, /document\.documentElement\.style\.background = c\.bg/);
+  assert.doesNotMatch(htmlSource, /document\.body\.style\.background = c\.bg/);
 });
