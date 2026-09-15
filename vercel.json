@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/link-discord", "destination": "/" },
     { "source": "/join/:code", "destination": "/?join=:code" },
     { "source": "/signin", "destination": "/" },
     { "source": "/dashboard", "destination": "/" },

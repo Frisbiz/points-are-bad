@@ -15,6 +15,8 @@ test('group ids are encoded into their own stable route', () => {
 test('public and sign-in routes are recognized', () => {
   assert.deepEqual(parseAppRoute('/'), { page: 'home' });
   assert.deepEqual(parseAppRoute('/signin'), { page: 'signin' });
+  assert.deepEqual(parseAppRoute('/link-discord'), { page: 'discord-link' });
+  assert.equal(appPath({ page: 'discord-link' }), '/link-discord');
 });
 
 test('unknown and malformed routes resolve safely', () => {

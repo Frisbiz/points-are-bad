@@ -2498,6 +2498,32 @@ function getInviteCodeFromLocation() {
   return match ? match[1] : null;
 }
 
+function DiscordLinkScreen({user,onDone}) {
+  const [state,setState]=useState("idle");
+  const [message,setMessage]=useState("");
+  const token=new URLSearchParams(window.location.search).get("token")||"";
+  const confirm=async()=>{
+    setState("loading");
+    try{
+      const response=await fetch("/api/discord-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||"Could not link Discord right now.");
+      setState("done");
+      setMessage(`Discord is linked to ${data.username}. You can return to Discord.`);
+    }catch(error){setState("error");setMessage(error.message);}
+  };
+  return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",padding:24,background:"var(--bg)",color:"var(--text)"}}>
+    <section style={{width:"min(100%,440px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:18,padding:"clamp(24px,6vw,38px)",boxShadow:"0 18px 60px rgba(0,0,0,.12)"}}>
+      <div style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:14}}>Whistlebot</div>
+      <h1 style={{fontSize:28,lineHeight:1.15,margin:"0 0 12px",color:"var(--text-bright)"}}>Link Discord to PAB</h1>
+      <p style={{fontSize:14,lineHeight:1.65,color:"var(--text-mid)",margin:"0 0 24px"}}>Signed in as <strong style={{color:"var(--text-bright)"}}>{user.displayName||user.username}</strong>. Whistlebot will only receive pick counts and deadlines, never your predictions.</p>
+      {message&&<div role="status" style={{padding:"12px 14px",borderRadius:10,marginBottom:16,fontSize:13,lineHeight:1.5,background:state==="done"?"#22c55e18":"#ef444418",color:state==="done"?"#22c55e":"#ef4444"}}>{message}</div>}
+      {state!=="done"&&<button disabled={!token||state==="loading"} onClick={confirm} style={{width:"100%",minHeight:48,border:0,borderRadius:10,background:"var(--text-bright)",color:"var(--bg)",fontWeight:700,cursor:"pointer",opacity:(!token||state==="loading")?.65:1}}>{state==="loading"?"Linking…":"Link Discord"}</button>}
+      <button onClick={onDone} style={{width:"100%",marginTop:10,minHeight:42,border:0,background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>{state==="done"?"Open dashboard":"Cancel"}</button>
+    </section>
+  </main>;
+}
+
 export default function App() {
   const visibleWidth = useVisibleViewportWidth();
   const viewportLayout = viewportLayoutState(visibleWidth);
@@ -2678,6 +2704,9 @@ export default function App() {
           window.history.replaceState({pab:true},"","/dashboard");
           setRoute({page:"dashboard"});
         }
+      }else if(requestedRoute.page==="discord-link"){
+        setGroup(null);
+        setShowLanding(false);
       }else{
         setGroup(null);
         if(requestedRoute.page==="home"){
@@ -2700,13 +2729,17 @@ export default function App() {
     if(!user){
       setGroup(null);
       if(route.page==="home")setShowLanding(true);
-      else if(route.page==="signin"||route.page==="group"||route.page==="dashboard")setShowLanding(false);
+      else if(route.page==="signin"||route.page==="group"||route.page==="dashboard"||route.page==="discord-link")setShowLanding(false);
       else navigateTo({page:"home"},{replace:true});
       return;
     }
     if(route.page==="dashboard"){
       setGroup(null);
       lset("session",{username:user.username});
+      return;
+    }
+    if(route.page==="discord-link"){
+      setGroup(null);
       return;
     }
     if(route.page==="home"){
@@ -2779,6 +2812,10 @@ export default function App() {
     if(nextUser.username!==DEMO_SHARED_USERNAME&&nextUser.theme)setThemeRaw(nextUser.theme);
     setNeedsSetup(false);
     const requested=parseAppRoute(window.location.pathname);
+    if(requested.page==="discord-link"){
+      setRoute(requested);
+      return;
+    }
     const targetId=requested.page==="group"?requested.groupId:nextSession.groupId;
     const target=targetId?loginGroups.find(g=>g.id===targetId):null;
     if(target){
@@ -2864,6 +2901,8 @@ export default function App() {
           window.history.replaceState({},"","/");
           setResetDone(true);
         }}/>
+      ):route.page==="discord-link"&&user?(
+        <DiscordLinkScreen user={user} onDone={()=>navigateTo({page:"dashboard"},{replace:true})}/>
       ):route.page==="home"&&showLanding&&!joinParam&&sitePrefsLoaded?(
         <IndexLandingPage signedIn={!!user} onContinue={()=>{if(user){navigateTo({page:"dashboard"});}else{setShowLanding(false);navigateTo({page:"signin"});}}} onDemo={handleDemoLogin} onAreBadTap={unlockSecretTheme} onOpenWhatsNew={()=>setWhatsNewOpen(true)}/>
       ):!user&&!sitePrefsLoaded?(
