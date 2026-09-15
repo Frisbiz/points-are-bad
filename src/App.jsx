@@ -2505,7 +2505,7 @@ function DiscordLinkScreen({user,onDone}) {
   const confirm=async()=>{
     setState("loading");
     try{
-      const response=await fetch("/api/discord-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
+      const response=await fetch("/api/security",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"discord-link-confirm",token})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.error||"Could not link Discord right now.");
       setState("done");

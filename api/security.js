@@ -8,6 +8,8 @@ import { CURRENT_LEAGUE_SEASON, competitionFixtureCount, competitionRoundCount }
 import { isPastGroup, fixtureBelongsToSeason } from "../shared/groupLifecycle.js";
 import { loadBootstrapData } from "./_bootstrap.js";
 import { canAdminGroup, isDeveloper, sanitizeGroupForViewer } from "../shared/groupAccess.js";
+import { timingSafeEqual } from "node:crypto";
+import { verifyDiscordLinkToken, buildDiscordReminderJobs, buildDiscordReminderStatus } from "../shared/discordReminders.js";
 
 const FD_COMP_MAP = { PL: 'PL', LL: 'PD', CL: 'CL', WC: 'WC' };
 function fdApiKey(comp) { return comp === 'LL' ? (process.env.FD_API_KEY_LALIGA || process.env.VITE_FD_API_KEY) : (process.env.VITE_FD_API_KEY || process.env.FD_API_KEY_LALIGA); }
@@ -55,6 +57,34 @@ async function checkRateLimit(key, max) {
 
 function bad(res, code, error) {
   return res.status(code).json({ error });
+}
+
+function requireDiscordService(req, res) {
+  const expected = process.env.PAB_DISCORD_SHARED_SECRET || "";
+  const supplied = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  const a = Buffer.from(expected);
+  const b = Buffer.from(supplied);
+  if (!expected || !supplied || a.length !== b.length || !timingSafeEqual(a, b)) {
+    bad(res, 401, "Unauthorized");
+    return false;
+  }
+  return true;
+}
+
+async function indexedDiscordLinks() {
+  const ids = [...new Set((await getValue("discord-links-index")) || [])];
+  const links = await Promise.all(ids.map(id => getValue(`discordlink:${id}`)));
+  return links.filter(Boolean);
+}
+
+async function loadDiscordReminderContext(links) {
+  const usernames = [...new Set(links.map(link => link.username).filter(Boolean))];
+  const users = await Promise.all(usernames.map(username => getValue(`user:${username}`)));
+  const usersByUsername = Object.fromEntries(users.filter(Boolean).map(user => [user.username, user]));
+  const groupIds = [...new Set(users.flatMap(user => user?.groupIds || []))];
+  const groups = await Promise.all(groupIds.map(id => getValue(`group:${id}`)));
+  const groupsById = Object.fromEntries(groupIds.map((id, index) => [id, groups[index]]).filter(([, group]) => Boolean(group)));
+  return { usersByUsername, groupsById };
 }
 
 function secureGroupResponses(res) {
@@ -315,6 +345,96 @@ export default async function handler(req, res) {
   secureGroupResponses(res);
   const action = req.method === 'GET' ? req.query.action : req.body?.action;
   if (!action) return bad(res, 400, "Missing action");
+
+  if (action === 'discord-link-confirm' && req.method === 'POST') {
+    const username = await requireUser(req, res);
+    if (!username) return;
+    const payload = verifyDiscordLinkToken(req.body?.token, process.env.PAB_DISCORD_SHARED_SECRET);
+    if (!payload) return bad(res, 400, "This Discord link is invalid or has expired. Run /pab link again.");
+    try {
+      await db.runTransaction(async transaction => {
+        const data = db.collection("data");
+        const consumedRef = data.doc(docKey(`discord-link-token:${payload.nonce}`));
+        const linkRef = data.doc(docKey(`discordlink:${payload.discordUserId}`));
+        const userRef = data.doc(docKey(`user:${username}`));
+        const indexRef = data.doc(docKey("discord-links-index"));
+        const [consumedSnap, userSnap, indexSnap, linkSnap] = await Promise.all([
+          transaction.get(consumedRef), transaction.get(userRef), transaction.get(indexRef), transaction.get(linkRef),
+        ]);
+        if (consumedSnap.exists) throw Object.assign(new Error("Link already used"), { status: 409 });
+        const user = userSnap.data()?.value;
+        if (!user) throw Object.assign(new Error("PAB account not found"), { status: 404 });
+        const existingLink = linkSnap.data()?.value;
+        const previousOwnerRef = existingLink?.username && existingLink.username !== username ? data.doc(docKey(`user:${existingLink.username}`)) : null;
+        const previousOwnerSnap = previousOwnerRef ? await transaction.get(previousOwnerRef) : null;
+        const ids = new Set(indexSnap.data()?.value || []);
+        ids.add(String(payload.discordUserId));
+        if (user.discordUserId && user.discordUserId !== String(payload.discordUserId)) {
+          ids.delete(String(user.discordUserId));
+          transaction.delete(data.doc(docKey(`discordlink:${user.discordUserId}`)));
+        }
+        const now = Date.now();
+        transaction.set(consumedRef, { value: { usedAt: now, exp: payload.exp }, updatedAt: now });
+        transaction.set(linkRef, { value: { discordUserId: String(payload.discordUserId), username, remindersEnabled: true, linkedAt: now }, updatedAt: now });
+        transaction.set(userRef, { value: { ...user, discordUserId: String(payload.discordUserId) }, updatedAt: now });
+        const previousOwner = previousOwnerSnap?.data()?.value;
+        if (previousOwnerRef && previousOwner?.discordUserId === String(payload.discordUserId)) {
+          const { discordUserId: _removed, ...nextPreviousOwner } = previousOwner;
+          transaction.set(previousOwnerRef, { value: nextPreviousOwner, updatedAt: now });
+        }
+        transaction.set(indexRef, { value: [...ids], updatedAt: now });
+      });
+      return res.status(200).json({ linked: true, username });
+    } catch (error) {
+      console.error("discord-link failed", error);
+      return bad(res, error.status || 500, error.status ? error.message : "Could not link Discord right now.");
+    }
+  }
+
+  if (action === 'discord-jobs' && req.method === 'GET') {
+    if (!requireDiscordService(req, res)) return;
+    const links = await indexedDiscordLinks();
+    const context = await loadDiscordReminderContext(links);
+    return res.status(200).json({ jobs: buildDiscordReminderJobs({ links, ...context, appUrl: process.env.APP_URL || "https://pab.wtf" }) });
+  }
+
+  if (action === 'discord-status' && req.method === 'GET') {
+    if (!requireDiscordService(req, res)) return;
+    const discordUserId = String(req.query?.discordUserId || "");
+    if (!discordUserId) return bad(res, 400, "Missing Discord user ID");
+    const link = await getValue(`discordlink:${discordUserId}`);
+    if (!link) return res.status(200).json({ linked: false, incomplete: [] });
+    const user = await getValue(`user:${link.username}`);
+    const context = await loadDiscordReminderContext([link]);
+    return res.status(200).json(buildDiscordReminderStatus({ link, user, groupsById: context.groupsById }));
+  }
+
+  if (action === 'discord-preferences' && req.method === 'POST') {
+    if (!requireDiscordService(req, res)) return;
+    const discordUserId = String(req.body?.discordUserId || "");
+    if (!discordUserId || typeof req.body?.enabled !== "boolean") return bad(res, 400, "Missing Discord user ID or enabled value");
+    const link = await getValue(`discordlink:${discordUserId}`);
+    if (!link) return bad(res, 404, "Discord account is not linked");
+    await setValue(`discordlink:${discordUserId}`, { ...link, remindersEnabled: req.body.enabled, updatedAt: Date.now() });
+    return res.status(200).json({ linked: true, remindersEnabled: req.body.enabled });
+  }
+
+  if (action === 'discord-unlink' && req.method === 'POST') {
+    if (!requireDiscordService(req, res)) return;
+    const discordUserId = String(req.body?.discordUserId || "");
+    if (!discordUserId) return bad(res, 400, "Missing Discord user ID");
+    const link = await getValue(`discordlink:${discordUserId}`);
+    if (link) {
+      const user = await getValue(`user:${link.username}`);
+      if (user?.discordUserId === discordUserId) {
+        const { discordUserId: _removed, ...nextUser } = user;
+        await setValue(`user:${link.username}`, nextUser);
+      }
+      await deleteValue(`discordlink:${discordUserId}`);
+      await setValue("discord-links-index", ((await getValue("discord-links-index")) || []).filter(id => String(id) !== discordUserId));
+    }
+    return res.status(200).json({ linked: false });
+  }
 
   if (action === 'bootstrap' && req.method === 'GET') {
     try {
