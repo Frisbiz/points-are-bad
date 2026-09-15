@@ -180,6 +180,113 @@ export function computeGroupStats(group) {
   });
 }
 
+function emptyPointsDistribution() {
+  return { "0": 0, "1": 0, "2": 0, "3": 0, "4": 0, "5+": 0 };
+}
+
+function addHeatmapScore(heatmap, scoreline) {
+  const [home, away] = String(scoreline || "").split("-").map(Number);
+  if (!Number.isInteger(home) || !Number.isInteger(away) || home < 0 || away < 0 || home > 5 || away > 5) return;
+  const key = `${home}-${away}`;
+  heatmap[key] = (heatmap[key] || 0) + 1;
+}
+
+function outcome(home, away) {
+  return home > away ? 1 : home < away ? -1 : 0;
+}
+
+export function computeTrendStats(group) {
+  const members = group?.members || [];
+  const predictions = group?.predictions || {};
+  const activeSeason = group?.season || 2025;
+  const scope = group?.scoreScope || "all";
+  const gameweeks = (group?.gameweeks || []).filter(gameweek =>
+    scope === "all" || (gameweek.season || activeSeason) === activeSeason
+  );
+  const firstPicks = computeFirstPickGW(group);
+  const actualResultsHeatmap = {};
+
+  gameweeks.forEach(gameweek => {
+    (gameweek.fixtures || []).forEach(fixture => {
+      if (!fixture.result || fixture.status === "POSTPONED") return;
+      addHeatmapScore(actualResultsHeatmap, fixture.result);
+    });
+  });
+
+  const players = {};
+  members.forEach(username => {
+    const pointsDistribution = emptyPointsDistribution();
+    const predictionStyle = { home: 0, draw: 0, away: 0 };
+    const scoreHeatmap = {};
+    const completedGwAverages = [];
+    let submittedPicks = 0;
+    let submittedPoints = 0;
+    let predictedGoals = 0;
+    let actualGoals = 0;
+    let winnerCorrect = 0;
+    let perfects = 0;
+
+    gameweeks.forEach(gameweek => {
+      if (isPreJoinGW(firstPicks, username, gameweek, activeSeason)) return;
+      const gameweekComplete = (gameweek.fixtures || []).length > 0
+        && (gameweek.fixtures || []).every(fixture => fixture.result || fixture.status === "POSTPONED");
+      let gameweekSubmittedPoints = 0;
+      let gameweekSubmittedPicks = 0;
+
+      (gameweek.fixtures || []).forEach(fixture => {
+        if (!fixture.result || fixture.status === "POSTPONED") return;
+        const prediction = predictions[username]?.[fixture.id];
+        const points = calcPts(prediction, fixture.result);
+        const effectivePoints = points ?? MISSED_PICK_PTS;
+        const distributionKey = effectivePoints >= 5 ? "5+" : String(effectivePoints);
+        pointsDistribution[distributionKey] += 1;
+        if (points === null) return;
+
+        const [predictedHome, predictedAway] = prediction.split("-").map(Number);
+        const [resultHome, resultAway] = fixture.result.split("-").map(Number);
+        submittedPicks += 1;
+        submittedPoints += points;
+        predictedGoals += predictedHome + predictedAway;
+        actualGoals += resultHome + resultAway;
+        gameweekSubmittedPoints += points;
+        gameweekSubmittedPicks += 1;
+        if (points === 0) perfects += 1;
+        if (outcome(predictedHome, predictedAway) === outcome(resultHome, resultAway)) winnerCorrect += 1;
+        if (predictedHome > predictedAway) predictionStyle.home += 1;
+        else if (predictedHome < predictedAway) predictionStyle.away += 1;
+        else predictionStyle.draw += 1;
+        addHeatmapScore(scoreHeatmap, prediction);
+      });
+
+      if (gameweekComplete && gameweekSubmittedPicks > 0) {
+        completedGwAverages.push(gameweekSubmittedPoints / gameweekSubmittedPicks);
+      }
+    });
+
+    const completedGwMean = completedGwAverages.length
+      ? completedGwAverages.reduce((sum, value) => sum + value, 0) / completedGwAverages.length
+      : 0;
+    const completedGwStdDev = completedGwAverages.length > 1
+      ? Math.sqrt(completedGwAverages.reduce((sum, value) => sum + ((value - completedGwMean) ** 2), 0) / completedGwAverages.length)
+      : 0;
+
+    players[username] = {
+      pointsDistribution,
+      predictionStyle,
+      submittedPicks,
+      submittedPoints,
+      predictedGoals,
+      actualGoals,
+      winnerCorrect,
+      perfects,
+      completedGwStdDev,
+      scoreHeatmap,
+    };
+  });
+
+  return { players, actualResultsHeatmap };
+}
+
 export function buildPointsBreakdownRows(stats, displayNames = {}) {
   return (stats || []).map(player => ({
     name: player.dn || displayNames[player.username] || player.username,

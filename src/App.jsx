@@ -13,7 +13,7 @@ import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
-import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, buildPointsBreakdownRows } from "../shared/scoring.js";
+import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, computeTrendStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
 // Server responses carry standings calculated before private picks are removed.
 // Demo/local groups without an aggregate can still be scored in the browser.
@@ -4617,6 +4617,9 @@ function TrendsTab({group,names,theme}) {
   const mob = useMobile();
   const isIndex = theme === "index";
   const stats = useMemo(()=>getGroupStats(group),[group]);
+  const trendStats=group.trendStats || computeTrendStats(group);
+  const MATCH_UPDATE_LABEL = "Updated after every final result";
+  const GW_UPDATE_LABEL = "Updates when the gameweek is complete";
   const members = group.members||[];
   const AUTO_PALETTE = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ec4899", "#eab308", "#06b6d4", "#ef4444"];
   const memberColor = u => isIndex ? AUTO_PALETTE[members.indexOf(u)%AUTO_PALETTE.length] : PALETTE[members.indexOf(u)%PALETTE.length];
@@ -4633,18 +4636,12 @@ function TrendsTab({group,names,theme}) {
   const cumLine=useMemo(()=>completedGws.map((g,gi)=>{const r={name:`GW${g.gw}`};ds.forEach(p=>{const entries=p.gwTotals.filter(e=>completedGws.slice(0,gi+1).some(cg=>cg.gw===e.gw&&(cg.season||activeSeason)===(e.season||activeSeason))&&e.points!==null);if(entries.length===0)return;r[p.dn]=entries.reduce((a,e)=>a+e.points,0)+(p.startingBonus||0);});return r;}),[completedGws,ds,activeSeason]);
   const perfectsData=useMemo(()=>ds.map(p=>({name:p.dn,perfects:p.perfects})),[ds]);
   const preds=group.predictions||{};
-  const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const r={pts:pts===5?"5+":String(pts)};ds.forEach(p=>{let c=0;gws.forEach(g=>{if(isPreJoinGW(firstPicks,p.username,g,activeSeason))return;(g.fixtures||[]).forEach(f=>{if(!f.result)return;const pp=calcPts(preds[p.username]?.[f.id],f.result)??MISSED_PICK_PTS;if(pts===5?pp>=5:pp===pts)c++;});});r[p.dn]=c;});return r;}),[ds,gws,preds,firstPicks,activeSeason]);
-  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const key=pts===5?"5+":String(pts);const r={pts:key};ds.forEach(p=>{r[p.dn]=trendStats?.players?.[p.username]?.pointsDistribution?.[key]||0;});return r;}),[ds,trendStats]);
+  const CC=({title,sub,cadence,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{cadence&&<span style={{fontSize:9,fontWeight:600,color:"var(--text-dim2)",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:999,padding:"3px 7px",whiteSpace:"nowrap"}}>{cadence}</span>}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
-  const filteredGWs = gws;
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const inScopeFixtureIds = useMemo(() => {
-    const ids = new Set();
-    filteredGWs.forEach(g => (g.fixtures||[]).forEach(f => ids.add(f.id)));
-    return ids;
-  }, [filteredGWs]);
   const gwHeatmapData = useMemo(() => {
     const result = {};
     ds.forEach(p => {
@@ -4697,43 +4694,14 @@ function TrendsTab({group,names,theme}) {
   const breakdownData = useMemo(() => buildPointsBreakdownRows(ds), [ds]);
   const radarData = useMemo(() => {
     const raw = ds.map(p => {
-      let rawScored = 0, rawPicked = 0, rawPerfects = 0, rawTotal = 0, boldTotal = 0;
-      const gwPickedAvgs = []; // per-GW avg pts on picked fixtures only (misses excluded)
-      completedGws.forEach(g => {
-        let gwPickSum = 0, gwPickCount = 0;
-        (g.fixtures||[]).forEach(f => {
-          if (!f.result || f.status === "POSTPONED") return;
-          rawScored++;
-          const pred = preds[p.username]?.[f.id];
-          if (!pred) return;
-          const fp = calcPts(pred, f.result) ?? 0;
-          rawPicked++; rawTotal += fp; gwPickSum += fp; gwPickCount++;
-          if (fp === 0) rawPerfects++;
-          const [h, a] = pred.split("-").map(Number);
-          if (!isNaN(h) && !isNaN(a)) boldTotal += h + a;
-        });
-        if (gwPickCount > 0) gwPickedAvgs.push(gwPickSum / gwPickCount);
-      });
-      const rawAvg = rawPicked > 0 ? rawTotal / rawPicked : 0;
-      const boldness = rawPicked > 0 ? boldTotal / rawPicked : 0;
-      const pavgMean = gwPickedAvgs.length > 0 ? gwPickedAvgs.reduce((a,b)=>a+b,0)/gwPickedAvgs.length : 0;
-      const stddev = gwPickedAvgs.length > 1 ? Math.sqrt(gwPickedAvgs.reduce((s,v)=>s+(v-pavgMean)**2,0)/gwPickedAvgs.length) : 0;
-      const perfectRate = rawScored > 0 ? rawPerfects / rawScored : 0;
-      let winnerCorrect = 0;
-      completedGws.forEach(g => {
-        (g.fixtures||[]).forEach(f => {
-          if (!f.result || f.status === "POSTPONED") return;
-          const pred = preds[p.username]?.[f.id];
-          if (!pred) return;
-          const [ph, pa] = pred.split("-").map(Number);
-          const [rh, ra] = f.result.split("-").map(Number);
-          if (isNaN(ph)||isNaN(pa)||isNaN(rh)||isNaN(ra)) return;
-          const pOut = ph > pa ? 1 : ph < pa ? -1 : 0;
-          const rOut = rh > ra ? 1 : rh < ra ? -1 : 0;
-          if (pOut === rOut) winnerCorrect++;
-        });
-      });
-      const winnerRate = rawPicked > 0 ? winnerCorrect / rawPicked : 0;
+      const player = trendStats?.players?.[p.username] || {};
+      const rawScored = Object.values(player.pointsDistribution || {}).reduce((sum,value)=>sum+value,0);
+      const rawPicked = player.submittedPicks || 0;
+      const rawAvg = rawPicked > 0 ? (player.submittedPoints || 0) / rawPicked : 0;
+      const boldness = rawPicked > 0 ? (player.predictedGoals || 0) / rawPicked : 0;
+      const stddev = player.completedGwStdDev || 0;
+      const perfectRate = rawScored > 0 ? (player.perfects || 0) / rawScored : 0;
+      const winnerRate = rawPicked > 0 ? (player.winnerCorrect || 0) / rawPicked : 0;
       return { username: p.username, dn: p.dn, rawAvg, boldness, stddev, perfectRate, winnerRate };
     });
     if (raw.length === 0) return [];
@@ -4772,7 +4740,7 @@ function TrendsTab({group,names,theme}) {
       return entry;
     });
     return { data, rawMap };
-  }, [ds, completedGws, preds, activeSeason]);
+  }, [ds, trendStats]);
   const swingData = useMemo(() => {
     return completedGws.map(g => {
       const scores = ds.filter(p => !isPreJoinGW(firstPicks, p.username, g, activeSeason)).map(p => {
@@ -4795,41 +4763,25 @@ function TrendsTab({group,names,theme}) {
     for (let h = 0; h <= 5; h++) for (let a = 0; a <= 5; a++) grid[`${h}-${a}`] = 0;
     const targets = selectedPlayer ? [selectedPlayer] : members;
     targets.forEach(username => {
-      filteredGWs.forEach(g => (g.fixtures||[]).forEach(f => {
-        if (!inScopeFixtureIds.has(f.id)) return;
-        const pred = preds[username]?.[f.id];
-        if (!pred) return;
-        const [h, a] = pred.split("-").map(Number);
-        if (!isNaN(h) && !isNaN(a) && h <= 5 && a <= 5) grid[`${h}-${a}`] = (grid[`${h}-${a}`] || 0) + 1;
-      }));
+      Object.entries(trendStats?.players?.[username]?.scoreHeatmap || {}).forEach(([score,count]) => {
+        if (Object.hasOwn(grid, score)) grid[score] += count;
+      });
     });
     return grid;
-  }, [selectedPlayer, members, filteredGWs, preds, inScopeFixtureIds]);
+  }, [selectedPlayer, members, trendStats]);
 
   const resultGridData = useMemo(() => {
     const grid = {};
     for (let h = 0; h <= 5; h++) for (let a = 0; a <= 5; a++) grid[`${h}-${a}`] = 0;
-    completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
-      if (!f.result || f.status === "POSTPONED") return;
-      const [h, a] = f.result.split("-").map(Number);
-      if (!isNaN(h) && !isNaN(a) && h <= 5 && a <= 5) grid[`${h}-${a}`] = (grid[`${h}-${a}`] || 0) + 1;
-    }));
+    Object.entries(trendStats?.actualResultsHeatmap || {}).forEach(([score,count]) => {
+      if (Object.hasOwn(grid, score)) grid[score] += count;
+    });
     return grid;
-  }, [completedGws]);
+  }, [trendStats]);
 
   const predStyleData = useMemo(() => {
     return ds.map(p => {
-      let home = 0, draw = 0, away = 0;
-      completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
-        if (!f.result || f.status === "POSTPONED") return;
-        const pred = preds[p.username]?.[f.id];
-        if (!pred) return;
-        const [ph, pa] = pred.split("-").map(Number);
-        if (isNaN(ph) || isNaN(pa)) return;
-        if (ph > pa) home++;
-        else if (ph < pa) away++;
-        else draw++;
-      }));
+      const {home=0,draw=0,away=0}=trendStats?.players?.[p.username]?.predictionStyle || {};
       const total = home + draw + away;
       const homePct = total ? +((home/total)*100).toFixed(1) : 0;
       const drawPct = total ? +((draw/total)*100).toFixed(1) : 0;
@@ -4841,44 +4793,23 @@ function TrendsTab({group,names,theme}) {
         Away: awayPct,
       };
     });
-  }, [ds, completedGws, preds]);
+  }, [ds, trendStats]);
 
   const goalInflationData = useMemo(() => {
     return ds.map(p => {
-      let predTotal = 0, actualTotal = 0, count = 0;
-      completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
-        if (!f.result || f.status === "POSTPONED") return;
-        const pred = preds[p.username]?.[f.id];
-        if (!pred) return;
-        const [ph, pa] = pred.split("-").map(Number);
-        const [rh, ra] = f.result.split("-").map(Number);
-        if (isNaN(ph)||isNaN(pa)||isNaN(rh)||isNaN(ra)) return;
-        predTotal += ph + pa;
-        actualTotal += rh + ra;
-        count++;
-      }));
-      return { name: p.dn, value: count > 0 ? +((predTotal - actualTotal) / count).toFixed(2) : 0, color: memberColor(p.username) };
+      const player=trendStats?.players?.[p.username] || {};
+      const count=player.submittedPicks || 0;
+      return { name: p.dn, value: count > 0 ? +(((player.predictedGoals||0) - (player.actualGoals||0)) / count).toFixed(2) : 0, color: memberColor(p.username) };
     }).sort((a, b) => a.value - b.value);
-  }, [ds, completedGws, preds]);
+  }, [ds, trendStats]);
 
   const boldnessAccuracyData = useMemo(() => {
     return ds.map(p => {
-      let predGoals = 0, ptsTotal = 0, count = 0;
-      completedGws.forEach(g => (g.fixtures||[]).forEach(f => {
-        if (!f.result || f.status === "POSTPONED") return;
-        const pred = preds[p.username]?.[f.id];
-        if (!pred) return;
-        const fp = calcPts(pred, f.result);
-        if (fp === null) return;
-        const [ph, pa] = pred.split("-").map(Number);
-        if (isNaN(ph)||isNaN(pa)) return;
-        predGoals += ph + pa;
-        ptsTotal += fp;
-        count++;
-      }));
-      return { name: p.dn, boldness: count > 0 ? +(predGoals/count).toFixed(2) : 0, accuracy: count > 0 ? +(ptsTotal/count).toFixed(2) : 0, color: memberColor(p.username) };
+      const player=trendStats?.players?.[p.username] || {};
+      const count=player.submittedPicks || 0;
+      return { name: p.dn, boldness: count > 0 ? +((player.predictedGoals||0)/count).toFixed(2) : 0, accuracy: count > 0 ? +((player.submittedPoints||0)/count).toFixed(2) : 0, color: memberColor(p.username) };
     });
-  }, [ds, completedGws, preds]);
+  }, [ds, trendStats]);
 
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
@@ -4887,6 +4818,7 @@ function TrendsTab({group,names,theme}) {
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isIndex?24:24):(isIndex?34:36),fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Trends</h1>
         {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}
       </div>
+      <div style={{fontSize:10,fontWeight:600,color:"var(--text-dim2)",margin:"0 0 8px 2px"}}>{MATCH_UPDATE_LABEL}</div>
       <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${mob?140:155}px,1fr))`,gap:mob?8:10,marginBottom:mob?20:30}}>
         {ds.map((p,ri)=>{
           const rank=ri+1;
@@ -4915,7 +4847,7 @@ function TrendsTab({group,names,theme}) {
         })}
       </div>
       <SH label="Season Story"/>
-      <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek">
+      <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek" cadence={GW_UPDATE_LABEL}>
         <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?160:200)}>
           <LineChart data={rankData} margin={{top:20,right:20,left:-10,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4925,7 +4857,7 @@ function TrendsTab({group,names,theme}) {
           </LineChart>
         </ResponsiveContainer>
       </CC>
-      <CC title="Cumulative Points Race" sub="Running total. Lower is winning.">
+      <CC title="Cumulative Points Race" sub="Running total. Lower is winning." cadence={GW_UPDATE_LABEL}>
         <ResponsiveContainer width="100%" height={mob?160:200}>
           <LineChart data={cumLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4937,7 +4869,7 @@ function TrendsTab({group,names,theme}) {
       </CC>
 
       <SH label="Gameweek Performance"/>
-      <CC title="Points Per Gameweek">
+      <CC title="Points Per Gameweek" cadence={GW_UPDATE_LABEL}>
         <ResponsiveContainer width="100%" height={mob?200:260}>
           <LineChart data={gwLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4947,7 +4879,7 @@ function TrendsTab({group,names,theme}) {
           </LineChart>
         </ResponsiveContainer>
       </CC>
-      <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
+      <CC title="GW Spread" sub="Shaded area = full range, dashed = avg" cadence={GW_UPDATE_LABEL}>
         <ResponsiveContainer width="100%" height={mob?170:220}>
           <ComposedChart data={swingData} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4962,7 +4894,7 @@ function TrendsTab({group,names,theme}) {
       </CC>
 
       {/* ── GW HEATMAP ──────────────────────────────── */}
-      <CC title="GW Heatmap" sub="Points per gameweek. Low is good, high is bad.">
+      <CC title="GW Heatmap" sub="Points per gameweek. Low is good, high is bad." cadence={GW_UPDATE_LABEL}>
         {(()=>{
           // build relative color scale from actual data
           const allPts = ds.flatMap(p => completedGws.map(g => {
@@ -5024,7 +4956,7 @@ function TrendsTab({group,names,theme}) {
       </CC>
 
       <SH label="Pick Quality"/>
-      <CC title="Points Breakdown" sub="How each player's picks land across outcome types">
+      <CC title="Points Breakdown" sub="How each player's picks land across outcome types" cadence={MATCH_UPDATE_LABEL}>
         <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?150:180)}>
           <BarChart data={breakdownData} layout="vertical" margin={{top:0,right:mob?8:18,left:mob?50:60,bottom:0}}>
             <XAxis type="number" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -5042,13 +4974,13 @@ function TrendsTab({group,names,theme}) {
         </ResponsiveContainer>
       </CC>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Bar dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
-        <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+        <CC title="Perfect Predictions" cadence={MATCH_UPDATE_LABEL}><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Bar dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Points Distribution" sub="How often each score outcome occurs per player" cadence={MATCH_UPDATE_LABEL}><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
 
       <SH label="Playing Style"/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
-        <CC title="Prediction Style" sub="How often each player backs home win / draw / away win">
+        <CC title="Prediction Style" sub="How often each player backs home win / draw / away win" cadence={MATCH_UPDATE_LABEL}>
           <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:44),mob?160:200)}>
             <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:mob?8:40,left:mob?50:60,bottom:0}}>
               <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -5063,7 +4995,7 @@ function TrendsTab({group,names,theme}) {
             </BarChart>
           </ResponsiveContainer>
         </CC>
-        <CC title="Player Radar" sub="Normalized vs group average. Hover axis labels for definitions">
+        <CC title="Player Radar" sub="Normalized vs group average. Consistency uses completed gameweeks." cadence={MATCH_UPDATE_LABEL}>
           <ResponsiveContainer width="100%" height={mob?220:260}>
             <RadarChart data={radarData.data} margin={{top:10,right:mob?20:30,bottom:10,left:mob?20:30}}>
               <PolarGrid stroke="var(--border)"/>
@@ -5080,7 +5012,7 @@ function TrendsTab({group,names,theme}) {
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
-        <CC title="Goal Inflation" sub="Avg predicted total goals minus actual goals per pick">
+        <CC title="Goal Inflation" sub="Avg predicted total goals minus actual goals per pick" cadence={MATCH_UPDATE_LABEL}>
           <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:44),mob?160:200)}>
             <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:mob?24:50,left:mob?50:60,bottom:0}}>
               <XAxis type="number" tickFormatter={v=>v>0?`+${v}`:String(v)} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -5097,7 +5029,7 @@ function TrendsTab({group,names,theme}) {
             <span><span style={{color:isIndex?"#3b82f6":"#6366f1"}}>■</span> Under-predicts</span>
           </div>
         </CC>
-        <CC title="Boldness vs Accuracy" sub="Do bolder scoreline predictions help or hurt?">
+        <CC title="Boldness vs Accuracy" sub="Avg points per submitted pick; misses excluded." cadence={MATCH_UPDATE_LABEL}>
           {(()=>{
             const data=boldnessAccuracyData;
             if(!data.length) return null;
@@ -5160,10 +5092,10 @@ function TrendsTab({group,names,theme}) {
         };
         return (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:18}}>
-            <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
+            <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`} cadence={MATCH_UPDATE_LABEL}>
               {renderHeatmap(scoreGridData,isIndex?"rgba(245,158,11,1)":"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
             </CC>
-            <CC title="Actual Results Heatmap">
+            <CC title="Actual Results Heatmap" cadence={MATCH_UPDATE_LABEL}>
               {renderHeatmap(resultGridData,isIndex?"rgba(59,130,246,1)":"rgba(99,102,241,1)","REAL RESULTS")}
             </CC>
           </div>

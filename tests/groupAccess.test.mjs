@@ -167,6 +167,32 @@ test("trend breakdown aggregates are identical for every viewer while picks stay
   assert.deepEqual(farisView.predictions.alex, {});
 });
 
+test("all match-level trend aggregates are viewer-independent and exclude unfinished fixtures", () => {
+  const group = makeGroup({
+    gameweeks: [{
+      gw: 1,
+      season: 2026,
+      fixtures: [
+        { id: "one", date: "2026-09-10T18:00:00Z", status: "FINISHED", result: "0-0" },
+        { id: "two", date: "2026-09-20T18:00:00Z", status: "SCHEDULED" },
+      ],
+    }],
+    predictions: {
+      alex: { one: "2-1", two: "5-5" },
+      faris: { one: "0-0" },
+      sam: {},
+    },
+  });
+
+  const alexView = access.sanitizeGroupForViewer(group, "alex", new Date("2026-09-15T12:00:00Z"));
+  const samView = access.sanitizeGroupForViewer(group, "sam", new Date("2026-09-15T12:00:00Z"));
+
+  assert.deepEqual(alexView.trendStats, samView.trendStats);
+  assert.equal(alexView.trendStats.players.alex.submittedPoints, 3);
+  assert.equal(JSON.stringify(alexView.trendStats).includes('"5-5"'), false);
+  assert.deepEqual(samView.predictions.alex, {});
+});
+
 test("client standings use the authoritative privacy-safe totals", () => {
   assert.match(appSource, /import \{[^}]*computeGroupStats[^}]*\} from "\.\.\/shared\/scoring\.js"/);
   assert.doesNotMatch(appSource, /function computeStats\(group\)/);
