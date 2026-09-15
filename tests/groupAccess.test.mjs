@@ -129,6 +129,44 @@ test("standings totals are identical for every viewer while hidden picks remain 
   assert.doesNotMatch(JSON.stringify(farisView.standingsStats), /2-1|1-0/);
 });
 
+test("trend breakdown aggregates are identical for every viewer while picks stay hidden", () => {
+  const group = makeGroup({
+    gameweeks: [{
+      gw: 1,
+      season: 2026,
+      fixtures: [
+        { id: "one", date: "2026-09-10T18:00:00Z", status: "FINISHED", result: "0-0" },
+        { id: "two", date: "2026-09-20T18:00:00Z", status: "SCHEDULED" },
+      ],
+    }],
+    predictions: {
+      alex: { one: "2-1", two: "1-0" },
+      faris: { one: "0-0" },
+      sam: {},
+    },
+  });
+
+  const alexView = access.sanitizeGroupForViewer(group, "alex", new Date("2026-09-15T12:00:00Z"));
+  const farisView = access.sanitizeGroupForViewer(group, "faris", new Date("2026-09-15T12:00:00Z"));
+  const fields = row => ({
+    username: row.username,
+    perfects: row.perfects,
+    close: row.close,
+    bad: row.bad,
+    missed: row.missed,
+  });
+
+  assert.deepEqual(alexView.standingsStats.map(fields), farisView.standingsStats.map(fields));
+  assert.deepEqual(farisView.standingsStats.find(row => row.username === "alex") && fields(farisView.standingsStats.find(row => row.username === "alex")), {
+    username: "alex",
+    perfects: 0,
+    close: 0,
+    bad: 1,
+    missed: 0,
+  });
+  assert.deepEqual(farisView.predictions.alex, {});
+});
+
 test("client standings use the authoritative privacy-safe totals", () => {
   assert.match(appSource, /import \{[^}]*computeGroupStats[^}]*\} from "\.\.\/shared\/scoring\.js"/);
   assert.doesNotMatch(appSource, /function computeStats\(group\)/);

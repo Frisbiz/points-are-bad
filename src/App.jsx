@@ -13,7 +13,7 @@ import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
-import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats } from "../shared/scoring.js";
+import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
 // Server responses carry standings calculated before private picks are removed.
 // Demo/local groups without an aggregate can still be scored in the browser.
@@ -4694,21 +4694,7 @@ function TrendsTab({group,names,theme}) {
       return entry;
     });
   }, [completedGws, ds, preds, activeSeason, firstPicks]);
-  const breakdownData = useMemo(() => {
-    return ds.map(p => {
-      let perfect = 0, close = 0, bad = 0, missed = 0;
-      filteredGWs.forEach(g => (g.fixtures||[]).forEach(f => {
-        if (!f.result || f.status === "POSTPONED") return;
-        const pred = preds[p.username]?.[f.id];
-        if (!pred) { missed++; return; }
-        const fp = calcPts(pred, f.result) ?? 0;
-        if (fp === 0) perfect++;
-        else if (fp <= 2) close++;
-        else bad++;
-      }));
-      return { name: p.dn, Perfect: perfect, Close: close, Bad: bad, Missed: missed };
-    });
-  }, [ds, filteredGWs, preds]);
+  const breakdownData = useMemo(() => buildPointsBreakdownRows(ds), [ds]);
   const radarData = useMemo(() => {
     const raw = ds.map(p => {
       let rawScored = 0, rawPicked = 0, rawPerfects = 0, rawTotal = 0, boldTotal = 0;

@@ -58,6 +58,8 @@ export function computeGroupStats(group) {
     let ownTotal = 0;
     let ownScored = 0;
     let perfects = 0;
+    let close = 0;
+    let bad = 0;
     let missed = 0;
 
     sortedGameweeks.forEach(gameweek => {
@@ -75,6 +77,8 @@ export function computeGroupStats(group) {
           ownScored += 1;
           gameweekPoints += points;
           if (points === 0) perfects += 1;
+          else if (points <= 2) close += 1;
+          else bad += 1;
         } else {
           ownTotal += MISSED_PICK_PTS;
           ownScored += 1;
@@ -85,7 +89,7 @@ export function computeGroupStats(group) {
       realGameweekPoints[username][gameweekKey(gameweek)] = gameweekPoints;
     });
 
-    ownTotals[username] = { ownTotal, ownScored, perfects, missed };
+    ownTotals[username] = { ownTotal, ownScored, perfects, close, bad, missed };
   });
 
   // New members begin level with the worst active player's cumulative score.
@@ -147,6 +151,8 @@ export function computeGroupStats(group) {
       total: startingBonus + own.ownTotal,
       scored: own.ownScored,
       perfects: own.perfects,
+      close: own.close,
+      bad: own.bad,
       missed: own.missed,
       avg: own.ownScored > 0 ? (own.ownTotal / own.ownScored).toFixed(2) : "–",
       gwTotals: sortedGameweeks.map(gameweek => ({
@@ -172,4 +178,14 @@ export function computeGroupStats(group) {
     previous = player;
     return { ...player, rank };
   });
+}
+
+export function buildPointsBreakdownRows(stats, displayNames = {}) {
+  return (stats || []).map(player => ({
+    name: player.dn || displayNames[player.username] || player.username,
+    Perfect: player.perfects || 0,
+    Close: player.close || 0,
+    Bad: player.bad || 0,
+    Missed: player.missed || 0,
+  }));
 }
