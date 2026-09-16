@@ -1863,7 +1863,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'DM Mono',monospace",color:"var(--text)"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
+      <header className="app-top-header" style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:18,color:"var(--text-bright)"}}>POINTS</span><span onClick={spawnThumb} style={{color:"var(--text-dim)",fontSize:9,letterSpacing:3,fontFamily:"'DM Mono',monospace",fontWeight:400,cursor:"pointer",userSelect:"none"}}>are bad</span></div>
           {thumbs.map(th=><div key={th.id} className="thumbdown" style={{left:th.x-13,top:th.y-10}}>👎</div>)}
@@ -3126,7 +3126,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",color:"var(--text)",fontFamily:"'DM Mono',monospace"}}>
       <style>{CSS}</style>
-      <header style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
+      <header className="app-top-header" style={{borderBottom:theme==="index"?"none":"1px solid var(--border)",padding:theme==="index"?"16px 20px 0":"0 20px",position:"sticky",top:0,background:"var(--bg)",zIndex:50}}>
         <div className={theme==="index"?"pill-nav":undefined} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",display:"flex",alignItems:"center",height:theme==="index"?48:60,gap:0,borderRadius:theme==="index"?18:0,padding:theme==="index"?"0 10px":undefined}}>
           <button className="app-brand-button" onClick={onLeave} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderRight:theme==="index"?"none":"1px solid var(--border)",marginRight:theme==="index"?12:20,padding:theme==="index"?"0 12px":"0 16px 0 0",height:"100%"}}>
             <span style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:16,color:"var(--text-bright)",lineHeight:1}}>POINTS</span>

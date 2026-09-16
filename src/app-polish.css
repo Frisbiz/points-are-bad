@@ -32,6 +32,8 @@ html[data-theme="index"] .profile-dialog{border-radius:20px!important;background
 .pab-landing .score-receipt p,.pab-landing .sheet-heading h2{margin-bottom:0}
 .pab-landing .pab-brand button{min-height:30px}
 .pab-landing{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+.pab-app-shell{box-sizing:border-box;min-height:100dvh;padding-top:env(safe-area-inset-top)}
+.app-top-header{top:env(safe-area-inset-top)!important}
 html[data-theme="index"]{--bg:#f6f6f7;--surface:#fff;--card:#f0f0f2;--card-hi:#f7f7f8;--card-hover:#ebebee;--input-bg:#fff;--border:rgba(0,0,0,.06);--border2:rgba(0,0,0,.08);--border3:rgba(0,0,0,.05);--text:#121417;--text-dim:#7b818a;--text-dim2:#8f959d;--text-dim3:#6f7680;--text-mid:#565d66;--text-bright:#111315;--btn-bg:#15181c;--btn-text:#fff;--font-mono:'Plus Jakarta Sans',sans-serif}
 html[data-theme="index"] body{background:var(--bg)}
 [data-theme="index"] .pab-app-shell{font-family:'Plus Jakarta Sans',sans-serif!important}

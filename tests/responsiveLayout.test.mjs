@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from "../src/responsiveLayout.js";
+
+const polishCss = readFileSync(new URL("../src/app-polish.css", import.meta.url), "utf8");
+const appSource = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
 
 test("responsive layout uses the narrower visible viewport when an embedded browser clips the layout viewport", () => {
   assert.equal(visibleViewportWidth({ innerWidth: 2560, visualViewportWidth: 1245 }), 1245);
@@ -37,4 +41,10 @@ test("tablet portrait uses compact navigation while tablet landscape keeps deskt
   assert.equal(viewportLayoutState(834).dashboardStack, "true");
   assert.equal(viewportLayoutState(1024).compact, "false");
   assert.equal(viewportLayoutState(1024).dashboardStack, "false");
+});
+
+test("iPhone standalone mode reserves the top safe area for every app screen", () => {
+  assert.match(polishCss, /\.pab-app-shell\s*\{[^}]*padding-top:\s*env\(safe-area-inset-top\)/s);
+  assert.match(appSource, /className="app-top-header"/);
+  assert.match(polishCss, /\.app-top-header\s*\{[^}]*top:\s*env\(safe-area-inset-top\)/s);
 });
