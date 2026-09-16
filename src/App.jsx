@@ -2673,8 +2673,11 @@ export default function App() {
     let bootstrap;
     try {
       bootstrap = await fetchBootstrap();
-    } catch {
-      setBootError(true);
+    } catch (error) {
+      const networkFailure = navigator.onLine === false
+        || error instanceof TypeError
+        || /failed to fetch|load failed|networkerror/i.test(String(error?.message || ""));
+      setBootError(networkFailure ? "offline" : "connection");
       setSitePrefsLoaded(true);
       setBoot(true);
       return;
@@ -2724,6 +2727,13 @@ export default function App() {
   },[]);
 
   useEffect(()=>{runBoot();},[]);
+
+  useEffect(()=>{
+    if(!bootError)return;
+    const retryWhenOnline=()=>runBoot();
+    window.addEventListener("online",retryWhenOnline);
+    return()=>window.removeEventListener("online",retryWhenOnline);
+  },[bootError,runBoot]);
 
   useEffect(()=>{
     if(!boot)return;
@@ -2884,19 +2894,39 @@ export default function App() {
       {!boot?(
         <LoadingSkeleton fullPage/>
       ):bootError?(
-        <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
-          alignItems:"center",justifyContent:"center",gap:16,color:"var(--text-dim)",
-          fontFamily:"monospace",fontSize:12}}>
-          <div>Connection failed.</div>
-          <div style={{display:"flex",gap:12}}>
-            <button onClick={runBoot} style={{background:"none",border:"1px solid var(--border)",
-              borderRadius:6,color:"var(--text)",cursor:"pointer",fontSize:11,letterSpacing:1.5,
-              padding:"6px 14px",fontFamily:"inherit"}}>RETRY</button>
-            <button onClick={()=>{ldel("session");window.location.reload();}} style={{background:"none",
-              border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:10,letterSpacing:1,
-              padding:"6px 8px",fontFamily:"inherit"}}>clear session</button>
+        bootError==="offline"||navigator.onLine === false?(
+          <main style={{minHeight:"100dvh",boxSizing:"border-box",background:"var(--bg)",display:"grid",
+            placeItems:"center",padding:"max(28px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom))",
+            color:"var(--text)",fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif"}}>
+            <section style={{width:"min(100%, 390px)",textAlign:"center"}} aria-labelledby="offline-title">
+              <img src="/pab.png" width="64" height="64" alt="" style={{display:"block",margin:"0 auto 22px"}}/>
+              <div style={{fontSize:11,fontWeight:750,letterSpacing:2.2,textTransform:"uppercase",
+                color:"var(--text-dim2)",marginBottom:12}}>Points Are Bad</div>
+              <h1 id="offline-title" style={{fontSize:"clamp(28px, 8vw, 42px)",lineHeight:1.05,
+                letterSpacing:"-.04em",margin:"0 0 14px",color:"var(--text-bright)",fontWeight:800}}>You’re offline</h1>
+              <p style={{margin:"0 auto 24px",maxWidth:340,fontSize:14,lineHeight:1.65,color:"var(--text-dim)"}}>
+                PAB needs a connection for picks and live scores. Reconnect, then try again.
+              </p>
+              <button onClick={runBoot} style={{minWidth:132,minHeight:46,background:"var(--btn-bg)",
+                border:"1px solid var(--border)",borderRadius:12,color:"var(--btn-text)",cursor:"pointer",
+                fontSize:13,fontWeight:750,padding:"0 20px",fontFamily:"inherit"}}>Retry</button>
+            </section>
+          </main>
+        ):(
+          <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",
+            alignItems:"center",justifyContent:"center",gap:16,color:"var(--text-dim)",
+            fontFamily:"monospace",fontSize:12}}>
+            <div>Connection failed.</div>
+            <div style={{display:"flex",gap:12}}>
+              <button onClick={runBoot} style={{background:"none",border:"1px solid var(--border)",
+                borderRadius:6,color:"var(--text)",cursor:"pointer",fontSize:11,letterSpacing:1.5,
+                padding:"6px 14px",fontFamily:"inherit"}}>RETRY</button>
+              <button onClick={()=>{ldel("session");window.location.reload();}} style={{background:"none",
+                border:"none",color:"var(--text-dim3)",cursor:"pointer",fontSize:10,letterSpacing:1,
+                padding:"6px 8px",fontFamily:"inherit"}}>clear session</button>
+            </div>
           </div>
-        </div>
+        )
       ):resetToken&&!resetDone?(
         <ResetPasswordScreen token={resetToken} onDone={()=>{
           window.history.replaceState({},"","/");
