@@ -18,6 +18,12 @@ const COMP_CONFIG = {
     weeks: 38,
     schedStates: "2",
   },
+  LL: {
+    league: "soccer.l.fbes",
+    season: CURRENT_LEAGUE_SEASON,
+    weeks: 38,
+    schedStates: "2",
+  },
   WC: {
     league: "soccer.l.fbwcup",
     season: 2026,
@@ -48,6 +54,14 @@ const WC_ROUND_DATE_RANGES = {
 
 const NAME_MAP = {
   "Brighton and Hove Albion": "Brighton",
+  Athletic: "Athletic Bilbao",
+  "Atlético": "Atletico Madrid",
+  Betis: "Real Betis",
+  Celta: "Celta Vigo",
+  "Málaga": "Málaga CF",
+  "RC Deportivo de A Coruna": "RC Deportivo La Coruña",
+  "Racing de Santander": "Real Racing Club de Santander",
+  Rayo: "Rayo Vallecano",
   "Bosnia and Herzegovina": "Bosnia-Herzegovina",
   "Bosnia & Herzegovina": "Bosnia-Herzegovina",
   "Cape Verde Islands": "Cape Verde",
@@ -212,7 +226,7 @@ export function normalizeGames(scoreboard, competition, gwHint = null, scheduleD
 
   return Object.entries(byRound).map(([gw, fixtures]) => ({
     gw: Number(gw),
-    season: isWC ? 2026 : COMP_CONFIG.PL.season,
+    season: isWC ? 2026 : (COMP_CONFIG[competition]?.season || COMP_CONFIG.PL.season),
     fixtures: dedupeFixtures(fixtures).sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))),
   }));
 }
@@ -420,8 +434,8 @@ export async function saveFinishedLiveMatchesToCache({ competition = "PL", seaso
   if (!matches.some(match => match?.status === "finished" && match.homeScore != null && match.awayScore != null)) {
     return { changed: false };
   }
-  const comp = competition === "WC" ? "WC" : "PL";
-  const seas = comp === "WC" ? 2026 : (season || COMP_CONFIG.PL.season);
+  const comp = competition === "WC" ? "WC" : competition === "LL" ? "LL" : "PL";
+  const seas = comp === "WC" ? 2026 : (season || COMP_CONFIG[comp].season);
   const globalKey = fixtureGlobalKey(comp, seas);
   const globalDoc = await getValue(globalKey);
   if (!globalDoc?.gameweeks?.length) return { changed: false };

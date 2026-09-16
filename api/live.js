@@ -73,7 +73,35 @@ export default async function handler(req, res) {
       setLiveSuccessCacheHeaders(res);
       return res.status(200).json({matches:liveMatchesFromFixtures(fixtures)});
     }
-    if (comp === "LL" || comp === "CL") {
+    if (comp === "LL") {
+      try {
+        const matches = await fetchYahooLiveMatches(comp, Number(week));
+        try {
+          await saveFinishedLiveMatchesToCache({ competition: comp, season: seas, targetGW: Number(week), matches });
+        } catch (e) {
+          console.error("La Liga live final score cache promotion:", e.message);
+        }
+        setLiveSuccessCacheHeaders(res);
+        return res.status(200).json({ matches, week: Number.parseInt(week, 10), competition: comp });
+      } catch (e) {
+        console.error("La Liga live Yahoo fallback:", e.message);
+      }
+
+      try {
+        const matches = await fetchFootballDataLiveMatches(comp, Number(week), seas);
+        setLiveSuccessCacheHeaders(res);
+        return res.status(200).json({ matches, week: Number.parseInt(week, 10), competition: comp });
+      } catch (e) {
+        console.error("La Liga live Football-Data fallback:", e.message);
+      }
+
+      const globalDoc = await getValue(fixtureGlobalKey(comp, seas));
+      const fixtures = (globalDoc?.gameweeks || []).find(gw => gw.gw === Number(week))?.fixtures || [];
+      setLiveSuccessCacheHeaders(res);
+      return res.status(200).json({ matches: liveMatchesFromFixtures(fixtures), week: Number.parseInt(week, 10), competition: comp });
+    }
+
+    if (comp === "CL") {
       try {
         const matches = await fetchFootballDataLiveMatches(comp, Number(week), seas);
         setLiveSuccessCacheHeaders(res);
