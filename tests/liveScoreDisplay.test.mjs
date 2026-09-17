@@ -31,7 +31,12 @@ function loadAppFunction(name) {
     assert.notEqual(end, -1, `${fnName} body should close`);
     return source.slice(start, end);
   };
-  const dependencies = name === "buildNextMatchCardState" ? [extractFunction("matchClockLabel")] : [];
+  const dependencyMap = {
+    buildNextMatchCardState: ["effectiveFixtureStatus", "matchClockLabel"],
+    fixtureDelayStatus: ["effectiveFixtureStatus"],
+    matchClockLabel: ["effectiveFixtureStatus"],
+  };
+  const dependencies = (dependencyMap[name] || []).map(extractFunction);
   const fnSource = extractFunction(name);
   return Function("isWorldCupGroupLike", "isPastGroup", `${dependencies.join("\n")}\n${fnSource}; return ${name};`)(isWorldCupGroupLike, isPastGroup);
 }
@@ -54,6 +59,28 @@ test("finished Yahoo scores display while the group fixture waits for sync", () 
   };
 
   assert.equal(effectiveFixtureResult(fixture, liveScores), "0-1");
+});
+
+test("Yahoo postponement suppresses a stale stored live score", () => {
+  const effectiveFixtureResult = loadAppFunction("effectiveFixtureResult");
+  const fixture = {
+    id: "gw6-f564685",
+    home: "Levante",
+    away: "Athletic Bilbao",
+    result: null,
+    status: "IN_PLAY",
+    liveScore: "0-0",
+  };
+  const liveScores = {
+    "Levante|Athletic Bilbao": {
+      status: "postponed",
+      homeScore: 0,
+      awayScore: 0,
+      elapsed: "0",
+    },
+  };
+
+  assert.equal(effectiveFixtureResult(fixture, liveScores), null);
 });
 
 test("finished Yahoo scores are applied before computing standings totals", () => {
@@ -502,6 +529,27 @@ test("fixture delay status shows delayed instead of syncing for moved kickoffs",
   assert.equal(fixtureDelayStatus(fixture, liveMatch, new Date("2026-07-06T00:15:00.000Z").getTime()), "DELAYED");
 });
 
+test("Yahoo postponement overrides a stale in-play fixture status", () => {
+  const fixtureDelayStatus = loadAppFunction("fixtureDelayStatus");
+  const fixture = {
+    id: "gw6-f564685",
+    home: "Levante",
+    away: "Athletic Bilbao",
+    status: "IN_PLAY",
+    date: "2026-09-16T19:30:00.000Z",
+    liveScore: "0-0",
+  };
+  const liveMatch = {
+    status: "postponed",
+    startTime: "2026-09-16T19:30:00.000Z",
+    homeScore: 0,
+    awayScore: 0,
+    elapsed: "0",
+  };
+
+  assert.equal(fixtureDelayStatus(fixture, liveMatch), "POSTPONED");
+});
+
 test("fixtures tab is seeded with live scores already loaded by the game shell", () => {
   const source = loadAppSource();
 
@@ -703,6 +751,40 @@ test("picks due card prefers the current live game over the next kickoff", () =>
   assert.equal(state.secondaryLabel, "64'");
   assert.equal(state.scoreText, "0-1");
   assert.equal(state.fixture.id, "wc-gw4-live");
+});
+
+test("picks due card does not show a stale live fixture after Yahoo postpones it", () => {
+  const buildNextMatchCardState = loadAppFunction("buildNextMatchCardState");
+  const state = buildNextMatchCardState({
+    now: new Date("2026-09-16T20:00:00.000Z"),
+    fixtureGameweeks: [
+      {
+        gw: 6,
+        season: 2026,
+        fixtures: [
+          {
+            id: "gw6-f564685",
+            home: "Levante",
+            away: "Athletic Bilbao",
+            date: "2026-09-16T19:30:00.000Z",
+            status: "IN_PLAY",
+            liveScore: "0-0",
+            result: null,
+          },
+        ],
+      },
+    ],
+    liveScores: {
+      "Levante|Athletic Bilbao": {
+        status: "postponed",
+        homeScore: 0,
+        awayScore: 0,
+        elapsed: "0",
+      },
+    },
+  });
+
+  assert.equal(state, null);
 });
 
 test("picks due card estimates live minute when provider has no elapsed label", () => {

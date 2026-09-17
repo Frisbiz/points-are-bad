@@ -107,16 +107,27 @@ function formatFixtureDate(value, options = {}) {
   return new Intl.DateTimeFormat("en-GB", formatOptions).format(date).replace(", ", " ");
 }
 
+function effectiveFixtureStatus(fixture, liveMatch = null) {
+  if (fixture?.result) return "FINISHED";
+  const liveStatus = String(liveMatch?.status || "").toLowerCase();
+  const yahooStatus = {
+    scheduled: "SCHEDULED",
+    in_progress: "IN_PLAY",
+    halftime: "PAUSED",
+    finished: "FINISHED",
+    postponed: "POSTPONED",
+    delayed: "DELAYED",
+  }[liveStatus];
+  return yahooStatus || String(fixture?.status || "SCHEDULED").toUpperCase();
+}
+
 function matchClockLabel(fixture, liveMatch = null, now = Date.now()) {
+  const effectiveStatus = effectiveFixtureStatus(fixture, liveMatch);
+  if (effectiveStatus === "PAUSED") return "HT";
+  if (effectiveStatus !== "IN_PLAY") return null;
+
   const explicitElapsed = liveMatch?.elapsed || fixture?.elapsed;
   if (explicitElapsed) return explicitElapsed;
-
-  const liveStatus = String(liveMatch?.status || "").toLowerCase();
-  const fixtureStatus = String(fixture?.status || "").toUpperCase();
-  if (liveStatus === "halftime" || fixtureStatus === "PAUSED") return "HT";
-
-  const isLive = liveStatus === "in_progress" || fixtureStatus === "IN_PLAY";
-  if (!isLive) return null;
 
   const kickoff = liveMatch?.startTime || fixture?.date;
   const kickoffMs = kickoff ? new Date(kickoff).getTime() : NaN;
@@ -145,10 +156,11 @@ function buildNextMatchCardState({ fixtureGameweeks = [], liveScores = {}, myPre
   const liveItems = fixtures
     .map(f => {
       const lm = liveScores?.[`${f.home}|${f.away}`];
-      const liveStatus = lm?.status === "in_progress" || lm?.status === "halftime" || f.status === "IN_PLAY" || f.status === "PAUSED";
-      const finalStatus = !!f.result || f.status === "FINISHED" || lm?.status === "finished";
-      if (!liveStatus || finalStatus || f.status === "POSTPONED") return null;
-      const halftime = lm?.status === "halftime" || f.status === "PAUSED";
+      const effectiveStatus = effectiveFixtureStatus(f, lm);
+      const liveStatus = effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED";
+      const finalStatus = effectiveStatus === "FINISHED";
+      if (!liveStatus || finalStatus || effectiveStatus === "POSTPONED") return null;
+      const halftime = effectiveStatus === "PAUSED";
       return {
         fixture: f,
         liveMatch: lm || null,
@@ -175,7 +187,9 @@ function buildNextMatchCardState({ fixtureGameweeks = [], liveScores = {}, myPre
 
   const next = fixtures
     .filter(f => {
-      if (!f.date || f.result || f.status === "FINISHED" || f.status === "IN_PLAY" || f.status === "PAUSED" || f.status === "POSTPONED") return false;
+      const lm = liveScores?.[`${f.home}|${f.away}`];
+      const effectiveStatus = effectiveFixtureStatus(f, lm);
+      if (!f.date || f.result || effectiveStatus === "FINISHED" || effectiveStatus === "IN_PLAY" || effectiveStatus === "PAUSED" || effectiveStatus === "POSTPONED") return false;
       const kickoffMs = new Date(f.date).getTime();
       return Number.isFinite(kickoffMs) && kickoffMs > safeNowMs;
     })
@@ -227,6 +241,7 @@ function effectiveFixtureResult(fixture, liveScores) {
   if (lm && (lm.status === "in_progress" || lm.status === "halftime" || lm.status === "finished") && lm.homeScore != null && lm.awayScore != null) {
     return `${lm.homeScore}-${lm.awayScore}`;
   }
+  if (lm && (lm.status === "scheduled" || lm.status === "postponed" || lm.status === "delayed")) return null;
   if (fixture.liveScore) return fixture.liveScore;
   return null;
 }
@@ -261,10 +276,10 @@ function fixtureResultDisplayParts(fixture, liveMatch, scoreStr) {
 }
 
 function fixtureDelayStatus(fixture, liveMatch, now = Date.now()) {
-  const fixtureStatus = String(fixture?.status || "").toUpperCase();
-  const liveStatus = String(liveMatch?.status || "").toLowerCase();
-  if (fixtureStatus === "DELAYED" || liveStatus === "delayed") return "DELAYED";
-  if (liveStatus !== "scheduled") return null;
+  const effectiveStatus = effectiveFixtureStatus(fixture, liveMatch);
+  if (effectiveStatus === "POSTPONED") return "POSTPONED";
+  if (effectiveStatus === "DELAYED") return "DELAYED";
+  if (effectiveStatus !== "SCHEDULED" || String(liveMatch?.status || "").toLowerCase() !== "scheduled") return null;
 
   const nowMs = Number(now);
   const safeNow = Number.isFinite(nowMs) ? nowMs : Date.now();
@@ -4197,20 +4212,21 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
       {gwFixtures.length===0?<div style={{color:"var(--text-dim)",textAlign:"center",padding:60}}>No fixtures. {isAdmin&&"Global fixtures will appear automatically."}</div>:gwFixtures.map(f=>{
         const myPred = predDraft[f.id]!==undefined?predDraft[f.id]:(myPreds[f.id]||"");
         const [draftHome, draftAway] = String(myPred).split("-");
+        const liveMatch = liveScores[`${f.home}|${f.away}`];
+        const effectiveStatus = effectiveFixtureStatus(f, liveMatch);
         const effResult = effectiveFixtureResult(f, liveScores);
         const pts = calcPts(myPreds[f.id], effResult);
         const effectivePts = pts!==null?pts:(effResult&&!myPreds[f.id]?(userPreJoin?null:MISSED_PICK_PTS):null);
-        const hardLocked = gwAdminLocked || !!(f.result||f.status==="FINISHED"||f.status==="IN_PLAY"||f.status==="PAUSED"||f.status==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
+        const hardLocked = gwAdminLocked || !!(f.result||effectiveStatus==="FINISHED"||effectiveStatus==="IN_PLAY"||effectiveStatus==="PAUSED"||effectiveStatus==="POSTPONED"||(f.date&&new Date(f.date)<=new Date()));
         const locked = hardLocked || picksLocked;
-        const lockReason = hardLocked?gwAdminLocked?"admin locked":f.status==="IN_PLAY"||f.status==="PAUSED"?"in play":f.status==="POSTPONED"?"postponed":f.result||f.status==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
+        const lockReason = hardLocked?gwAdminLocked?"admin locked":effectiveStatus==="IN_PLAY"||effectiveStatus==="PAUSED"?"in play":effectiveStatus==="POSTPONED"?"postponed":f.result||effectiveStatus==="FINISHED"?"result set":"kicked off":picksLocked?"picks locked":null;
         const searchHref = `https://www.google.com/search?q=${encodeURIComponent(f.home+" vs "+f.away)}`;
         const isHidden = (fixtureGroup.hiddenFixtures||[]).includes(f.id);
-        const liveMatch = liveScores[`${f.home}|${f.away}`];
         const dateStr = formatFixtureDate(liveMatch?.startTime || f.date);
         const yahooScored = !f.result && liveMatch && (liveMatch.status==="in_progress"||liveMatch.status==="halftime"||liveMatch.status==="finished") && liveMatch.homeScore != null && liveMatch.awayScore != null;
         const yahooFinal = yahooScored && liveMatch.status==="finished";
         const storedFinal = !!f.result || f.status==="FINISHED";
-        const isLive = (f.status==="IN_PLAY"||f.status==="PAUSED"||!!yahooScored) && !yahooFinal && !storedFinal;
+        const isLive = (effectiveStatus==="IN_PLAY"||effectiveStatus==="PAUSED") && !yahooFinal && !storedFinal;
         const scoreStr = effResult;
         const elapsed = isLive ? matchClockLabel(f, liveMatch, matchClockNow) : null;
         const resultDisplay = fixtureResultDisplayParts(f, liveMatch, scoreStr);
@@ -4247,13 +4263,13 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
             {resultDisplay.statusLabel&&<span style={{fontSize:9,color:"#22c55e",letterSpacing:1,opacity:0.65,textAlign:"center"}}>{resultDisplay.statusLabel}</span>}
             {isLive&&<span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,animation:"pulse 1.5s infinite",textAlign:"center"}}>{elapsed||"LIVE"}</span>}
           </div>
-        ):f.status==="POSTPONED"?(
+        ):effectiveStatus==="POSTPONED"?(
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
               <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
               {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
               </div>
             ):delayStatus?(
-              <span style={{color:"#f59e0b",fontSize:9,letterSpacing:1,opacity:0.8}}>DELAYED</span>
+              <span style={{color:"#f59e0b",fontSize:9,letterSpacing:1,opacity:0.8}}>{delayStatus}</span>
             ):pendingScoreSync?(
               <span style={{color:"var(--text-dim)",fontSize:11,letterSpacing:1}}>SYNCING</span>
             ):<span style={{color:"var(--text-dim)",fontSize:11}}>TBD</span>;
@@ -4300,7 +4316,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
             {lockReason&&<span title={lockReason} style={{display:"flex",alignItems:"center",color:"var(--text-dim3)",cursor:"default"}}><Lock size={16}/></span>}
             {myPreds[f.id]
               ? <span style={{color:"#8888cc",fontSize:12}}>{myPreds[f.id]}</span>
-              : (effResult||f.status==="IN_PLAY"||f.status==="PAUSED")
+              : (effResult||effectiveStatus==="IN_PLAY"||effectiveStatus==="PAUSED")
                 ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18}}>×</span>
                 : <span style={{color:"var(--text-dim)",fontSize:12}}>–</span>}
           </span>
@@ -4544,13 +4560,13 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
                 </td>
                 <td style={{padding:"10px 12px",textAlign:"center",fontFamily:theme==="excel"?"Arial,sans-serif":theme==="index"?"'Plus Jakarta Sans',sans-serif":"'Playfair Display',serif",fontSize:theme==="excel"?12:15,color:"var(--text-bright)",letterSpacing:theme==="excel"?0.5:2,whiteSpace:"nowrap"}}>{(()=>{
                   const lm = liveScores[`${f.home}|${f.away}`];
-                  const yScored = !f.result && lm && (lm.status==="in_progress"||lm.status==="halftime"||lm.status==="finished") && lm.homeScore != null && lm.awayScore != null;
-                  const liveStr = yScored ? `${lm.homeScore}-${lm.awayScore}` : f.liveScore || null;
-                  const finalish = yScored && lm.status==="finished";
+                  const effectiveStatus = effectiveFixtureStatus(f, lm);
+                  const liveStr = effectiveFixtureResult(f, liveScores);
+                  const finalish = effectiveStatus==="FINISHED";
                   const liveLabel = matchClockLabel(f, lm);
                   if (f.result) return f.result;
+                  if (effectiveStatus==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
                   if (liveStr) return <span style={{color:finalish?"var(--text-bright)":"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:finalish?undefined:"pulse 1.5s infinite",color:finalish?"#22c55e":undefined}}>{finalish?"FT":liveLabel||"LIVE"}</span></span>;
-                  if (f.status==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
                   return null;
                 })()}</td>
                 {members.map(u=>{
