@@ -56,3 +56,47 @@ test("the selected round recenters when the strip resizes", () => {
   cleanup();
   assert.equal(disconnected, true);
 });
+
+test("overlapping gameweeks are each marked active from their own fixtures", () => {
+  assert.equal(typeof selector.gameweekStatus, "function");
+  const now = Date.parse("2026-09-18T20:00:00.000Z");
+  const gameweekSix = {
+    gw: 6,
+    fixtures: [
+      { id: "finished", result: "2-0", status: "FINISHED", date: "2026-09-17T19:30:00.000Z" },
+      { id: "rescheduled", result: null, status: "TIMED", date: "2026-10-21T18:00:00.000Z" },
+    ],
+  };
+  const gameweekSeven = {
+    gw: 7,
+    fixtures: [
+      { id: "live", result: null, status: "IN_PLAY", date: "2026-09-18T19:00:00.000Z" },
+      { id: "future", result: null, status: "TIMED", date: "2026-09-19T12:00:00.000Z" },
+    ],
+  };
+  const gameweekEight = {
+    gw: 8,
+    fixtures: [
+      { id: "future", result: null, status: "TIMED", date: "2026-09-25T19:00:00.000Z" },
+    ],
+  };
+
+  assert.equal(selector.gameweekStatus(gameweekSix, [], false, now), "active");
+  assert.equal(selector.gameweekStatus(gameweekSeven, [], false, now), "active");
+  assert.equal(selector.gameweekStatus(gameweekEight, [], false, now), "future");
+});
+
+test("a started scheduled fixture marks its gameweek active while a locked round stays locked", () => {
+  const gameweek = {
+    gw: 7,
+    fixtures: [{
+      id: "started",
+      result: null,
+      status: "SCHEDULED",
+      date: "2026-09-18T19:00:00.000Z",
+    }],
+  };
+
+  assert.equal(selector.gameweekStatus(gameweek, [], false, Date.parse("2026-09-18T20:00:00.000Z")), "active");
+  assert.equal(selector.gameweekStatus(gameweek, [7], false, Date.parse("2026-09-18T20:00:00.000Z")), "locked");
+});

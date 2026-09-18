@@ -650,7 +650,7 @@ test("picks due countdown uses the resolved fixtures tab gameweeks", () => {
   const source = loadAppSource();
   const countdownBlock = source.slice(
     source.indexOf("function NextMatchCountdown"),
-    source.indexOf("function computeGWStatus")
+    source.indexOf("function PickCompletionPanel")
   );
   const fixturesBlock = source.slice(
     source.indexOf("function FixturesTab"),
@@ -821,10 +821,22 @@ test("picks due card live copy does not add picks locked text", () => {
   const source = loadAppSource();
   const countdownBlock = source.slice(
     source.indexOf("function NextMatchCountdown"),
-    source.indexOf("function computeGWStatus")
+    source.indexOf("function PickCompletionPanel")
   );
 
   assert.doesNotMatch(countdownBlock, /PICKS LOCKED|Picks locked/);
+});
+
+test("gameweek selector highlights every independently active overlapping round", () => {
+  const source = loadAppSource();
+  const fixturesBlock = source.slice(
+    source.indexOf("function FixturesTab"),
+    source.indexOf("function AllPicksTable")
+  );
+
+  assert.match(fixturesBlock, /const status = gameweekStatus\(g, fixtureGroup\.hiddenGWs, isAdmin\);/);
+  assert.match(fixturesBlock, /border:status==="active"&&currentGW!==g\.gw\?/);
+  assert.doesNotMatch(fixturesBlock, /g\.gw===activeGW/);
 });
 
 test("fixture shootout scores render like small top-right score exponents", () => {

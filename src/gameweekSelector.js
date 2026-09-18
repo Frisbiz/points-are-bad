@@ -34,3 +34,22 @@ export function observeSelectedGameweek(
 
   return () => observer.disconnect();
 }
+
+export function gameweekStatus(gameweek, hiddenGameweeks = [], isAdmin = false, now = Date.now()) {
+  if (!gameweek) return "empty";
+  if (!isAdmin && hiddenGameweeks.includes(gameweek.gw)) return "locked";
+
+  const fixtures = (gameweek.fixtures || []).filter(fixture => fixture.status !== "POSTPONED");
+  if (!fixtures.length) return "empty";
+  if (fixtures.every(fixture => Boolean(fixture.result))) return "complete";
+
+  const hasStarted = fixtures.some(fixture => {
+    if (fixture.result) return true;
+    const status = String(fixture.status || "").toUpperCase();
+    if (["LIVE", "IN_PLAY", "PAUSED", "FINISHED"].includes(status)) return true;
+    const kickoff = Date.parse(fixture.date || "");
+    return Number.isFinite(kickoff) && kickoff <= now;
+  });
+
+  return hasStarted ? "active" : "future";
+}

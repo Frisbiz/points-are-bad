@@ -12,7 +12,7 @@ import LoadingSkeleton from './LoadingSkeleton.jsx';
 import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
-import { observeSelectedGameweek } from './gameweekSelector.js';
+import { gameweekStatus, observeSelectedGameweek } from './gameweekSelector.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
 import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, computeTrendStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
@@ -3830,18 +3830,6 @@ function NextMatchCountdown({ fixtureGameweeks = [], myPreds = EMPTY_LIVE_SCORES
   );
 }
 
-function computeGWStatus(gwObj, hiddenGWs = [], isAdmin = false) {
-  const locked = !isAdmin && hiddenGWs.includes(gwObj.gw);
-  if (locked) return "locked";
-  const fixtures = (gwObj.fixtures || []).filter(f => f.status !== "POSTPONED");
-  if (fixtures.length === 0) return "empty";
-  if (fixtures.some(f => f.status === "FINISHED" && !f.result)) return "active";
-  const withResult = fixtures.filter(f => f.result);
-  if (withResult.length === fixtures.length) return "complete";
-  if (withResult.length > 0) return "active";
-  return "future";
-}
-
 function PickCompletionPanel({ group, season, gw, names, theme }) {
   const completion = group.pickCompletion?.[String(season)]?.[String(gw)];
   if (!completion) return null;
@@ -3912,14 +3900,6 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
     return fixtureGroup.currentGW||1;
   });
   const currentGW = viewGW;
-  const activeGW = useMemo(() => {
-    const seas = activeSeason;
-    const seasonGWs = (fixtureGameweeks || []).filter(g => (g.season || seas) === seas).sort((a, b) => a.gw - b.gw);
-    const found = seasonGWs.find(gwObj =>
-      (gwObj.fixtures || []).some(f => !f.result && f.status !== "POSTPONED")
-    );
-    return found?.gw || null;
-  }, [fixtureGameweeks, activeSeason]);
   const gwFixtures = useMemo(()=>((fixtureGameweeks||[]).find(g=>g.gw===currentGW&&(g.season||activeSeason)===activeSeason)?.fixtures||[]).slice().sort((a,b)=>{
     const da=a.date?new Date(a.date).getTime():Infinity;
     const db=b.date?new Date(b.date).getTime():Infinity;
@@ -4130,11 +4110,12 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
             <div ref={node => { gwStripRef.current = node; if (node && !node._wheelBound) { node._wheelBound = true; node.addEventListener("wheel", e => { e.preventDefault(); node.scrollLeft += e.deltaY; }, { passive: false }); } }} className="gw-strip" style={{display:"flex",gap:3,overflowX:"auto",flex:1}}>
               {(fixtureGameweeks||[]).filter(g=>(g.season||activeSeason)===activeSeason).sort((a,b)=>a.gw-b.gw).map(g=>{
                 const adminHidden = !isAdmin && (fixtureGroup.hiddenGWs||[]).includes(g.gw);
+                const status = gameweekStatus(g, fixtureGroup.hiddenGWs, isAdmin);
                 return (
                   <button key={g.gw} data-gameweek={g.gw} onClick={()=>setGW(g.gw)} style={{
                     background:currentGW===g.gw?"var(--btn-bg)":"var(--card)",
                     color:currentGW===g.gw?"var(--btn-text)":"var(--text-dim2)",
-                    border:g.gw===activeGW&&currentGW!==g.gw?"1.5px solid var(--text-dim)":"1px solid var(--border)",
+                    border:status==="active"&&currentGW!==g.gw?"1.5px solid var(--text-dim)":"1px solid var(--border)",
                     borderRadius:isIndex?999:6,
                     padding:isIndex?"6px 12px":"4px 0",
                     fontSize:11,
@@ -4152,7 +4133,6 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
                   }}>
                     <span>{adminHidden&&<Lock size={10} color="currentColor" style={{marginRight:3}}/>}{isWC?`R${g.gw}`:gwLabel(group,g.gw)}</span>
                     {(()=>{
-                      const status = computeGWStatus(g, fixtureGroup.hiddenGWs, isAdmin);
                       const dotColor = status==="complete"?"#22c55e":status==="active"?"#f59e0b":status==="locked"?"#ef4444":null;
                       return dotColor ? <span style={{width:5,height:5,borderRadius:"50%",background:dotColor,flexShrink:0}}/> : <span style={{width:5,height:5}}/>;
                     })()}
