@@ -251,20 +251,15 @@ function isScheduledWithoutResult(fixture) {
   return !status || status === 'SCHEDULED' || status === 'TIMED';
 }
 
-function isLikelyFootballDataPlaceholderDate(value) {
-  if (!value) return false;
-  const date = new Date(value);
-  const time = date.getTime();
-  if (!Number.isFinite(time)) return false;
-  return date.getUTCDay() === 0
-    && date.getUTCHours() === 15
-    && date.getUTCMinutes() === 0
-    && date.getUTCSeconds() === 0;
+function isPlaceholderScheduleFixture(fixture) {
+  if (fixture?.result) return false;
+  const status = normalizeFixtureStatus(fixture?.status);
+  return !status || status === 'SCHEDULED';
 }
 
 function placeholderDateForGameweek(fixtures = []) {
   const datedScheduled = fixtures
-    .filter(isScheduledWithoutResult)
+    .filter(isPlaceholderScheduleFixture)
     .map(f => f.date)
     .filter(Boolean);
   if (datedScheduled.length < 6) return null;
@@ -272,7 +267,7 @@ function placeholderDateForGameweek(fixtures = []) {
   datedScheduled.forEach(date => counts.set(date, (counts.get(date) || 0) + 1));
   const dominant = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   if (!dominant || dominant[1] < Math.min(6, datedScheduled.length)) return null;
-  return isLikelyFootballDataPlaceholderDate(dominant[0]) ? dominant[0] : null;
+  return dominant[0];
 }
 
 function normalizeLeagueGameweekFixtures(fixtures = [], gw, competition = 'PL', season = null) {
@@ -479,8 +474,22 @@ function mergeTeamName(keeperValue, duplicateValue, bestValue) {
   return bestValue || keeperValue || duplicateValue;
 }
 
-function mergeFixtureData(keeper, duplicate) {
-  const best = betterFixtureData(keeper, duplicate);
+function isAuthoritativeReschedule(current, incoming) {
+  if (!current || !incoming || current.result || incoming.result) return false;
+  if (!isLiveFixtureStatus(current.status)) return false;
+  const incomingStatus = normalizeFixtureStatus(incoming.status);
+  if (incomingStatus !== 'SCHEDULED' && incomingStatus !== 'TIMED' && incomingStatus !== 'POSTPONED') return false;
+  const currentKickoff = Date.parse(current.date || '');
+  const incomingKickoff = Date.parse(incoming.date || '');
+  return Number.isFinite(currentKickoff)
+    && Number.isFinite(incomingKickoff)
+    && incomingKickoff - currentKickoff >= 12 * 60 * 60 * 1000;
+}
+
+function mergeFixtureData(keeper, duplicate, options = {}) {
+  const best = options.authoritativeIncoming && isAuthoritativeReschedule(keeper, duplicate)
+    ? duplicate
+    : betterFixtureData(keeper, duplicate);
   const liveStatus = isLiveFixtureStatus(best.status);
   return {
     ...keeper,
@@ -783,7 +792,7 @@ export function mergeGlobalIntoGroup(globalDoc, g) {
       const existing = [byApi, byMatch, byTeams].filter(Boolean).sort((a, b) => fixturePickCount(predictions, b.id) - fixturePickCount(predictions, a.id))[0];
       if (existing) {
         const idx = working.findIndex(f => f.id === existing.id);
-        if (idx >= 0) working[idx] = mergeFixtureData(existing, gf);
+        if (idx >= 0) working[idx] = mergeFixtureData(existing, gf, { authoritativeIncoming: true });
       } else {
         toAdd.push(gf);
       }
@@ -835,8 +844,8 @@ export function shouldHydrateLeagueSeason(globalDoc = {}, targetGW = 1, options 
   const season = options.season || globalDoc.season || null;
   if (hasUnconfirmedLeagueSchedule(globalDoc, competition, season)) {
     const now = Number(options.now ?? Date.now());
-    const updatedAt = Number(globalDoc.updatedAt || 0);
-    return !updatedAt || now - updatedAt >= LEAGUE_SCHEDULE_REFRESH_MS;
+    const lastSeasonHydrationAt = Number(globalDoc.lastSeasonHydrationAt || 0);
+    return !lastSeasonHydrationAt || now - lastSeasonHydrationAt >= LEAGUE_SCHEDULE_REFRESH_MS;
   }
   return false;
 }

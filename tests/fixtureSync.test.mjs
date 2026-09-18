@@ -182,6 +182,61 @@ test("mergeGlobalIntoGroup updates rescheduled La Liga TIMED fixtures while pres
   assert.equal(merged.predictions.friend["gw1-f564636"], "1-0");
 });
 
+test("mergeGlobalIntoGroup replaces a stale live La Liga fixture with its authoritative future reschedule", () => {
+  const group = {
+    id: "g1",
+    competition: "LL",
+    season: 2026,
+    predictions: {
+      faris: { "gw6-f564682": "2-1" },
+    },
+    gameweeks: [{
+      gw: 6,
+      season: 2026,
+      fixtures: [{
+        id: "gw6-f564682",
+        apiId: 564682,
+        home: "Levante",
+        away: "Athletic Bilbao",
+        status: "IN_PLAY",
+        date: "2026-09-16T19:00:00.000Z",
+        liveScore: "0-0",
+        elapsed: "90+",
+        result: null,
+      }],
+    }],
+  };
+  const globalDoc = {
+    competition: "LL",
+    season: 2026,
+    updatedAt: 100,
+    gameweeks: [{
+      gw: 6,
+      season: 2026,
+      fixtures: [{
+        id: "gw6-f564682",
+        apiId: 564682,
+        home: "Levante",
+        away: "Athletic Bilbao",
+        status: "TIMED",
+        date: "2026-10-21T18:00:00.000Z",
+        liveScore: null,
+        result: null,
+      }],
+    }],
+  };
+
+  const merged = mergeGlobalIntoGroup(globalDoc, group);
+  const fixture = merged.gameweeks[0].fixtures[0];
+
+  assert.equal(fixture.id, "gw6-f564682");
+  assert.equal(fixture.date, "2026-10-21T18:00:00.000Z");
+  assert.equal(fixture.status, "TIMED");
+  assert.equal(fixture.liveScore, null);
+  assert.equal(fixture.elapsed, null);
+  assert.equal(merged.predictions.faris["gw6-f564682"], "2-1");
+});
+
 test("parseMatchesToFixtures turns Football-Data LIVE matches into in-play live scores", () => {
   const fixtures = parseMatchesToFixtures([
     {

@@ -194,6 +194,7 @@ function mergeFootballDataSeason(globalDoc, matches, competition, season) {
     competition,
     season,
     source: 'football-data',
+    lastSeasonHydrationAt: Date.now(),
     fullSeason: Object.keys(byGW).length >= competitionRoundCount(competition),
   }, competition, season);
 }

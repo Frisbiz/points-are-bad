@@ -195,11 +195,94 @@ test("partial La Liga caches hydrate the full season before serving placeholder 
       season: 2026,
       fullSeason: true,
       updatedAt: 12 * 60 * 60 * 1000,
+      lastSeasonHydrationAt: 12 * 60 * 60 * 1000,
       gameweeks: Array.from({ length: 38 }, (_, i) => ({
         gw: i + 1,
         fixtures: [{ id: `f${i + 1}`, home: "A", away: "B", status: "SCHEDULED", date: i >= 4 ? null : "2026-08-15T17:30:00.000Z" }],
       })),
     }, 1, { competition: "LL", season: 2026, now: 13 * 60 * 60 * 1000 }),
+    false
+  );
+});
+
+test("La Liga caches rehydrate midnight placeholder batches even when another gameweek refreshed recently", () => {
+  const gameweeks = Array.from({ length: 38 }, (_, index) => ({
+    gw: index + 1,
+    fixtures: [{
+      id: `gw${index + 1}-fixture`,
+      home: `Home ${index + 1}`,
+      away: `Away ${index + 1}`,
+      status: "SCHEDULED",
+      date: `2027-01-${String((index % 28) + 1).padStart(2, "0")}T${String(index % 23).padStart(2, "0")}:00:00.000Z`,
+    }],
+  }));
+  gameweeks[6] = {
+    gw: 7,
+    fixtures: Array.from({ length: 10 }, (_, index) => ({
+      id: `gw7-f${index + 1}`,
+      home: `GW7 Home ${index + 1}`,
+      away: `GW7 Away ${index + 1}`,
+      status: "SCHEDULED",
+      date: "2026-09-20T00:00:00.000Z",
+    })),
+  };
+
+  assert.equal(
+    shouldHydrateLeagueSeason({
+      competition: "LL",
+      season: 2026,
+      fullSeason: true,
+      updatedAt: 20 * 60 * 60 * 1000,
+      lastSeasonHydrationAt: 0,
+      gameweeks,
+    }, 6, { competition: "LL", season: 2026, now: 21 * 60 * 60 * 1000 }),
+    true
+  );
+
+  assert.equal(
+    shouldHydrateLeagueSeason({
+      competition: "LL",
+      season: 2026,
+      fullSeason: true,
+      updatedAt: 20 * 60 * 60 * 1000,
+      lastSeasonHydrationAt: 20 * 60 * 60 * 1000,
+      gameweeks,
+    }, 6, { competition: "LL", season: 2026, now: 21 * 60 * 60 * 1000 }),
+    false
+  );
+});
+
+test("confirmed simultaneous La Liga fixtures are not mistaken for placeholders", () => {
+  const gameweeks = Array.from({ length: 38 }, (_, index) => ({
+    gw: index + 1,
+    fixtures: [{
+      id: `gw${index + 1}-fixture`,
+      home: `Home ${index + 1}`,
+      away: `Away ${index + 1}`,
+      status: "TIMED",
+      date: `2027-01-${String((index % 28) + 1).padStart(2, "0")}T12:00:00.000Z`,
+    }],
+  }));
+  gameweeks[37] = {
+    gw: 38,
+    fixtures: Array.from({ length: 10 }, (_, index) => ({
+      id: `gw38-f${index + 1}`,
+      home: `Final Home ${index + 1}`,
+      away: `Final Away ${index + 1}`,
+      status: "TIMED",
+      date: "2027-05-23T16:00:00.000Z",
+    })),
+  };
+
+  assert.equal(
+    shouldHydrateLeagueSeason({
+      competition: "LL",
+      season: 2026,
+      fullSeason: true,
+      updatedAt: 0,
+      lastSeasonHydrationAt: 0,
+      gameweeks,
+    }, 38, { competition: "LL", season: 2026, now: Date.parse("2027-05-20T00:00:00.000Z") }),
     false
   );
 });
