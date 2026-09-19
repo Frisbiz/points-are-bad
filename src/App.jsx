@@ -4640,8 +4640,6 @@ function TrendsTab({group,names,theme}) {
   const isIndex = theme === "index";
   const stats = useMemo(()=>getGroupStats(group),[group]);
   const trendStats=group.trendStats || computeTrendStats(group);
-  const MATCH_UPDATE_LABEL = "Updated after every final result";
-  const GW_UPDATE_LABEL = "Updates when the gameweek is complete";
   const members = group.members||[];
   const AUTO_PALETTE = ["#3b82f6", "#f97316", "#10b981", "#8b5cf6", "#ec4899", "#eab308", "#06b6d4", "#ef4444"];
   const memberColor = u => isIndex ? AUTO_PALETTE[members.indexOf(u)%AUTO_PALETTE.length] : PALETTE[members.indexOf(u)%PALETTE.length];
@@ -4659,7 +4657,7 @@ function TrendsTab({group,names,theme}) {
   const perfectsData=useMemo(()=>ds.map(p=>({name:p.dn,perfects:p.perfects})),[ds]);
   const preds=group.predictions||{};
   const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const key=pts===5?"5+":String(pts);const r={pts:key};ds.forEach(p=>{r[p.dn]=trendStats?.players?.[p.username]?.pointsDistribution?.[key]||0;});return r;}),[ds,trendStats]);
-  const CC=({title,sub,cadence,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{cadence&&<span style={{fontSize:9,fontWeight:600,color:"var(--text-dim2)",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:999,padding:"3px 7px",whiteSpace:"nowrap"}}>{cadence}</span>}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
+  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
   const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
@@ -4840,7 +4838,6 @@ function TrendsTab({group,names,theme}) {
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isIndex?24:24):(isIndex?34:36),fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Trends</h1>
         {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}
       </div>
-      <div style={{fontSize:10,fontWeight:600,color:"var(--text-dim2)",margin:"0 0 8px 2px"}}>{MATCH_UPDATE_LABEL}</div>
       <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${mob?140:155}px,1fr))`,gap:mob?8:10,marginBottom:mob?20:30}}>
         {ds.map((p,ri)=>{
           const rank=ri+1;
@@ -4869,7 +4866,7 @@ function TrendsTab({group,names,theme}) {
         })}
       </div>
       <SH label="Season Story"/>
-      <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek" cadence={GW_UPDATE_LABEL}>
+      <CC title="Rankings Over Time" sub="Leaderboard position after each gameweek">
         <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?160:200)}>
           <LineChart data={rankData} margin={{top:20,right:20,left:-10,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4879,7 +4876,7 @@ function TrendsTab({group,names,theme}) {
           </LineChart>
         </ResponsiveContainer>
       </CC>
-      <CC title="Cumulative Points Race" sub="Running total. Lower is winning." cadence={GW_UPDATE_LABEL}>
+      <CC title="Cumulative Points Race" sub="Running total. Lower is winning.">
         <ResponsiveContainer width="100%" height={mob?160:200}>
           <LineChart data={cumLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4891,7 +4888,7 @@ function TrendsTab({group,names,theme}) {
       </CC>
 
       <SH label="Gameweek Performance"/>
-      <CC title="Points Per Gameweek" cadence={GW_UPDATE_LABEL}>
+      <CC title="Points Per Gameweek">
         <ResponsiveContainer width="100%" height={mob?200:260}>
           <LineChart data={gwLine} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4901,7 +4898,7 @@ function TrendsTab({group,names,theme}) {
           </LineChart>
         </ResponsiveContainer>
       </CC>
-      <CC title="GW Spread" sub="Shaded area = full range, dashed = avg" cadence={GW_UPDATE_LABEL}>
+      <CC title="GW Spread" sub="Shaded area = full range, dashed = avg">
         <ResponsiveContainer width="100%" height={mob?170:220}>
           <ComposedChart data={swingData} margin={{top:4,right:20,left:-22,bottom:mob?0:12}}>
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
@@ -4916,7 +4913,7 @@ function TrendsTab({group,names,theme}) {
       </CC>
 
       {/* ── GW HEATMAP ──────────────────────────────── */}
-      <CC title="GW Heatmap" sub="Points per gameweek. Low is good, high is bad." cadence={GW_UPDATE_LABEL}>
+      <CC title="GW Heatmap" sub="Points per gameweek. Low is good, high is bad.">
         {(()=>{
           // build relative color scale from actual data
           const allPts = ds.flatMap(p => completedGws.map(g => {
@@ -4978,7 +4975,7 @@ function TrendsTab({group,names,theme}) {
       </CC>
 
       <SH label="Pick Quality"/>
-      <CC title="Points Breakdown" sub="How each player's picks land across outcome types" cadence={MATCH_UPDATE_LABEL}>
+      <CC title="Points Breakdown" sub="How each player's picks land across outcome types">
         <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:40),mob?150:180)}>
           <BarChart data={breakdownData} layout="vertical" margin={{top:0,right:mob?8:18,left:mob?50:60,bottom:0}}>
             <XAxis type="number" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -4996,13 +4993,13 @@ function TrendsTab({group,names,theme}) {
         </ResponsiveContainer>
       </CC>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Perfect Predictions" cadence={MATCH_UPDATE_LABEL}><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Bar dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
-        <CC title="Points Distribution" sub="How often each score outcome occurs per player" cadence={MATCH_UPDATE_LABEL}><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Bar dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
 
       <SH label="Playing Style"/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
-        <CC title="Prediction Style" sub="How often each player backs home win / draw / away win" cadence={MATCH_UPDATE_LABEL}>
+        <CC title="Prediction Style" sub="How often each player backs home win / draw / away win">
           <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:44),mob?160:200)}>
             <BarChart data={predStyleData} layout="vertical" margin={{top:0,right:mob?8:40,left:mob?50:60,bottom:0}}>
               <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -5017,7 +5014,7 @@ function TrendsTab({group,names,theme}) {
             </BarChart>
           </ResponsiveContainer>
         </CC>
-        <CC title="Player Radar" sub="Normalized vs group average. Consistency uses completed gameweeks." cadence={MATCH_UPDATE_LABEL}>
+        <CC title="Player Radar" sub="Normalized vs group average. Consistency uses completed gameweeks.">
           <ResponsiveContainer width="100%" height={mob?220:260}>
             <RadarChart data={radarData.data} margin={{top:10,right:mob?20:30,bottom:10,left:mob?20:30}}>
               <PolarGrid stroke="var(--border)"/>
@@ -5034,7 +5031,7 @@ function TrendsTab({group,names,theme}) {
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(270px,1fr))",gap:18}}>
-        <CC title="Goal Inflation" sub="Avg predicted total goals minus actual goals per pick" cadence={MATCH_UPDATE_LABEL}>
+        <CC title="Goal Inflation" sub="Avg predicted total goals minus actual goals per pick">
           <ResponsiveContainer width="100%" height={Math.max(ds.length*(mob?32:44),mob?160:200)}>
             <BarChart data={goalInflationData} layout="vertical" margin={{top:0,right:mob?24:50,left:mob?50:60,bottom:0}}>
               <XAxis type="number" tickFormatter={v=>v>0?`+${v}`:String(v)} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
@@ -5051,7 +5048,7 @@ function TrendsTab({group,names,theme}) {
             <span><span style={{color:isIndex?"#3b82f6":"#6366f1"}}>■</span> Under-predicts</span>
           </div>
         </CC>
-        <CC title="Boldness vs Accuracy" sub="Avg points per submitted pick; misses excluded." cadence={MATCH_UPDATE_LABEL}>
+        <CC title="Boldness vs Accuracy" sub="Avg points per submitted pick; misses excluded.">
           {(()=>{
             const data=boldnessAccuracyData;
             if(!data.length) return null;
@@ -5114,10 +5111,10 @@ function TrendsTab({group,names,theme}) {
         };
         return (
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:18}}>
-            <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`} cadence={MATCH_UPDATE_LABEL}>
+            <CC title={`Score Prediction Heatmap${selectedPlayer?`: ${ds.find(p=>p.username===selectedPlayer)?.dn||selectedPlayer}`:""}`}>
               {renderHeatmap(scoreGridData,isIndex?"rgba(245,158,11,1)":"rgba(245,158,11,1)",selectedPlayer?"YOUR PICKS":"ALL PICKS")}
             </CC>
-            <CC title="Actual Results Heatmap" cadence={MATCH_UPDATE_LABEL}>
+            <CC title="Actual Results Heatmap">
               {renderHeatmap(resultGridData,isIndex?"rgba(59,130,246,1)":"rgba(99,102,241,1)","REAL RESULTS")}
             </CC>
           </div>

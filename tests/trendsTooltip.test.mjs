@@ -19,12 +19,10 @@ test("GW Spread tooltip uses explicit high-contrast text styles", () => {
   assert.match(gwSpreadBlock, /<Tooltip \{\.\.\.chartTooltipProps\}\/>/);
 });
 
-test("Trends labels match-level and gameweek-level update cadence", () => {
-  assert.match(trendsBlock, /Updated after every final result/);
-  assert.match(trendsBlock, /Updates when the gameweek is complete/);
-  assert.match(trendsBlock, /<CC title="Rankings Over Time"[^>]*cadence=\{GW_UPDATE_LABEL\}/);
-  assert.match(trendsBlock, /<CC title="Points Breakdown"[^>]*cadence=\{MATCH_UPDATE_LABEL\}/);
-  assert.match(trendsBlock, /<CC title="Boldness vs Accuracy"[^>]*cadence=\{MATCH_UPDATE_LABEL\}/);
+test("Trends charts omit repetitive update-frequency badges", () => {
+  assert.doesNotMatch(trendsBlock, /Updated after every final result/);
+  assert.doesNotMatch(trendsBlock, /Updates when the gameweek is complete/);
+  assert.doesNotMatch(trendsBlock, /cadence=/);
   assert.match(trendsBlock, /avg points per submitted pick; misses excluded/i);
 });
 
