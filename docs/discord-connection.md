@@ -93,6 +93,18 @@ Screenshots are kept in ignored `output/playwright/discord-connection/`.
 Live OAuth authorization and production rollout must be recorded separately
 after the client secret and Discord redirect have been configured.
 
+Independent code review passed the same 260-test suite and found no blocking
+security or account-ownership issues. One non-blocking item is deferred: an
+HTTP error response from Discord token revocation is not currently logged
+(thrown revocation failures are logged). Linking still succeeds and no token
+is retained by PAB. Actual provider authorization, standalone PWA behavior,
+and real-device testing remain rollout checks, not claims from mocked tests.
+
+On October 10, 2026, Vercel access and the correct production project were
+confirmed. Neither OAuth credential was configured in its production environment;
+the local OAuth client-secret variable was also absent. Production deployment
+has therefore not been performed.
+
 ## Rollback
 
 Revert the feature commits and redeploy the previous PAB revision. The existing
