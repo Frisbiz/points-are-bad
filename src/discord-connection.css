@@ -1,7 +1,9 @@
-.discord-section{--discord-positive:#62d9ac;--discord-danger:#ed8888;border-top:1px solid var(--border3);padding:20px 0;margin:0 0 4px;color:var(--text-bright);font-family:inherit;letter-spacing:0;font-size:13px;line-height:1.5}
+.discord-section{--discord-positive:#62d9ac;--discord-danger:#ed8888;border-top:1px solid var(--border3);padding:20px 0;margin:0 0 4px;color:var(--text-bright);font-family:var(--font-mono,inherit);letter-spacing:0;font-size:13px;line-height:1.5}
 .discord-section-heading{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--text-mid)}
 .discord-section-heading h2{margin:0;font-size:13px;line-height:20px;font-weight:600;letter-spacing:0}
 .discord-section svg{flex-shrink:0}
+.discord-section svg [fill]:not([fill=none]){fill:currentColor}
+.discord-section svg [stroke]:not([stroke=none]){stroke:currentColor}
 .discord-meta{color:var(--text-mid);font-size:12px;overflow-wrap:anywhere;margin:0}
 .discord-disconnected{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
 .discord-action{display:inline-flex;justify-content:center;align-items:center;gap:7px;min-height:44px;min-width:44px;border:1px solid var(--border2);border-radius:6px;padding:8px 12px;background:transparent;color:var(--text-bright);font:inherit;font-size:12px;font-weight:600;letter-spacing:0;cursor:pointer;flex-shrink:0}
