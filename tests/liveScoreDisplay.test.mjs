@@ -35,6 +35,8 @@ function loadAppFunction(name) {
     buildNextMatchCardState: ["effectiveFixtureStatus", "matchClockLabel"],
     fixtureDelayStatus: ["effectiveFixtureStatus"],
     matchClockLabel: ["effectiveFixtureStatus"],
+    dashboardLiveTargets: ["shouldFetchLiveScores", "liveScoreDatesForFixtures", "liveScoreCacheKey"],
+    applyDashboardLiveScores: ["liveScoreDatesForFixtures", "liveScoreCacheKey", "effectiveFixtureStatus"],
   };
   const dependencies = (dependencyMap[name] || []).map(extractFunction);
   const fnSource = extractFunction(name);
@@ -59,6 +61,56 @@ test("finished Yahoo scores display while the group fixture waits for sync", () 
   };
 
   assert.equal(effectiveFixtureResult(fixture, liveScores), "0-1");
+});
+
+test("dashboard replaces its old match clock with the latest live response", () => {
+  const applyDashboardLiveScores = loadAppFunction("applyDashboardLiveScores");
+  const group = { competition: "PL", season: 2026, gameweeks: [{ gw: 6, fixtures: [
+    { id: "united", home: "Man Utd", away: "Spurs", status: "IN_PLAY", elapsed: "50'", liveScore: "0-0" },
+  ] }] };
+  const updated = applyDashboardLiveScores(group, { "PL:2026:6:": {
+    "Man Utd|Spurs": { status: "in_progress", elapsed: "71'", homeScore: 1, awayScore: 0 },
+  } });
+  assert.equal(updated.gameweeks[0].fixtures[0].elapsed, "71'");
+  assert.equal(updated.gameweeks[0].fixtures[0].liveScore, "1-0");
+  assert.equal(group.gameweeks[0].fixtures[0].elapsed, "50'", "the persisted snapshot is not mutated");
+});
+
+test("dashboard clears stale live status after a final result without changing private scoring data", () => {
+  const applyDashboardLiveScores = loadAppFunction("applyDashboardLiveScores");
+  const group = { competition: "PL", season: 2026, predictions: { faris: { united: "2-1" } }, standingsStats: [{ total: 105 }], gameweeks: [{ gw: 6, fixtures: [
+    { id: "united", home: "Man Utd", away: "Spurs", status: "IN_PLAY", elapsed: "50'", result: null },
+  ] }] };
+  const updated = applyDashboardLiveScores(group, { "PL:2026:6:": {
+    "Man Utd|Spurs": { status: "finished", elapsed: "90'+4'", homeScore: 1, awayScore: 0 },
+  } });
+  assert.equal(updated.gameweeks[0].fixtures[0].status, "FINISHED");
+  assert.equal(updated.gameweeks[0].fixtures[0].result, null);
+  assert.equal(updated.predictions, group.predictions);
+  assert.equal(updated.standingsStats, group.standingsStats);
+});
+
+test("dashboard polls overlapping rounds once per competition and ignores past seasons", () => {
+  const dashboardLiveTargets = loadAppFunction("dashboardLiveTargets");
+  const now = new Date("2026-10-10T18:00:00Z").getTime();
+  const group = { competition: "PL", season: 2026, gameweeks: [
+    { gw: 6, fixtures: [{ home: "Man Utd", away: "Spurs", status: "IN_PLAY" }] },
+    { gw: 7, fixtures: [{ home: "Arsenal", away: "Chelsea", status: "PAUSED" }] },
+    { gw: 8, fixtures: [{ status: "SCHEDULED", date: "2026-10-25T16:00:00Z" }] },
+    { gw: 5, season: 2025, fixtures: [{ status: "IN_PLAY" }] },
+  ] };
+  const targets = dashboardLiveTargets([group, { ...group, id: "other" }, { ...group, season: 2025 }], now);
+  assert.deepEqual(targets.map(t => t.key), ["PL:2026:6:", "PL:2026:7:"]);
+});
+
+test("dashboard does not reuse another competition's match clock", () => {
+  const applyDashboardLiveScores = loadAppFunction("applyDashboardLiveScores");
+  const group = { competition: "LL", season: 2026, gameweeks: [{ gw: 6, fixtures: [
+    { home: "Man Utd", away: "Spurs", status: "IN_PLAY", elapsed: "50'" },
+  ] }] };
+  assert.equal(applyDashboardLiveScores(group, { "PL:2026:6:": {
+    "Man Utd|Spurs": { status: "finished", elapsed: "90'" },
+  } }), group);
 });
 
 test("Yahoo postponement suppresses a stale stored live score", () => {

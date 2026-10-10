@@ -800,6 +800,50 @@ function mergeLiveScoreMaps(...maps) {
   return Object.assign({}, ...maps.filter(Boolean));
 }
 
+function dashboardLiveTargets(groups = [], now = Date.now()) {
+  const targets = new Map();
+  for (const group of groups) {
+    if (isPastGroup(group)) continue;
+    const competition = group.competition || "PL";
+    const season = group.season || 2025;
+    for (const round of group.gameweeks || []) {
+      if ((round.season || season) !== season || !shouldFetchLiveScores(round.fixtures, now)) continue;
+      const key = liveScoreCacheKey(round.gw, round.fixtures, competition, season);
+      if (!targets.has(key)) targets.set(key, { key, gw: round.gw, fixtures: round.fixtures, competition, season });
+    }
+  }
+  return [...targets.values()];
+}
+
+function applyDashboardLiveScores(group, scoresByTarget = {}) {
+  const competition = group.competition || "PL";
+  const season = group.season || 2025;
+  let changed = false;
+  const gameweeks = (group.gameweeks || []).map(round => {
+    if ((round.season || season) !== season) return round;
+    const scores = scoresByTarget[liveScoreCacheKey(round.gw, round.fixtures, competition, season)];
+    if (!scores) return round;
+    let roundChanged = false;
+    const fixtures = (round.fixtures || []).map(fixture => {
+      const match = scores[`${fixture.home}|${fixture.away}`];
+      if (!match || fixture.result) return fixture;
+      roundChanged = true;
+      return {
+        ...fixture,
+        status: effectiveFixtureStatus(fixture, match),
+        elapsed: match.elapsed || null,
+        liveScore: match.homeScore != null && match.awayScore != null ? `${match.homeScore}-${match.awayScore}` : null,
+      };
+    });
+    if (!roundChanged) return round;
+    changed = true;
+    return { ...round, fixtures };
+  });
+  // Display-only projection. Never recalculate server-authoritative standings
+  // from the dashboard's privacy-filtered prediction snapshot.
+  return changed ? { ...group, gameweeks } : group;
+}
+
 function shouldFetchLiveScores(fixtures = [], now = Date.now()) {
   const tiedKnockoutMissingWinner = (f) => {
     if (!f?.result || f.status !== "FINISHED") return false;
@@ -905,6 +949,14 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
   }, [gw, competition, season, cacheKey]);
 
   return liveData;
+}
+
+function DashboardLiveSubscription({ target, onScores }) {
+  const scores = useLiveScores(target.gw, target.fixtures, target.competition, target.season);
+  useEffect(() => {
+    if (Object.keys(scores).length) onScores(target.key, scores);
+  }, [scores, target.key, onScores]);
+  return null;
 }
 
 const CSS = `
@@ -1685,6 +1737,11 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const [emailError, setEmailError] = useState("");
   const [emailSuccess, setEmailSuccess] = useState(false);
   const [dashboardNow, setDashboardNow] = useState(()=>Date.now());
+  const [dashboardLiveScores, setDashboardLiveScores] = useState({});
+  const onDashboardLiveScores = useCallback((key, scores) => {
+    setDashboardLiveScores(previous => previous[key] === scores ? previous : { ...previous, [key]: scores });
+  }, []);
+  const liveTargets = useMemo(() => dashboardLiveTargets(groups, dashboardNow), [groups, dashboardNow]);
   const hScrollRef = useHorizontalScroll();
   const profileRef=useRef(null);
   /* eslint-disable react-hooks/set-state-in-effect -- these effects reconcile persisted theme, boot, and browser route state. */
@@ -1852,7 +1909,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
   const normalizedSetupLimit = normalizeDraw11Limit(setupLimit);
   const setupLimitPeriod = draw11LimitPeriod(setupCompetition);
   const setupCustomActive = !DRAW_11_LIMIT_PRESETS.some(([val]) => val === normalizedSetupLimit);
-  const dashboardItems = useMemo(()=>sortGroupDashboardItems(groups.map(group=>{
+  const dashboardItems = useMemo(()=>sortGroupDashboardItems(groups.map(snapshot=>{
+    const group = applyDashboardLiveScores(snapshot, dashboardLiveScores);
     const state = buildGroupDashboardState(group,user.username,dashboardNow);
     const standings = getGroupStats(group);
     const rankIndex = standings.findIndex(player=>player.username===user.username);
@@ -1862,7 +1920,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
       rank:playerStats?.rank??null,
       points:playerStats?.total??null,
     };
-  })),[groups,user.username,dashboardNow]);
+  })),[groups,user.username,dashboardNow,dashboardLiveScores]);
   const attentionItems = dashboardItems.filter(item=>item.mode==="picks-due");
   const firstAttention = attentionItems[0]||null;
   const duePickCount = attentionItems.reduce((total,item)=>total+item.dueSoonCount,0);
@@ -1877,6 +1935,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
 
   return (
     <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'DM Mono',monospace",color:"var(--text)"}}>
+      {liveTargets.map(target => <DashboardLiveSubscription key={target.key} target={target} onScores={onDashboardLiveScores}/>)}
       <style>{CSS}</style>
       <header className="app-top-header" style={{borderBottom:"1px solid var(--border)",padding:"0 24px",height:60}}>
         <div style={{maxWidth:940,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
