@@ -61,11 +61,12 @@ export function createDiscordLinkStore({ db, docKey, now = Date.now }) {
       });
     },
 
-    async preferences({ username, enabled }) {
+    async preferences({ username, enabled, expectedDiscordUserId }) {
       ensureMember(username);
       if (typeof enabled !== "boolean") throw discordFailure("failed");
       return db.runTransaction(async transaction => {
         const { user, link } = await owned(transaction, username);
+        if (expectedDiscordUserId && user.discordUserId !== expectedDiscordUserId) throw discordFailure("failed", 409);
         if (!link) throw discordFailure("failed", 404);
         const next = { ...link, remindersEnabled: enabled, updatedAt: now() };
         write(transaction, `discordlink:${user.discordUserId}`, next);
@@ -73,10 +74,11 @@ export function createDiscordLinkStore({ db, docKey, now = Date.now }) {
       });
     },
 
-    async unlink(username) {
+    async unlink(username, expectedDiscordUserId) {
       ensureMember(username);
       return db.runTransaction(async transaction => {
         const { user } = await owned(transaction, username);
+        if (expectedDiscordUserId && user.discordUserId !== expectedDiscordUserId) throw discordFailure("failed", 409);
         if (!user.discordUserId) return { linked: false };
         const index = await read(transaction, "discord-links-index");
         const { discordUserId, ...nextUser } = user;

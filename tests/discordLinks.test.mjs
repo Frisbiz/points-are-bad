@@ -110,3 +110,12 @@ test("concurrent preferences and unlink leave no dangling connection", async () 
   assert.equal(h.values.has(`discordlink:${id}`), false);
   assert.equal(h.values.get("user:aamer").discordUserId, undefined);
 });
+
+test("a stale bot request cannot change a newly linked Discord account", async () => {
+  const h = harness();
+  await h.store.connect({ username: "aamer", discordUserId: id });
+  await assert.rejects(h.store.preferences({ username: "aamer", enabled: false, expectedDiscordUserId: "999" }), { code: "failed" });
+  await assert.rejects(h.store.unlink("aamer", "999"), { code: "failed" });
+  assert.equal(h.values.get(`discordlink:${id}`).remindersEnabled, true);
+  assert.equal(h.values.get("user:aamer").discordUserId, id);
+});
