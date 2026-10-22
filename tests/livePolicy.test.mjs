@@ -9,6 +9,14 @@ import {
   shouldRunVisibleTask,
 } from "../api/_livePolicy.js";
 
+test("interruption updates request persistence without repeatedly trying to overwrite verified finals", () => {
+  const scores = { "Rayo|Athletic": { status: "postponed", interruptionStatus: "SUSPENDED" } };
+  const group = status => ({ gameweeks: [{ fixtures: [{ home: "Rayo", away: "Athletic", status, interruptionStatus: status === "POSTPONED" ? "SUSPENDED" : null, result: status === "FINISHED" ? "1-0" : null }] }] });
+  assert.equal(hasUnpersistedFinishedLiveScores(group("IN_PLAY"), scores), true);
+  assert.equal(hasUnpersistedFinishedLiveScores(group("POSTPONED"), scores), false);
+  assert.equal(hasUnpersistedFinishedLiveScores(group("FINISHED"), scores), false);
+});
+
 test("live success responses are browser-revalidated and shared at Vercel for 15 seconds", () => {
   const headers = {};
   const res = { setHeader: (name, value) => { headers[name] = value; } };

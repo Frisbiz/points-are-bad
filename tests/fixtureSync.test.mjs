@@ -2,6 +2,48 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { applyFinishedLiveMatchesToGlobalDoc, mergeGlobalIntoGroup, parseMatchesToFixtures } from "../api/_fixtureSync.js";
+import { gameweekStatus } from "../src/gameweekSelector.js";
+import { computeGroupStats } from "../shared/scoring.js";
+
+test("cancelled and suspended FD fixtures do not block gameweek completion or earn points", () => {
+  for (const status of ["CANCELLED", "SUSPENDED", "CANCELED"]) {
+    const [fixture] = parseMatchesToFixtures([{ id: 564698, status, utcDate: "2026-10-10T12:00:00Z",
+      homeTeam: { name: "Rayo Vallecano" }, awayTeam: { name: "Athletic Bilbao" },
+      score: { fullTime: { home: 0, away: 0 } },
+    }], 8, "LL", 2026);
+    assert.equal(fixture.status, "POSTPONED");
+    assert.equal(fixture.interruptionStatus, status === "CANCELED" ? "CANCELLED" : status);
+    assert.equal(fixture.result, null);
+    const round = { gw: 8, fixtures: [fixture, { id: "final", status: "FINISHED", result: "1-0" }] };
+    assert.equal(gameweekStatus(round), "complete");
+    const [stats] = computeGroupStats({ season: 2026, members: ["faris"], predictions: { faris: { [fixture.id]: "1-2", final: "2-0" } }, gameweeks: [round] });
+    assert.equal(stats.total, 1);
+    assert.equal(stats.scored, 1);
+    assert.equal(stats.missed, 0);
+  }
+});
+
+test("an authoritative interruption replaces stale in-play data while preserving picks and fixture ids", () => {
+  const fixture = { id: "saved", home: "Rayo Vallecano", away: "Athletic Bilbao", status: "IN_PLAY", liveScore: "0-0", elapsed: "31'", date: "2026-10-10T12:00:00Z" };
+  const group = { competition: "LL", season: 2026, predictions: { faris: { saved: "1-2" } }, gameweeks: [{ gw: 8, fixtures: [fixture] }] };
+  const global = { competition: "LL", season: 2026, gameweeks: [{ gw: 8, fixtures: [{ ...fixture, id: "provider", status: "POSTPONED", interruptionStatus: "SUSPENDED", liveScore: null }] }] };
+  const merged = mergeGlobalIntoGroup(global, group);
+  assert.equal(merged.gameweeks[0].fixtures[0].status, "POSTPONED");
+  assert.equal(merged.gameweeks[0].fixtures[0].interruptionStatus, "SUSPENDED");
+  assert.equal(merged.gameweeks[0].fixtures[0].id, "saved");
+  assert.deepEqual(merged.predictions, group.predictions);
+  const resumed = mergeGlobalIntoGroup({ ...global, gameweeks: [{ gw: 8, fixtures: [{ ...fixture, id: "provider", status: "TIMED", date: "2026-11-01T12:00:00Z" }] }] }, merged);
+  assert.equal(resumed.gameweeks[0].fixtures[0].status, "TIMED");
+  assert.equal(resumed.gameweeks[0].fixtures[0].interruptionStatus, null);
+});
+
+test("live interruption updates reach the shared cache without inventing a final score", () => {
+  const global = { gameweeks: [{ gw: 8, fixtures: [{ id: "rayo", home: "Rayo Vallecano", away: "Athletic Bilbao", status: "IN_PLAY", result: null }] }] };
+  const update = applyFinishedLiveMatchesToGlobalDoc(global, 8, [{ home: "Rayo Vallecano", away: "Athletic Bilbao", status: "postponed", interruptionStatus: "SUSPENDED", homeScore: 0, awayScore: 0 }]);
+  assert.equal(update.changed, true);
+  assert.equal(update.globalDoc.gameweeks[0].fixtures[0].status, "POSTPONED");
+  assert.equal(update.globalDoc.gameweeks[0].fixtures[0].result, null);
+});
 
 test("mergeGlobalIntoGroup updates resolved WC seed fields while preserving picks", () => {
   const group = {

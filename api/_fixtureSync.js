@@ -389,6 +389,7 @@ function fixtureStatusRank(status) {
 }
 
 function normalizeFixtureStatus(status) {
+  if (['SUSPENDED', 'CANCELLED', 'CANCELED', 'ABANDONED'].includes(status)) return 'POSTPONED';
   return status === 'LIVE' ? 'IN_PLAY' : status;
 }
 
@@ -487,7 +488,10 @@ function isAuthoritativeReschedule(current, incoming) {
 }
 
 function mergeFixtureData(keeper, duplicate, options = {}) {
-  const best = options.authoritativeIncoming && isAuthoritativeReschedule(keeper, duplicate)
+  const incomingInterruption = normalizeFixtureStatus(duplicate.status) === 'POSTPONED';
+  const resumed = normalizeFixtureStatus(keeper.status) === 'POSTPONED'
+    && ['IN_PLAY', 'PAUSED', 'TIMED', 'SCHEDULED'].includes(normalizeFixtureStatus(duplicate.status));
+  const best = options.authoritativeIncoming && !keeper.result && (incomingInterruption || resumed || isAuthoritativeReschedule(keeper, duplicate))
     ? duplicate
     : betterFixtureData(keeper, duplicate);
   const liveStatus = isLiveFixtureStatus(best.status);
@@ -498,6 +502,7 @@ function mergeFixtureData(keeper, duplicate, options = {}) {
     away: normName(mergeTeamName(keeper.away, duplicate.away, best.away)),
     result: best.result ?? keeper.result ?? duplicate.result ?? null,
     status: normalizeFixtureStatus(best.status || keeper.status || duplicate.status),
+    interruptionStatus: normalizeFixtureStatus(best.status) === 'POSTPONED' ? (best.interruptionStatus || null) : null,
     date: best.date || keeper.date || duplicate.date || null,
     liveScore: liveStatus ? (best.liveScore || null) : null,
     yahooDate: best.yahooDate || keeper.yahooDate || duplicate.yahooDate || null,
@@ -623,7 +628,7 @@ export function applyFinishedLiveMatchesToGlobalDoc(globalDoc = {}, targetGW, ma
   const finishedByPair = new Map();
   matches.forEach(match => {
     const result = liveMatchScoreline(match);
-    if (!result) return;
+    if (!result && match.status !== 'postponed') return;
     const pair = fixturePairKey(match);
     if (!pair || pair === '|') return;
     if (!finishedByPair.has(pair)) finishedByPair.set(pair, []);
@@ -639,8 +644,17 @@ export function applyFinishedLiveMatchesToGlobalDoc(globalDoc = {}, targetGW, ma
       const candidates = finishedByPair.get(fixturePairKey(fixture)) || [];
       const match = candidates.find(m => liveMatchFitsFixture(fixture, m));
       if (!match) return fixture;
+      if (match.status === 'postponed') {
+        if (fixture.result) return fixture; // Never undo a verified final with a stale interruption.
+        const patch = { status: 'POSTPONED', interruptionStatus: match.interruptionStatus || null, liveScore: null, elapsed: null };
+        if (!patchChangesFixture(fixture, patch)) return fixture;
+        gwChanged = true;
+        changed = true;
+        return { ...fixture, ...patch };
+      }
       const finishedPatch = {
         status: 'FINISHED',
+        interruptionStatus: null,
         liveScore: null,
         elapsed: match.elapsed || fixture.elapsed || null,
         ...knockoutWinnerPatch(match, fixture),
@@ -731,6 +745,8 @@ export function parseMatchesToFixtures(matches, matchday, competition = 'PL', se
     const liveScore = isLiveFixtureStatus(status) && scoreObj?.home != null && scoreObj?.away != null ? `${scoreObj.home}-${scoreObj.away}` : null;
     const id = isWC ? `wc-gw${matchday}-f${m.id || i}` : `gw${matchday}-f${m.id || i}`;
     const base = { id, apiId: m.id, home, away, result, status, date: date ? date.toISOString() : null, liveScore };
+    base.interruptionStatus = ['SUSPENDED', 'CANCELLED', 'CANCELED', 'ABANDONED'].includes(m.status)
+      ? (m.status === 'SUSPENDED' ? 'SUSPENDED' : 'CANCELLED') : null;
     if (competition !== 'PL') {
       base.homeCrest = m.homeTeam?.crest || null;
       base.awayCrest = m.awayTeam?.crest || null;

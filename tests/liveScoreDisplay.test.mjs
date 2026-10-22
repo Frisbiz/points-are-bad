@@ -43,6 +43,12 @@ function loadAppFunction(name) {
   return Function("isWorldCupGroupLike", "isPastGroup", `${dependencies.join("\n")}\n${fnSource}; return ${name};`)(isWorldCupGroupLike, isPastGroup);
 }
 
+test("interrupted match labels show suspended or cancelled rather than syncing", () => {
+  const label = loadAppFunction("fixtureDelayStatus");
+  assert.equal(label({ status: "POSTPONED", interruptionStatus: "SUSPENDED" }), "SUSPENDED");
+  assert.equal(label({ status: "IN_PLAY" }, { status: "postponed", interruptionStatus: "CANCELLED" }), "CANCELLED");
+});
+
 test("finished Yahoo scores display while the group fixture waits for sync", () => {
   const effectiveFixtureResult = loadAppFunction("effectiveFixtureResult");
   const fixture = {

@@ -277,7 +277,7 @@ function fixtureResultDisplayParts(fixture, liveMatch, scoreStr) {
 
 function fixtureDelayStatus(fixture, liveMatch, now = Date.now()) {
   const effectiveStatus = effectiveFixtureStatus(fixture, liveMatch);
-  if (effectiveStatus === "POSTPONED") return "POSTPONED";
+  if (effectiveStatus === "POSTPONED") return liveMatch?.interruptionStatus || fixture?.interruptionStatus || "POSTPONED";
   if (effectiveStatus === "DELAYED") return "DELAYED";
   if (effectiveStatus !== "SCHEDULED" || String(liveMatch?.status || "").toLowerCase() !== "scheduled") return null;
 
@@ -831,6 +831,7 @@ function applyDashboardLiveScores(group, scoresByTarget = {}) {
       return {
         ...fixture,
         status: effectiveFixtureStatus(fixture, match),
+        interruptionStatus: match.interruptionStatus || null,
         elapsed: match.elapsed || null,
         liveScore: match.homeScore != null && match.awayScore != null ? `${match.homeScore}-${match.awayScore}` : null,
       };
@@ -4304,7 +4305,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
           </div>
         ):effectiveStatus==="POSTPONED"?(
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
-              <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>POSTPONED</span>
+              <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,opacity:0.8}}>{delayStatus || "POSTPONED"}</span>
               {isAdmin&&<button onClick={()=>toggleFixtureHidden(f.id)} title={isHidden?"Show in picks table":"Hide from picks table"} style={{background:"#f59e0b20",border:"1px solid #f59e0b40",borderRadius:4,cursor:"pointer",lineHeight:1,padding:"4px 6px",color:"#f59e0b",transition:"all 0.15s",display:"flex",alignItems:"center",opacity:isHidden?0.4:1}}>{isHidden?<EyeOff size={14} color="#f59e0b"/>:<Eye size={14} color="#f59e0b"/>}</button>}
               </div>
             ):delayStatus?(
@@ -4604,7 +4605,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
                   const finalish = effectiveStatus==="FINISHED";
                   const liveLabel = matchClockLabel(f, lm);
                   if (f.result) return f.result;
-                  if (effectiveStatus==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>PPD</span>;
+                  if (effectiveStatus==="POSTPONED") return <span style={{fontSize:9,color:"#f59e0b",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{fixtureDelayStatus(f, lm) || "POSTPONED"}</span>;
                   if (liveStr) return <span style={{color:finalish?"var(--text-bright)":"#f59e0b"}}>{liveStr} <span style={{fontSize:9,letterSpacing:1,animation:finalish?undefined:"pulse 1.5s infinite",color:finalish?"#22c55e":undefined}}>{finalish?"FT":liveLabel||"LIVE"}</span></span>;
                   return null;
                 })()}</td>

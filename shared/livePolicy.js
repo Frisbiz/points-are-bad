@@ -18,6 +18,7 @@ function optionalNumber(value) {
 }
 
 function finishedLivePatch(liveMatch) {
+  if (liveMatch?.status === "postponed") return { status: "POSTPONED", interruptionStatus: liveMatch.interruptionStatus || null };
   const homeScore = optionalNumber(liveMatch?.homeScore);
   const awayScore = optionalNumber(liveMatch?.awayScore);
   if (liveMatch?.status !== "finished" || homeScore === null || awayScore === null) return null;
@@ -37,7 +38,9 @@ export function hasUnpersistedFinishedLiveScores(group, liveScores = {}) {
   if (!group || !liveScores || Object.keys(liveScores).length === 0) return false;
 
   return (group.gameweeks || []).some(gameweek => (gameweek.fixtures || []).some(fixture => {
-    const patch = finishedLivePatch(liveScores[`${fixture.home}|${fixture.away}`]);
+    const match = liveScores[`${fixture.home}|${fixture.away}`];
+    if (fixture.result && match?.status === "postponed") return false;
+    const patch = finishedLivePatch(match);
     if (!patch) return false;
     return Object.entries(patch).some(([key, value]) => {
       if (key === "homeShootoutScore" || key === "awayShootoutScore") {

@@ -139,6 +139,7 @@ function parseStatus(game) {
   const status = String(game.status_type || "").toLowerCase();
   const display = String(game.status_display_name || game.status_description || "").toLowerCase();
   if (status.includes("final") || display.includes("finished") || display.includes("final")) return "FINISHED";
+  if (status.includes("suspend") || status.includes("abandon") || /suspend|abandon|^susp$/.test(display)) return "POSTPONED";
   if (status.includes("postponed") || status.includes("cancelled") || display.includes("postpone") || display.includes("cancel")) return "POSTPONED";
   if (status.includes("delay") || display.includes("delay")) return "DELAYED";
   if (boolish(game.is_halftime) || display.includes("half")) return "PAUSED";
@@ -208,6 +209,7 @@ export function normalizeGames(scoreboard, competition, gwHint = null, scheduleD
       away: away.name,
       result: status === "FINISHED" ? scoreline : null,
       status,
+      interruptionStatus: status === "POSTPONED" ? (/suspend|^susp$/i.test(`${game.status_type} ${game.status_description} ${game.status_display_name}`) ? "SUSPENDED" : /cancel|abandon/i.test(`${game.status_type} ${game.status_description}`) ? "CANCELLED" : null) : null,
       date: dateIso ? date.toISOString() : null,
       yahooDate: scheduleDate || dateIso || null,
       homeTeamId: home.id,
@@ -423,6 +425,7 @@ export async function fetchYahooLiveMatches(competition, week, dates = []) {
       homeScore: Number.isFinite(homeScore) ? homeScore : 0,
       awayScore: Number.isFinite(awayScore) ? awayScore : 0,
       elapsed: f.elapsed || null,
+      interruptionStatus: f.interruptionStatus || null,
       status: f.status === "FINISHED" ? "finished" : f.status === "PAUSED" ? "halftime" : f.status === "IN_PLAY" ? "in_progress" : f.status === "POSTPONED" ? "postponed" : f.status === "DELAYED" ? "delayed" : "scheduled",
       startTime: f.date || null,
       ...knockoutWinnerPatch(f),
@@ -431,7 +434,7 @@ export async function fetchYahooLiveMatches(competition, week, dates = []) {
 }
 
 export async function saveFinishedLiveMatchesToCache({ competition = "PL", season = null, targetGW = 1, matches = [] } = {}) {
-  if (!matches.some(match => match?.status === "finished" && match.homeScore != null && match.awayScore != null)) {
+  if (!matches.some(match => match?.status === "postponed" || (match?.status === "finished" && match.homeScore != null && match.awayScore != null))) {
     return { changed: false };
   }
   const comp = competition === "WC" ? "WC" : competition === "LL" ? "LL" : "PL";

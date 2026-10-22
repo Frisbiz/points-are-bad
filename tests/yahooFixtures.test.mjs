@@ -12,6 +12,20 @@ async function loadYahooFixturesModule() {
   return import("../api/_yahooFixtures.js");
 }
 
+test("suspended Yahoo matches are deferred without turning the partial score into a result", async () => {
+  const { normalizeGames } = await loadYahooFixturesModule();
+  const [round] = normalizeGames({ teams: {}, games: { rayo: {
+    gameid: "soccer.g.13598028", home_team_id: "rayo", away_team_id: "athletic",
+    status_type: "status.type.suspended", status_display_name: "Susp", status_description: "Suspended",
+    start_time: "Sat, 10 Oct 2026 12:00:00 +0000", total_home_points: "0", total_away_points: "0",
+    game_time_elapsed_display: "31'",
+  } } }, "LL", 8);
+  assert.equal(round.fixtures[0].status, "POSTPONED");
+  assert.equal(round.fixtures[0].interruptionStatus, "SUSPENDED");
+  assert.equal(round.fixtures[0].result, null);
+  assert.equal(round.fixtures[0].liveScore, null);
+});
+
 test("normalizes Yahoo knockout shootout winner metadata", async () => {
   const { normalizeGames } = await loadYahooFixturesModule();
   const scoreboard = {
