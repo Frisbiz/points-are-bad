@@ -10,6 +10,8 @@ import IndexLandingPage from "./LandingPage.jsx";
 import './app-polish.css';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import { appPath, parseAppRoute } from './appRoutes.js';
+import DiscordConnection from './DiscordConnection.jsx';
+import { readDiscordConnectionResult } from './discordConnection.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
 import { gameweekStatus, observeSelectedGameweek } from './gameweekSelector.js';
@@ -1709,7 +1711,7 @@ function WhatsNewModal({ user, onClose, theme="dark" }) {
 }
 
 /* ── GROUP LOBBY ─────────────────────────────────── */
-function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark", setTheme=()=>{} }) {
+function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUser, onLogout, initialJoinCode=null, onAreBadTap, theme="dark", setTheme=()=>{}, discordResult=null, openAccountAfterBoot=false, refreshAccountUser, onDiscordResultConsumed }) {
   const [groups,setGroups]=useState(initialGroups);
   const [loading,setLoading]=useState(false);
   const [createName,setCreateName]=useState("");
@@ -1728,7 +1730,8 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
     onAreBadTap?.();
   };
   const [profileOpen,setProfileOpen]=useState(false);
-  const [accountOpen,setAccountOpen]=useState(false);
+  const [accountOpen,setAccountOpenRaw]=useState(openAccountAfterBoot);
+  const setAccountOpen=useCallback(next=>{setAccountOpenRaw(next);if(next===false)onDiscordResultConsumed?.();},[onDiscordResultConsumed]);
   const [pwCurrent,setPwCurrent]=useState("");
   const [pwNew,setPwNew]=useState("");
   const [pwConfirm,setPwConfirm]=useState("");
@@ -2022,6 +2025,7 @@ function GroupLobby({ user, groups: initialGroups = [], onEnterGroup, onUpdateUs
           )}
         </div>
       </div>
+      <DiscordConnection key={user.username} username={user.username} returnPath={window.location.pathname} resultCode={discordResult} onConnectionChange={refreshAccountUser}/>
       <div style={{marginBottom:24}}>
         <button onClick={()=>setThemePickerOpen(p=>!p)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
           <span className="dialog-section-title" style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,fontWeight:600}}>Appearance</span>
@@ -2619,6 +2623,13 @@ export default function App() {
   const [sitePrefsLoaded,setSitePrefsLoaded]=useState(false);
   const [theme,setThemeRaw]=useState(()=>localStorage.getItem("theme")||"dark");
   const userRef=useRef(null);
+  const [discordResult,setDiscordResult]=useState(()=>readDiscordConnectionResult(window.location.search));
+  const clearDiscordResult=useCallback(()=>setDiscordResult(null),[]);
+  const refreshAccountUser=useCallback(async()=>{
+    const username=userRef.current?.username;
+    const data=await fetchBootstrap();
+    if(username&&userRef.current?.username===username&&data.user?.username===username)setUser(data.user);
+  },[setUser]);
   const setTheme=useCallback((t)=>{
     setThemeRaw(t);
     // /api/db is read-only; theme persistence goes through the auth endpoint so it
@@ -2808,6 +2819,14 @@ export default function App() {
   useEffect(()=>{runBoot();},[]);
 
   useEffect(()=>{
+    if(!boot)return;
+    const url=new URL(window.location.href);
+    if(!url.searchParams.has("discord"))return;
+    url.searchParams.delete("discord");
+    window.history.replaceState(window.history.state,"",`${url.pathname}${url.search}${url.hash}`);
+  },[boot]);
+
+  useEffect(()=>{
     if(!bootError)return;
     const retryWhenOnline=()=>runBoot();
     window.addEventListener("online",retryWhenOnline);
@@ -2918,7 +2937,7 @@ export default function App() {
       navigateTo({page:"dashboard"},{replace:true});
     }
   };
-  const handleLogout = async () => {await callAPI('auth-logout'); ldel("session");setUser(null);setGroup(null);setShowLanding(true);navigateTo({page:"home"},{replace:true});};
+  const handleLogout = async () => {await callAPI('auth-logout'); ldel("session");setUser(null);clearDiscordResult();setGroup(null);setShowLanding(true);navigateTo({page:"home"},{replace:true});};
   const handleEnterGroup = async (g, destinationTab="League") => {
     const fresh = await sget(`group:${g.id}`);
     const resolved = normalizeWorldCupGroup(fresh || g);
@@ -3029,18 +3048,20 @@ export default function App() {
             setShowLanding(true);
             navigateTo({page:"home"},{replace:true});
           }}
-          successMsg={resetDone?"Password updated - please sign in.":null}
+          successMsg={resetDone?"Password updated - please sign in.":discordResult?"Sign in to PAB to manage your Discord connection.":null}
           joinCode={joinParam}
           theme={effectiveTheme}
         />
       ):!group?(
-        <GroupLobby user={user} groups={groups} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme} setTheme={setTheme}/>
+        <GroupLobby user={user} groups={groups} onEnterGroup={handleEnterGroup} onUpdateUser={u=>setUser(u)} onLogout={handleLogout} initialJoinCode={joinParam} onAreBadTap={unlockSecretTheme} theme={theme} setTheme={setTheme}
+          discordResult={discordResult} openAccountAfterBoot={!!discordResult} refreshAccountUser={refreshAccountUser} onDiscordResultConsumed={clearDiscordResult}/>
       ):(
         <GameUI user={user} group={group} tab={tab} setTab={handleSetTab} isAdmin={isAdmin}
           isCreator={isCreator} onLeave={handleLeaveGroup} onLogout={handleLogout} onUpdateUser={u=>setUser(u)}
           refreshGroup={refreshGroup} theme={theme} setTheme={setTheme} setGroup={setGroup} showToast={showToast}
           sitePrefs={sitePrefs} setSitePrefs={setSitePrefs}
           names={names} setNames={setNames}
+          discordResult={discordResult} openAccountAfterBoot={!!discordResult} refreshAccountUser={refreshAccountUser} onDiscordResultConsumed={clearDiscordResult}
           onOpenWhatsNew={() => setWhatsNewOpen(true)}/>
       )}
       {whatsNewOpen && <WhatsNewModal user={user} theme={theme} onClose={() => setWhatsNewOpen(false)} />}
@@ -3049,7 +3070,7 @@ export default function App() {
 }
 
 /* ── GAME SHELL ──────────────────────────────────── */
-function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpdateUser,refreshGroup,theme,setTheme,setGroup,showToast,sitePrefs=null,setSitePrefs=()=>{},names={},setNames=()=>{},onOpenWhatsNew=()=>{}}) {
+function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpdateUser,refreshGroup,theme,setTheme,setGroup,showToast,sitePrefs=null,setSitePrefs=()=>{},names={},setNames=()=>{},onOpenWhatsNew=()=>{},discordResult=null,openAccountAfterBoot=false,refreshAccountUser,onDiscordResultConsumed}) {
   const [selectedTab,setSelectedTab]=useState(tab);
   const [isTabPending,startTabTransition]=useTransition();
   const tabFrameRef=useRef(null);
@@ -3112,7 +3133,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
     };
   },[group.id, group.code, setGroup]);
   const [profileOpen,setProfileOpen]=useState(false);
-  const [accountOpen,setAccountOpen]=useState(false);
+  const [accountOpen,setAccountOpenRaw]=useState(openAccountAfterBoot);
+  const setAccountOpen=useCallback(next=>{setAccountOpenRaw(next);if(next===false)onDiscordResultConsumed?.();},[onDiscordResultConsumed]);
   const [pwCurrent,setPwCurrent]=useState("");
   const [pwNew,setPwNew]=useState("");
   const [pwConfirm,setPwConfirm]=useState("");
@@ -3258,6 +3280,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           <span style={{color:"var(--text-dim)"}}>Email</span><span style={{color:"var(--text-bright)",fontWeight:500}}>{user.email||"--"}</span>
         </div>
       </div>
+      <DiscordConnection key={user.username} username={user.username} returnPath={window.location.pathname} resultCode={discordResult} onConnectionChange={refreshAccountUser}/>
       <div style={{marginBottom:24}}>
         <button onClick={()=>setThemePickerOpen(p=>!p)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit"}}>
           <span style={{fontSize:11,color:"var(--text-dim2)",letterSpacing:2,fontWeight:600}}>Appearance</span>
