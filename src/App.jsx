@@ -13,6 +13,7 @@ import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
 import { gameweekStatus, observeSelectedGameweek } from './gameweekSelector.js';
+import { pickScoreColors } from './pickScoreColors.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
 import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, computeTrendStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
@@ -640,17 +641,18 @@ function DevTag({ username, compact = false }) {
   return <span title="Points are Bad developer" style={{display:"inline-flex",alignItems:"center",flexShrink:0,fontSize:compact?8:9,fontWeight:800,lineHeight:1,letterSpacing:compact?.5:.8,textTransform:"uppercase",color:"#22c55e",background:"#22c55e18",border:"1px solid #22c55e45",borderRadius:999,padding:compact?"2px 5px":"3px 7px"}}>dev</span>;
 }
 
-const BadgeScore = ({ score, missed=false }) => {
+const BadgeScore = ({ score, missed=false, viewerUsername="" }) => {
   if (score===null||score===undefined) return <span style={{color:"var(--text-dim2)",fontSize:13}}>—</span>;
-  const c = missed?"#6b7280":score===0?"#22c55e":score<=2?"#f59e0b":"#ef4444";
+  const palette = pickScoreColors(score, { viewerUsername, missed });
+  const c = palette.color;
   const perfect = !missed && score === 0;
   return <span style={{
     display:"inline-flex",
     alignItems:"center",
     justifyContent:"center",
-    background: perfect ? "linear-gradient(135deg, #22c55e24, #a3e63518)" : c+"20",
+    background: perfect ? "linear-gradient(135deg, #22c55e24, #a3e63518)" : palette.background,
     color:c,
-    border:`1px solid ${c}40`,
+    border:`1px solid ${palette.borderColor}`,
     borderRadius:6,
     height:22,
     minWidth:28,
@@ -962,6 +964,8 @@ function DashboardLiveSubscription({ target, onScores }) {
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@700;900&family=Plus+Jakarta+Sans:wght@500;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap');
+  :root{--pick-score-yellow:#facc15;}
+  [data-theme="light"],[data-theme="index"],[data-theme="excel"]{--pick-score-yellow:#a16207;}
   :root{--bg:#080810;--surface:#0e0e1a;--card:#0c0c18;--card-hi:#0f0f1d;--card-hover:#10101c;--input-bg:#0a0a14;--border:#1a1a26;--border2:#1e1e2e;--border3:#10101e;--text:#e8e4d9;--text-dim:#555566;--text-dim2:#666;--text-dim3:#555;--text-mid:#999;--text-bright:#fff;--text-inv:#000;--scrollbar:#222;--btn-bg:#fff;--btn-text:#000;--font-mono:'DM Mono',monospace;}
   [data-theme="light"]{--bg:#f4f1e8;--surface:#fff;--card:#eeeae0;--card-hi:#e8e5db;--card-hover:#e5e2d8;--input-bg:#fff;--border:#dddad0;--border2:#e0ddd4;--border3:#e4e1d8;--text:#1a1814;--text-dim:#888;--text-dim2:#666;--text-dim3:#777;--text-mid:#444;--text-bright:#0f0d0a;--text-inv:#f4f1e8;--scrollbar:#ccc;--btn-bg:#111;--btn-text:#f4f1e8;--font-mono:'DM Mono',monospace;}
   [data-theme="excel"]{--bg:#ffffff;--surface:#ffffff;--card:#f9f9f9;--card-hi:#f2f2f2;--card-hover:#efefef;--input-bg:#fff;--border:#d0d0d0;--border2:#e0e0e0;--border3:#e8e8e8;--text:#1a1a1a;--text-dim:#888;--text-dim2:#999;--text-dim3:#aaa;--text-mid:#444;--text-bright:#000;--text-inv:#fff;--scrollbar:#ccc;--btn-bg:#107c41;--btn-text:#fff;--font-mono:Arial,Calibri,sans-serif;}
@@ -4447,7 +4451,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
                   {pickBlock}
                 </div>
               </div>
-              <span style={{opacity:mutedOpacity}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></span>
+              <span style={{opacity:mutedOpacity}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null} viewerUsername={user.username}/></span>
             </div>
           </div>
         );
@@ -4466,7 +4470,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
               <a href={searchHref} target="_blank" rel="noopener noreferrer" title={f.away} style={{fontSize:14,color:awaySideEmphasized?"var(--text-bright)":"var(--text-mid)",fontWeight:awaySideEmphasized?700:400,textDecoration:"none"}} onMouseEnter={e=>e.currentTarget.style.color="var(--text)"} onMouseLeave={e=>e.currentTarget.style.color=awaySideEmphasized?"var(--text-bright)":"var(--text-mid)"}>{f.away}</a>
             </div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,opacity:mutedOpacity}}>{pickBlock}</div>
-            <div style={{textAlign:"center",opacity:mutedOpacity}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/></div>
+            <div style={{textAlign:"center",opacity:mutedOpacity}}><BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null} viewerUsername={user.username}/></div>
           </div>
         );
       })}
@@ -4485,7 +4489,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
       {(fixtureGroup.mode==="dibs"
         ? (fixtureGroup.members||[]).length>1
         : (picksLocked||allFixturesFinished||allFixturesClosedForPicks)&&(fixtureGroup.members||[]).length>1&&canViewAllPicks
-      )&&<AllPicksTable group={fixtureGroup} gwFixtures={gwFixtures.filter(f=>!(fixtureGroup.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup} liveScores={liveScores}/>}
+      )&&<AllPicksTable group={fixtureGroup} gwFixtures={gwFixtures.filter(f=>!(fixtureGroup.hiddenFixtures||[]).includes(f.id))} isAdmin={isAdmin} names={names} viewedGW={currentGW} theme={theme} dibsTurnFor={dibsTurnFor} setGroup={setGroup} liveScores={liveScores} viewerUsername={user.username}/>}
       {gwFixtures.some(f=>f.result)&&fixtureGroup.mode!=="dibs"&&(fixtureGroup.members||[]).length>1&&!canViewAllPicks&&(
         <div style={{marginTop:40,background:"var(--card)",border:"1px solid var(--border3)",borderRadius:10,padding:"36px",textAlign:"center"}}>
           <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><Lock size={28} color="var(--text-dim)"/></div>
@@ -4497,7 +4501,7 @@ function FixturesTab({group,user,isAdmin,names,theme,setGroup,showToast,initialL
   );
 }
 
-function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFor={},setGroup,liveScores={}}) {
+function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFor={},setGroup,liveScores={},viewerUsername=""}) {
   const mob = useMobile();
   const [editing,setEditing]=useState({}); // {`${username}:${fixtureId}`: draftValue}
   const [editConfirm,setEditConfirm]=useState(null); // {u,fid,val,oldVal}
@@ -4617,8 +4621,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
                   const key=editKey(u,f.id);
                   const isEditingCell=editing[key]!==undefined;
                   if(theme==="excel"){
-                    const ptsBg=effectivePts===null?"transparent":effectivePts===0?"#d4edda":effectivePts<MISSED_PICK_PTS?"transparent":effectivePts===MISSED_PICK_PTS?"#fef3c7":"#fee2e2";
-                    const ptsColor=effectivePts===null?"#999":effectivePts===0?"#16a34a":effectivePts<MISSED_PICK_PTS?"#666":effectivePts===MISSED_PICK_PTS?"#ca8a04":"#dc2626";
+                    const { background:ptsBg, color:ptsColor } = pickScoreColors(effectivePts, { viewerUsername, theme, missed:pts===null&&effectivePts!==null });
                     return [
                       <td key={`${u}-pick`} style={{padding:"5px 6px",textAlign:"center",borderRight:"none",background:rowBg,cursor:isAdmin?"pointer":"default",whiteSpace:"nowrap"}} onClick={()=>isAdmin&&startEdit(u,f.id)}>
                         {isAdmin&&isEditingCell?(
@@ -4668,7 +4671,7 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
                                 ? <span style={{color:"#ef4444",fontWeight:700,fontSize:18,lineHeight:1}}>×</span>
                                 : <span style={{color:"var(--text-dim3)",fontSize:11,lineHeight:1}}>–</span>}
                           </span>
-                          <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null}/>
+                          <BadgeScore score={effectivePts} missed={pts===null&&effectivePts!==null} viewerUsername={viewerUsername}/>
                         </div>
                       )}
                     </td>
