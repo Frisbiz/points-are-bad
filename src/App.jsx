@@ -15,6 +15,7 @@ import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth }
 import { gameweekStatus, observeSelectedGameweek } from './gameweekSelector.js';
 import { pickScoreColors } from './pickScoreColors.js';
 import { finishedScoresKey, retainUnchangedLiveScores } from './liveScoreState.js';
+import { observeTrendsCharts } from './trendsChartReveal.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
 import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, computeTrendStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
@@ -4715,6 +4716,7 @@ function SH({label}) {
 }
 
 function TrendsTab({group,names,theme}) {
+  const trendsViewRef = useRef(null);
   const mob = useMobile();
   const isIndex = theme === "index";
   const stats = useMemo(()=>getGroupStats(group),[group]);
@@ -4726,6 +4728,7 @@ function TrendsTab({group,names,theme}) {
   const scope = group.scoreScope || "all";
   const gws = useMemo(()=>(group.gameweeks||[]).filter(g => scope === "all" || (g.season||activeSeason) === activeSeason),[group.gameweeks,scope,activeSeason]);
   const hasData = stats.some(p=>p.scored>0);
+  useEffect(() => observeTrendsCharts(trendsViewRef.current), [hasData]);
   const tt={background:"var(--input-bg)",border:"1px solid var(--border2)",borderRadius:8,fontSize:11,fontFamily:"'DM Mono',monospace",color:"var(--text-bright)",boxShadow:"0 12px 32px rgba(0,0,0,.36)"};
   const chartTooltipProps={contentStyle:tt,labelStyle:{color:"var(--text-bright)",fontWeight:700},itemStyle:{color:"var(--text)"},wrapperStyle:{outline:"none"}};
   const ds = useMemo(()=>stats.map(p=>({...p,dn:names[p.username]||p.username})),[stats,names]);
@@ -4911,7 +4914,7 @@ function TrendsTab({group,names,theme}) {
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
     <TrendsPresentationContext.Provider value={{isIndex,mob}}>
-    <div className="trends-view">
+    <div className="trends-view" ref={trendsViewRef}>
       <div className={isIndex?"liquid-card":undefined} style={{marginBottom:mob?16:28,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isIndex?24:24):(isIndex?34:36),fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Trends</h1>
         {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}

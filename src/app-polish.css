@@ -69,12 +69,12 @@ html[data-theme="index"] body{background:var(--bg)}
 @keyframes tabLoadingLine{to{transform:translateX(190%)}}
 .group-main[data-tab="Trends"]{animation:trendsEnter 350ms cubic-bezier(.25,1,.5,1) both}
 @keyframes trendsEnter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-/* Reveal the stable chart container once. Data updates do not restart it. */
-.trends-view .recharts-responsive-container{animation:trendsChartReveal 380ms cubic-bezier(.25,1,.5,1)}
+/* The chart is revealed once, when its graphic is ready and visible. */
+.trends-view .recharts-responsive-container.trends-chart-revealed{animation:trendsChartReveal 850ms cubic-bezier(.33,0,.67,1)}
 @keyframes trendsChartReveal{from{opacity:.7;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0)}}
 .trends-view .trends-series,.trends-view .trends-series-dimmed{opacity:1;transition:opacity 180ms ease-out}
 .trends-view .trends-series-dimmed{opacity:.15}
-@media(prefers-reduced-motion:reduce){.group-main[data-tab="Trends"],.trends-view .recharts-responsive-container{animation:none}.trends-view .trends-series,.trends-view .trends-series-dimmed{transition:none}}
+@media(prefers-reduced-motion:reduce){.group-main[data-tab="Trends"],.trends-view .recharts-responsive-container.trends-chart-revealed{animation:none}.trends-view .trends-series,.trends-view .trends-series-dimmed{transition:none}}
 .group-context-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:0 2px 28px;margin-bottom:28px;border-bottom:1px solid var(--border2);font-family:'Plus Jakarta Sans',sans-serif}
 .group-context-bar>div:first-child{min-width:0;font-size:12px;color:var(--text-dim)}
 .group-context-bar button{border:0;background:transparent;color:var(--text-mid);padding:10px 0;cursor:pointer;font-size:12px}
