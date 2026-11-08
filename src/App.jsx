@@ -8,7 +8,7 @@ import { CURRENT_LEAGUE_SEASON, competitionRoundCount } from "../shared/season.j
 import { buildGroupDashboardState, formatDashboardCountdown, getDashboardCountdownUrgency, getDashboardFixtureTiming, getGroupDashboardAction, sortGroupDashboardItems } from "./groupDashboard.js";
 import IndexLandingPage from "./LandingPage.jsx";
 import './app-polish.css';
-import LoadingSkeleton from './LoadingSkeleton.jsx';
+import LoadingSkeleton, { TrendsSkeleton } from './LoadingSkeleton.jsx';
 import { appPath, parseAppRoute } from './appRoutes.js';
 import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
@@ -2972,7 +2972,9 @@ export default function App() {
         <AccountSetupModal user={user} onDone={handleSetupDone} onLogout={handleLogout} />
       )}
       {!boot?(
-        <LoadingSkeleton fullPage/>
+        route.page==="group" && lget("session")?.groupId===route.groupId && lget("session")?.tab==="Trends"
+          ? <TrendsSkeleton fullPage/>
+          : <LoadingSkeleton fullPage/>
       ):bootError?(
         bootError==="offline"||navigator.onLine === false?(
           <main style={{minHeight:"100dvh",boxSizing:"border-box",background:"var(--bg)",display:"grid",
@@ -3326,14 +3328,14 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
               style={{background:"none",border:"none",color:"#8888cc",cursor:"pointer",fontSize:16,lineHeight:1,padding:"0 2px",opacity:0.6,flexShrink:0}}>×</button>
           </div>
         )}
-        <TabErrorBoundary key={tab} tabName={tab}>
+        {selectedTab==="Trends" && tab!=="Trends" ? <TrendsSkeleton/> : <TabErrorBoundary key={tab} tabName={tab}>
           {tab==="League"&&<LeagueTab group={scoringGroup} user={user} names={names} theme={theme}/>}
           {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup} showToast={showToast} initialLiveScores={standingsLiveScores}/>}
           {tab==="Standings"&&<WCStandingsTab group={group} theme={theme}/>}
           {tab==="Trends"&&<MemoizedTrendsTab group={scoringGroup} names={names} theme={theme}/>}
           {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} theme={theme} setGroup={setGroup} setNames={setNames}/>}
           {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
-        </TabErrorBoundary>
+        </TabErrorBoundary>}
       </main>
     </div>
   );
