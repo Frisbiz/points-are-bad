@@ -14,6 +14,7 @@ import { isPastGroup } from "../shared/groupLifecycle.js";
 import { VIEWPORT_WATCH_INTERVAL_MS, viewportLayoutState, visibleViewportWidth } from './responsiveLayout.js';
 import { gameweekStatus, observeSelectedGameweek } from './gameweekSelector.js';
 import { pickScoreColors } from './pickScoreColors.js';
+import { finishedScoresKey, retainUnchangedLiveScores } from './liveScoreState.js';
 import { canAdminGroup, isDeveloper } from "../shared/groupAccess.js";
 import { MISSED_PICK_PTS, calcPts, computeFirstPickGW, isPreJoinGW, computeGroupStats, computeTrendStats, buildPointsBreakdownRows } from "../shared/scoring.js";
 
@@ -927,7 +928,7 @@ function useLiveScores(gw, fixtures, competition = "PL", season = 2025, initialL
           map[`${m.home}|${m.away}`] = m;
         });
         LIVE_SCORE_CACHE.set(cacheKey, map);
-        setLiveData(map);
+        setLiveData(previous => retainUnchangedLiveScores(previous, map));
       } catch (_) { /* Live polling retries on the next scheduled interval. */ }
       running = false;
       schedulePoll(LIVE_POLL_INTERVAL_MS);
@@ -3175,7 +3176,8 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
       .finally(() => { finalizingLiveScoresRef.current = false; });
     return () => { cancelled = true; };
   }, [group, standingsLiveScores, setGroup]);
-  const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, standingsLiveScores),[group, standingsLiveScores]);
+  const finalScoresKey = finishedScoresKey(standingsLiveScores);
+  const scoringGroup = useMemo(()=>applyFinishedLiveScoresToGroup(group, Object.fromEntries(JSON.parse(finalScoresKey))),[group, finalScoresKey]);
   const stats = useMemo(()=>getGroupStats(scoringGroup),[scoringGroup]);
   const myRank = stats.find(s => s.username === user.username)?.rank || 0;
   const completedGWs = (scoringGroup.gameweeks || [])
@@ -3328,7 +3330,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
           {tab==="League"&&<LeagueTab group={scoringGroup} user={user} names={names} theme={theme}/>}
           {tab==="Fixtures"&&<FixturesTab group={group} user={user} isAdmin={isAdmin} names={names} theme={theme} setGroup={setGroup} showToast={showToast} initialLiveScores={standingsLiveScores}/>}
           {tab==="Standings"&&<WCStandingsTab group={group} theme={theme}/>}
-          {tab==="Trends"&&<TrendsTab group={scoringGroup} names={names} theme={theme}/>}
+          {tab==="Trends"&&<MemoizedTrendsTab group={scoringGroup} names={names} theme={theme}/>}
           {tab==="Members"&&<MembersTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} names={names} theme={theme} setGroup={setGroup} setNames={setNames}/>}
           {tab==="Group"&&<GroupTab group={group} user={user} isAdmin={isAdmin} isCreator={isCreator} onLeave={onLeave} onUpdateUser={onUpdateUser} theme={theme} names={names} sitePrefs={sitePrefs} setSitePrefs={setSitePrefs} onOpenWhatsNew={onOpenWhatsNew} setGroup={setGroup}/>}
         </TabErrorBoundary>
@@ -5199,6 +5201,8 @@ function TrendsTab({group,names,theme}) {
     </TrendsPresentationContext.Provider>
   );
 }
+
+const MemoizedTrendsTab = React.memo(TrendsTab);
 
 /* ── MEMBERS ─────────────────────────────────────── */
 function MembersTab({group,user,isAdmin,isCreator,names,theme,setGroup,setNames}) {
