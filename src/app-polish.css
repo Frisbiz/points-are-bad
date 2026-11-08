@@ -67,6 +67,11 @@ html[data-theme="index"] body{background:var(--bg)}
 .tab-loading-line{position:sticky;top:0;z-index:2;height:3px;margin:-32px 0 29px;overflow:hidden;background:var(--card)}
 .tab-loading-line::after{content:"";display:block;width:36%;height:100%;background:var(--text-bright);animation:tabLoadingLine 700ms ease-in-out infinite alternate;transform:translateX(-10%)}
 @keyframes tabLoadingLine{to{transform:translateX(190%)}}
+.group-main[data-tab="Trends"]{animation:trendsEnter 350ms cubic-bezier(.25,1,.5,1) both}
+@keyframes trendsEnter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.trends-view .trends-series,.trends-view .trends-series-dimmed{opacity:1;transition:opacity 180ms ease-out}
+.trends-view .trends-series-dimmed{opacity:.15}
+@media(prefers-reduced-motion:reduce){.group-main[data-tab="Trends"]{animation:none}.trends-view .trends-series,.trends-view .trends-series-dimmed{transition:none}}
 .group-context-bar{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:0 2px 28px;margin-bottom:28px;border-bottom:1px solid var(--border2);font-family:'Plus Jakarta Sans',sans-serif}
 .group-context-bar>div:first-child{min-width:0;font-size:12px;color:var(--text-dim)}
 .group-context-bar button{border:0;background:transparent;color:var(--text-mid);padding:10px 0;cursor:pointer;font-size:12px}

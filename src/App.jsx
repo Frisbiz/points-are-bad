@@ -3306,7 +3306,7 @@ function GameUI({user,group,tab,setTab,isAdmin,isCreator,onLeave,onLogout,onUpda
   </div>,
   document.body
 )}
-      <main aria-busy={isTabPending||selectedTab!==tab} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot group-main" key={tab}>
+      <main aria-busy={isTabPending||selectedTab!==tab} data-tab={tab} style={{maxWidth:theme==="index"?1120:940,margin:"0 auto",padding:"32px 20px"}} className="fade pad-bot group-main" key={tab}>
         {(isTabPending||selectedTab!==tab)&&<div className="tab-loading-line" aria-label={`Loading ${selectedTab}`}/>}
         {theme==="index"&&<div className="group-context-bar">
           <div><button onClick={onLeave}>Your groups</button><span aria-hidden="true"> / </span><span>{competitionLabel(group,true)}</span><h2>{group.name}</h2></div>
@@ -4698,6 +4698,18 @@ function AllPicksTable({group,gwFixtures,isAdmin,names,viewedGW,theme,dibsTurnFo
 }
 
 /* ── TRENDS ──────────────────────────────────────── */
+const TrendsPresentationContext = React.createContext({ isIndex: false, mob: false });
+
+function CC({title,sub,children}) {
+  const { isIndex, mob } = React.useContext(TrendsPresentationContext);
+  return <div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>;
+}
+
+function SH({label}) {
+  const { isIndex, mob } = React.useContext(TrendsPresentationContext);
+  return <div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>;
+}
+
 function TrendsTab({group,names,theme}) {
   const mob = useMobile();
   const isIndex = theme === "index";
@@ -4720,8 +4732,6 @@ function TrendsTab({group,names,theme}) {
   const perfectsData=useMemo(()=>ds.map(p=>({name:p.dn,perfects:p.perfects})),[ds]);
   const preds=group.predictions||{};
   const distData=useMemo(()=>[0,1,2,3,4,5].map(pts=>{const key=pts===5?"5+":String(pts);const r={pts:key};ds.forEach(p=>{r[p.dn]=trendStats?.players?.[p.username]?.pointsDistribution?.[key]||0;});return r;}),[ds,trendStats]);
-  const CC=({title,sub,children})=>(<div className={isIndex?"liquid-card":undefined} style={{background:isIndex?undefined:"var(--surface)",border:"1px solid var(--border)",borderRadius:isIndex?22:12,padding:mob?"14px 14px 12px":"20px 20px 18px",marginBottom:mob?12:18}}><div style={{marginBottom:mob?10:16}}><div style={{fontSize:11,fontWeight:700,letterSpacing:isIndex?0.2:2,color:"var(--text-dim3)",textTransform:isIndex?"none":"uppercase"}}>{title}</div>{sub&&<div style={{fontSize:mob?10:11,color:"var(--text-dim)",marginTop:3}}>{sub}</div>}</div>{children}</div>);
-  const SH=({label})=>(<div style={{display:"flex",alignItems:"center",gap:10,margin:mob?"18px 0 10px":"32px 0 18px"}}><div style={{width:2,height:14,background:isIndex?"#7c8aa0":"#6366f1",borderRadius:2,flexShrink:0}}/><span style={{fontSize:11,fontWeight:700,letterSpacing:3,color:isIndex?"#7c8aa0":"#6366f1",textTransform:"uppercase"}}>{label}</span><div style={{flex:1,height:1,background:"var(--border)"}}/></div>);
   const gwTickInterval = mob ? "preserveStartEnd" : (gws.length > 30 ? Math.ceil(gws.length / 15) - 1 : 0);
   const gwTickProps = { fill:"var(--text-dim3)", fontSize:10 };
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -4896,7 +4906,8 @@ function TrendsTab({group,names,theme}) {
 
   if (!hasData) return <div style={{textAlign:"center",padding:"80px 0",color:"var(--text-dim)"}}><div style={{fontSize:40,marginBottom:14}}>📊</div><div style={{fontSize:11,letterSpacing:2}}>SYNC RESULTS TO SEE TRENDS</div></div>;
   return (
-    <div>
+    <TrendsPresentationContext.Provider value={{isIndex,mob}}>
+    <div className="trends-view">
       <div className={isIndex?"liquid-card":undefined} style={{marginBottom:mob?16:28,padding:isIndex?"24px 28px":"0",borderRadius:isIndex?28:0}}>
         <h1 style={{fontFamily:isIndex?"Inter,system-ui,sans-serif":"'Playfair Display',serif",fontSize:mob?(isIndex?24:24):(isIndex?34:36),fontWeight:isIndex?700:900,color:"var(--text-bright)",letterSpacing:isIndex?"-0.03em":-1,marginBottom:8}}>Trends</h1>
         {isIndex&&<p style={{fontSize:12,color:"var(--text-dim)",lineHeight:1.6}}>Performance swings, cumulative damage, and who keeps getting away with it.</p>}
@@ -4935,7 +4946,7 @@ function TrendsTab({group,names,theme}) {
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis reversed domain={[1,ds.length]} allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false} ticks={ds.map((_,i)=>i+1)}/>
             <Tooltip {...chartTooltipProps} formatter={(val,name,props)=>{const pts=props.payload[`${name}_pts`];return [`#${val} (${pts}pts)`,name];}}/>
-            {ds.map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={selectedPlayer===p.username?3:2} strokeOpacity={selectedPlayer&&selectedPlayer!==p.username?0.15:1} dot={{r:mob?3:4,fill:memberColor(p.username)}} activeDot={{r:6}}/>)}
+            {ds.map(p=><Line isAnimationActive={false} key={p.username} className={selectedPlayer&&selectedPlayer!==p.username?"trends-series-dimmed":"trends-series"} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={selectedPlayer===p.username?3:2} dot={{r:mob?3:4,fill:memberColor(p.username)}} activeDot={{r:6}}/>)}
           </LineChart>
         </ResponsiveContainer>
       </CC>
@@ -4945,7 +4956,7 @@ function TrendsTab({group,names,theme}) {
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>
-            {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}
+            {ds.map(p=><Line isAnimationActive={false} key={p.username} className={selectedPlayer&&selectedPlayer!==p.username?"trends-series-dimmed":"trends-series"} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2.5} dot={false}/>)}
           </LineChart>
         </ResponsiveContainer>
       </CC>
@@ -4957,7 +4968,7 @@ function TrendsTab({group,names,theme}) {
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10,color:"var(--text-mid)"}}/>
-            {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=><Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:mob?2:3}} activeDot={{r:5}}/>)}
+            {ds.map(p=><Line isAnimationActive={false} key={p.username} className={selectedPlayer&&selectedPlayer!==p.username?"trends-series-dimmed":"trends-series"} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:mob?2:3}} activeDot={{r:5}}/>)}
           </LineChart>
         </ResponsiveContainer>
       </CC>
@@ -4967,10 +4978,10 @@ function TrendsTab({group,names,theme}) {
             <XAxis dataKey="name" tick={gwTickProps} axisLine={false} tickLine={false} interval={gwTickInterval} minTickGap={mob?8:14}/>
             <YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/>
             <Tooltip {...chartTooltipProps}/>
-            <Area type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
-            <Area type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
-            <Line type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
-            {selectedPlayer&&(()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
+            <Area isAnimationActive={false} type="monotone" dataKey="max" stroke="none" fill="var(--border)" fillOpacity={1} legendType="none"/>
+            <Area isAnimationActive={false} type="monotone" dataKey="min" stroke="none" fill="var(--surface)" fillOpacity={1} legendType="none"/>
+            <Line isAnimationActive={false} type="monotone" dataKey="avg" stroke="var(--text-mid)" strokeWidth={1.5} dot={false} strokeDasharray="4 2"/>
+            {selectedPlayer&&(()=>{const p=ds.find(x=>x.username===selectedPlayer);return p?<Line isAnimationActive={false} key={p.username} type="monotone" dataKey={p.dn} stroke={memberColor(p.username)} strokeWidth={2} dot={{r:4,fill:memberColor(p.username)}}/>:null;})()}
           </ComposedChart>
         </ResponsiveContainer>
       </CC>
@@ -5045,19 +5056,19 @@ function TrendsTab({group,names,theme}) {
             <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
             <Tooltip {...chartTooltipProps}/>
             <Legend content={<BreakdownLegend/>}/>
-            <Bar dataKey="Perfect" stackId="a" fill={isIndex?"#22c55e":"#22c55e"}/>
+            <Bar isAnimationActive={false} dataKey="Perfect" stackId="a" fill={isIndex?"#22c55e":"#22c55e"}/>
 
-            <Bar dataKey="Close" stackId="a" fill={isIndex?"#f59e0b":"#f59e0b"}/>
+            <Bar isAnimationActive={false} dataKey="Close" stackId="a" fill={isIndex?"#f59e0b":"#f59e0b"}/>
 
-            <Bar dataKey="Bad" stackId="a" fill={isIndex?"#ef4444":"#ef4444"}/>
+            <Bar isAnimationActive={false} dataKey="Bad" stackId="a" fill={isIndex?"#ef4444":"#ef4444"}/>
 
-            <Bar dataKey="Missed" stackId="a" fill={isIndex?"#94a3b8":"#555566"} radius={[0,4,4,0]}/>
+            <Bar isAnimationActive={false} dataKey="Missed" stackId="a" fill={isIndex?"#94a3b8":"#555566"} radius={[0,4,4,0]}/>
           </BarChart>
         </ResponsiveContainer>
       </CC>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:18}}>
-        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Bar dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
-        <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
+        <CC title="Perfect Predictions"><ResponsiveContainer width="100%" height={180}><BarChart data={perfectsData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="name" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Bar isAnimationActive={false} dataKey="perfects" fill={isIndex?"#22c55e":"#22c55e"} radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></CC>
+        <CC title="Points Distribution" sub="How often each score outcome occurs per player"><ResponsiveContainer width="100%" height={180}><BarChart data={distData} margin={{top:0,right:8,left:-22,bottom:0}}><XAxis dataKey="pts" tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><YAxis tick={{fill:"var(--text-dim3)",fontSize:10}} axisLine={false} tickLine={false}/><Tooltip {...chartTooltipProps}/><Legend wrapperStyle={{fontSize:10}}/>{ds.map(p=><Bar isAnimationActive={false} key={p.username} dataKey={p.dn} fill={memberColor(p.username)} radius={[3,3,0,0]}/>)}</BarChart></ResponsiveContainer></CC>
       </div>
 
       <SH label="Playing Style"/>
@@ -5069,11 +5080,11 @@ function TrendsTab({group,names,theme}) {
               <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
               <Tooltip {...chartTooltipProps} formatter={(v,n)=>[`${+Number(v).toFixed(1)}%`,n]}/>
               <Legend wrapperStyle={{fontSize:10}}/>
-              <Bar dataKey="Home" stackId="a" fill={isIndex?"#3b82f6":"#6366f1"}/>
+              <Bar isAnimationActive={false} dataKey="Home" stackId="a" fill={isIndex?"#3b82f6":"#6366f1"}/>
 
-              <Bar dataKey="Draw" stackId="a" fill={isIndex?"#f59e0b":"#f59e0b"}/>
+              <Bar isAnimationActive={false} dataKey="Draw" stackId="a" fill={isIndex?"#f59e0b":"#f59e0b"}/>
 
-              <Bar dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
+              <Bar isAnimationActive={false} dataKey="Away" stackId="a" fill="#22c55e" radius={[0,4,4,0]}/>
             </BarChart>
           </ResponsiveContainer>
         </CC>
@@ -5084,9 +5095,9 @@ function TrendsTab({group,names,theme}) {
               <PolarAngleAxis dataKey="subject" tick={<RadarTick/>}/>
               <PolarRadiusAxis domain={[0,100]} tick={false} axisLine={false}/>
               <Tooltip content={<RadarTooltip rawMap={radarData.rawMap} tt={tt}/>}/>
-              <Radar name="Group Avg" dataKey="Avg" stroke={isIndex?"#94a3b8":"#555577"} fill={isIndex?"#cbd5e1":"#555577"} fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
-              {ds.filter(p=>!selectedPlayer||selectedPlayer===p.username).map(p=>(
-                <Radar key={p.username} name={p.dn} dataKey={p.dn} stroke={memberColor(p.username)} fill={memberColor(p.username)} fillOpacity={selectedPlayer?0.4:0.15} strokeWidth={selectedPlayer?2.5:1.5}/>
+              <Radar isAnimationActive={false} name="Group Avg" dataKey="Avg" stroke={isIndex?"#94a3b8":"#555577"} fill={isIndex?"#cbd5e1":"#555577"} fillOpacity={0.2} strokeWidth={1.5} strokeDasharray="5 3"/>
+              {ds.map(p=>(
+                <Radar isAnimationActive={false} key={p.username} className={selectedPlayer&&selectedPlayer!==p.username?"trends-series-dimmed":"trends-series"} name={p.dn} dataKey={p.dn} stroke={memberColor(p.username)} fill={memberColor(p.username)} fillOpacity={selectedPlayer===p.username?0.4:0.15} strokeWidth={selectedPlayer===p.username?2.5:1.5}/>
               ))}
             </RadarChart>
           </ResponsiveContainer>
@@ -5101,7 +5112,7 @@ function TrendsTab({group,names,theme}) {
               <YAxis type="category" dataKey="name" width={mob?48:58} tick={{fill:"var(--text-mid)",fontSize:mob?9:10}} axisLine={false} tickLine={false}/>
               <Tooltip {...chartTooltipProps} formatter={v=>[v>0?`+${v} goals/pick`:v===0?"on the dot":`${v} goals/pick`,"Goal diff"]}/>
               <ReferenceLine x={0} stroke="var(--text-dim3)" strokeDasharray="3 3"/>
-              <Bar dataKey="value" radius={[0,4,4,0]}>
+              <Bar isAnimationActive={false} dataKey="value" radius={[0,4,4,0]}>
                 {goalInflationData.map((e,i)=><Cell key={i} fill={e.value>=0?(isIndex?"#f59e0b":"#f59e0b"):(isIndex?"#3b82f6":"#6366f1")}/>)}
               </Bar>
             </BarChart>
@@ -5185,6 +5196,7 @@ function TrendsTab({group,names,theme}) {
       })()}
 
     </div>
+    </TrendsPresentationContext.Provider>
   );
 }
 
