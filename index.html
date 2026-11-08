@@ -70,6 +70,8 @@
       #splash .dot:nth-child(1) { animation-delay: 0.8s; }
       #splash .dot:nth-child(2) { animation-delay: 1.0s; }
       #splash .dot:nth-child(3) { animation-delay: 1.2s; }
+      #startup-recovery-message { margin-top: 24px; padding: 0 20px; text-align: center; color: var(--sp-text, #e8e4d9); font: 14px/1.5 system-ui, sans-serif; }
+      #startup-recovery-message button { margin-top: 12px; padding: 9px 16px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 8px; cursor: pointer; font: inherit; }
       @keyframes slideR { to { opacity: 1; transform: translateX(0); } }
       @keyframes slideL { to { opacity: 1; transform: translateX(0); } }
       @keyframes fadeUp { to { opacity: 0.4; } }
@@ -101,6 +103,50 @@
         }
       } catch(e) {}
     </script>
+    <script id="startup-recovery">
+      (function () {
+        var retryKey = 'pab-startup-retry';
+        var handled = false;
+        function showMessage(text) {
+          var message = document.getElementById('startup-recovery-message');
+          if (!message) return;
+          message.firstElementChild.textContent = text;
+          message.hidden = false;
+        }
+        window.setTimeout(function () {
+          showMessage(navigator.onLine === false ? 'You’re offline. Reconnect and try again.' : 'PAB is taking longer than expected to load.');
+        }, 12000);
+        window.addEventListener('error', function (event) {
+          var target = event.target;
+          if (handled || !target || target.tagName !== 'SCRIPT' || target.type !== 'module' || !target.src) return;
+          handled = true;
+          if (navigator.onLine === false) {
+            showMessage('You’re offline. Reconnect and try again.');
+            return;
+          }
+          try {
+            if (window.sessionStorage.getItem(retryKey)) {
+              showMessage('PAB couldn’t load the latest version. Please try again.');
+              return;
+            }
+            window.sessionStorage.setItem(retryKey, '1');
+          } catch (_) {
+            showMessage('PAB couldn’t load. Please try again.');
+            return;
+          }
+          showMessage('Updating PAB. Please wait…');
+          var update = navigator.serviceWorker ? navigator.serviceWorker.getRegistration().then(function (registration) {
+            if (!registration) return;
+            return registration.update().then(function () {
+              if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            });
+          }).catch(function () {}) : Promise.resolve();
+          Promise.race([update, new Promise(function (resolve) { window.setTimeout(resolve, 3000); })]).then(function () {
+            window.setTimeout(function () { window.location.reload(); }, 1500);
+          });
+        }, true);
+      })();
+    </script>
   </head>
   <body>
     <div id="root">
@@ -114,6 +160,10 @@
           <div class="dot"></div>
           <div class="dot"></div>
           <div class="dot"></div>
+        </div>
+        <div id="startup-recovery-message" hidden role="status">
+          <div></div>
+          <button type="button" onclick="window.location.reload()">Try again</button>
         </div>
       </div>
     </div>

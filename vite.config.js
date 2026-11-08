@@ -41,8 +41,10 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
+        // Activate updates even when an older PAB tab is stuck on its splash.
+        // Existing tabs keep their controller until the next navigation.
         clientsClaim: false,
-        skipWaiting: false,
+        skipWaiting: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [

@@ -9,6 +9,10 @@ export default function PwaStatus() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
+    // An activated worker must not reload the page while someone is making picks.
+    onNeedReload() {
+      setNeedRefresh(true);
+    },
     onRegisteredSW(_serviceWorkerUrl, registration) {
       registrationRef.current = registration || null;
       registration?.update().catch(() => {});
@@ -55,7 +59,7 @@ export default function PwaStatus() {
           </div>
           <div className="pwa-update-actions">
             <button type="button" className="pwa-update-later" onClick={() => setNeedRefresh(false)}>Later</button>
-            <button type="button" className="pwa-update-now" onClick={() => updateServiceWorker(true)}>Update</button>
+            <button type="button" className="pwa-update-now" onClick={() => updateServiceWorker(true).finally(() => window.location.reload())}>Update</button>
           </div>
         </section>
       )}
